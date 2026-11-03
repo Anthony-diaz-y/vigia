@@ -14,7 +14,7 @@ columns:
   disease: [enfermedad, disease, evento, enfermedad_sujeta_vigilancia]
   ubigeo: [ubigeo, codigo_ubigeo, ubigeo_inei, codigo_geografico]
   year: [ano, anio, year, ano_notificacion]
-  epi_week: [semana, semana_epidemiologica, sem_epidemiologica, se, semana_epi, week]
+  epi_week: [semana, semana_epidemiologica, sem_epidemiologica, se, semana_epi, week, semana_notificacion]
   cases: [casos, cases, total, total_casos, numero_casos, n]
   department: [departamento, dpto, region, departamento_diresa]
   province: [provincia, prov]

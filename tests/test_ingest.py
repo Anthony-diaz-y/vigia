@@ -111,6 +111,24 @@ def test_messy_headers_resolved_by_fuzzy_matching(tmp_path: Path) -> None:
     assert _read(result)["epi_week"].tolist() == [6]
 
 
+def test_semana_notificacion_maps_to_epi_week(tmp_path: Path) -> None:
+    header = (
+        "DEPARTAMENTO,PROVINCIA,DISTRITO,UBIGEO,ANO,SEMANA_NOTIFICACION,"
+        "EDAD,TIPO_EDAD,SEXO\n"
+    )
+    body = "LORETO,MAYNAS,IQUITOS,160110,2024,5,12,ANOS,F\n"
+    path = _write(tmp_path, body, header=header)
+
+    result = ingest_file(path, out_dir=tmp_path / "out", source="minsa_dengue")
+
+    assert result.rows_valid == 1
+    assert result.mapping["epi_week"] == "SEMANA_NOTIFICACION"
+    frame = _read(result)
+    assert frame["epi_week"].tolist() == [5]
+    # No `casos` column: the source counts one case per row.
+    assert frame["cases"].tolist() == [1]
+
+
 def test_duplicates_collapsed_and_counted(tmp_path: Path) -> None:
     row = (
         "LORETO,MAYNAS,IQUITOS,DENGUE,2024,7,DENGUE SIN SIGNOS DE ALARMA,"

@@ -8,6 +8,7 @@ from vigia.forecast.model import (
     ForecastResult,
     forecast,
     seasonal_drift_forecast,
+    year_over_year_drift,
 )
 from vigia.forecast.registry import ModelRegistry, model_id
 
@@ -23,4 +24,5 @@ __all__ = [
     "model_id",
     "seasonal_drift_forecast",
     "weighted_interval_score",
+    "year_over_year_drift",
 ]

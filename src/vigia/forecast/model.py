@@ -74,6 +74,28 @@ def advance_epi_week(year: int, epi_week: int, steps: int) -> tuple[int, int]:
     return total // WEEKS_PER_YEAR, total % WEEKS_PER_YEAR + 1
 
 
+def year_over_year_drift(
+    values: Sequence[float], season: int = WEEKS_PER_YEAR
+) -> float:
+    """Mean year-over-year change over the most recent complete season.
+
+    With two or more seasons of history the drift is the mean of the last
+    season's differences; with exactly one season it is the mean of every
+    available difference; with less than one season it is zero.
+    """
+    series = np.asarray(values, dtype=float)
+    n = len(series)
+    if n < season:
+        raise ValueError("year-over-year drift needs at least one full season")
+    if n >= 2 * season:
+        return float(
+            np.mean(series[n - season : n] - series[n - 2 * season : n - season])
+        )
+    if n > season:
+        return float(np.mean(series[season:n] - series[0 : n - season]))
+    return 0.0
+
+
 def seasonal_drift_forecast(
     values: Sequence[float], horizon: int, season: int = WEEKS_PER_YEAR
 ) -> list[float]:
@@ -90,15 +112,7 @@ def seasonal_drift_forecast(
     if n < season:
         raise ValueError("seasonal drift needs at least one full season of history")
 
-    if n >= 2 * season:
-        drift = float(
-            np.mean(series[n - season : n] - series[n - 2 * season : n - season])
-        )
-    elif n > season:
-        drift = float(np.mean(series[season:n] - series[0 : n - season]))
-    else:
-        drift = 0.0
-
+    drift = year_over_year_drift(series, season)
     return [float(series[n - season + h - 1]) + drift for h in range(1, horizon + 1)]
 
 

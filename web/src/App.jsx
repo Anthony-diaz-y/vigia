@@ -109,6 +109,20 @@ export default function App() {
     }
   }
 
+  const onReset = async () => {
+    if (!window.confirm('Clear all ingested data?')) return
+    setBusy(true)
+    setError(null)
+    try {
+      await api.endpoints.clear()
+      await refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const seriesData = useMemo(() => {
     const totals = {}
     for (const row of series) {
@@ -178,6 +192,9 @@ export default function App() {
           </button>
           <button onClick={refresh} disabled={busy}>
             {busy ? 'Loading…' : 'Refresh'}
+          </button>
+          <button onClick={onReset} disabled={busy} title="Clear all ingested data">
+            Reset
           </button>
         </div>
       </header>

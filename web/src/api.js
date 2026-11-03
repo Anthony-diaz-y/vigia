@@ -32,6 +32,7 @@ export const endpoints = {
   },
   loadDemo: () => request('/api/demo/load', { method: 'POST' }),
   uploads: () => request('/api/uploads'),
+  clear: () => request('/api/uploads', { method: 'DELETE' }),
   quality: (id) => request(`/api/uploads/${id}/quality`),
   series: () => request('/api/analysis/series'),
   interannual: () => request('/api/analysis/interannual'),

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -126,6 +127,20 @@ def upload_quality(upload_id: int, session: Session = Depends(get_session)) -> d
     if record is None:
         raise HTTPException(status_code=404, detail="upload not found")
     return json.loads(Path(record.quality_path).read_text(encoding="utf-8"))
+
+
+@router.delete("/uploads")
+def clear_uploads(
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    """Clear every ingested file and its artifacts (the metadata database stays)."""
+    session.query(Upload).delete()
+    session.commit()
+    for directory in (settings.uploads_dir, settings.raw_dir, settings.registry_dir):
+        shutil.rmtree(directory, ignore_errors=True)
+        directory.mkdir(parents=True, exist_ok=True)
+    return {"cleared": True}
 
 
 @router.get("/analysis/series")

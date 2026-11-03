@@ -89,3 +89,13 @@ def test_upload_csv_and_quality(client: TestClient) -> None:
     ).json()
     assert quality["rows_in"] == 1
     assert quality["rows_valid"] == 1
+
+
+def test_clear_uploads(client: TestClient) -> None:
+    client.post("/api/demo/load", headers=_auth())
+    assert len(client.get("/api/uploads", headers=_auth()).json()) == 1
+
+    response = client.delete("/api/uploads", headers=_auth())
+    assert response.status_code == 200
+    assert response.json() == {"cleared": True}
+    assert client.get("/api/uploads", headers=_auth()).json() == []

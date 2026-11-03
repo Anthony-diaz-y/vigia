@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import shutil
 from pathlib import Path
 
@@ -28,9 +29,11 @@ from vigia.ingest.errors import IngestError
 from vigia.api.auth import require_token
 from vigia.api.config import Settings
 from vigia.api.demo import demo_csv_text
-from vigia.api.deps import get_session, get_settings, tenant_parquet_paths
+from vigia.api.deps import get_session, get_settings, reconcile, tenant_parquet_paths
 from vigia.api.models import Upload
 from vigia.api.serialize import to_jsonable
+
+logger = logging.getLogger("vigia.api")
 
 router = APIRouter(dependencies=[Depends(require_token)])
 
@@ -102,6 +105,7 @@ def upload(
     try:
         return _store_ingest(session, settings, raw_path, source, file.filename or raw_path.name)
     except IngestError as exc:
+        logger.warning("upload rejected (%s): %s", file.filename, exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
@@ -117,6 +121,7 @@ def load_demo(
 
 @router.get("/uploads")
 def list_uploads(session: Session = Depends(get_session)) -> list[dict]:
+    reconcile(session)
     records = session.query(Upload).order_by(Upload.id.desc()).all()
     return [_upload_payload(record) for record in records]
 

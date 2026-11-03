@@ -99,3 +99,32 @@ def test_clear_uploads(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {"cleared": True}
     assert client.get("/api/uploads", headers=_auth()).json() == []
+
+
+def test_dangling_record_self_heals(client: TestClient, tmp_path) -> None:
+    from vigia.api.models import Upload
+
+    session = client.app.state.SessionLocal()
+    try:
+        session.add(
+            Upload(
+                file_hash="dangling",
+                filename="gone.csv",
+                source="minsa_dengue",
+                status="ok",
+                rows_in=1,
+                rows_valid=1,
+                rows_dropped=0,
+                duplicates_collapsed=0,
+                normalized_path=str(tmp_path / "missing" / "normalized.parquet"),
+                quality_path=str(tmp_path / "missing" / "quality.json"),
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    # Analysis must not crash (500) on a dangling reference.
+    assert client.get("/api/analysis/series", headers=_auth()).status_code == 404
+    # Listing uploads self-heals the dangling row.
+    assert client.get("/api/uploads", headers=_auth()).json() == []

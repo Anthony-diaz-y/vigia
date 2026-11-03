@@ -44,9 +44,25 @@ export default function App() {
     setBusy(true)
     setError(null)
     try {
-      const [h, u, s, ia, hm, rk, an, fc, ex] = await Promise.all([
+      const [h, u] = await Promise.all([
         api.endpoints.health(),
         api.endpoints.uploads(),
+      ])
+      setHealth(h)
+      setUploads(u)
+
+      if (u.length === 0) {
+        setSeries([])
+        setInterannual([])
+        setHeatmap(null)
+        setRanking([])
+        setAnomalies([])
+        setForecast(null)
+        setExplain(null)
+        return
+      }
+
+      const [s, ia, hm, rk, an, fc, ex] = await Promise.all([
         api.endpoints.series(),
         api.endpoints.interannual(),
         api.endpoints.heatmap(year),
@@ -55,8 +71,6 @@ export default function App() {
         api.endpoints.forecast(),
         api.endpoints.explain(),
       ])
-      setHealth(h)
-      setUploads(u)
       setSeries(s)
       setInterannual(ia)
       setHeatmap(hm)

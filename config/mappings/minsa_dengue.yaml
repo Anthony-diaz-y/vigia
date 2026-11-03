@@ -1,0 +1,50 @@
+# Source mapping for the MINSA / CDC Peru dengue surveillance dataset.
+# https://www.datosabiertos.gob.pe/dataset/vigilancia-epidemiologica-de-dengue
+#
+# Alias lists are compared after header normalization (lowercase, no accents,
+# non-alphanumeric collapsed to underscores), first exact, then fuzzy.
+source: minsa_dengue
+disease: DENGUE
+
+# The published file exposes one aggregated row with a case count.
+# Set to true for sources that publish one row per notified case.
+count_rows: false
+
+columns:
+  disease: [enfermedad, disease, evento, enfermedad_sujeta_vigilancia]
+  ubigeo: [ubigeo, codigo_ubigeo, ubigeo_inei, codigo_geografico]
+  year: [ano, anio, year, ano_notificacion]
+  epi_week: [semana, semana_epidemiologica, sem_epidemiologica, se, semana_epi, week]
+  cases: [casos, cases, total, total_casos, numero_casos, n]
+  department: [departamento, dpto, region, departamento_diresa]
+  province: [provincia, prov]
+  district: [distrito, dis]
+  directorate: [direccion_redes, diresa, red, direccion_regional]
+  sex: [sexo]
+  age_group: [grupo_edad, edad, age, grupo_etario]
+  age_type: [tipo_edad, tipoedad, age_type]
+  diagnosis: [diagnostico, diagnosis, diagnostico_final]
+  diagnosis_type: [tipo_diagnostico, tipodiagnostico, tipo_dx]
+
+required: [ubigeo, year, epi_week]
+
+# Columns that make an upload a personal-data problem. Any match rejects the file.
+pii_aliases:
+  - dni
+  - documento
+  - numero_documento
+  - nombre
+  - nombres
+  - apellido
+  - apellidos
+  - paciente
+  - nombre_paciente
+  - historia_clinica
+  - historia
+  - hc
+  - telefono
+  - celular
+  - correo
+  - email
+  - direccion
+  - domicilio

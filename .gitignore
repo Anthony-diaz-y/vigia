@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Secretos y entorno
+.env
+.env.*
+!.env.example
+
+# Datos y artefactos locales
+data/
+*.duckdb
+*.duckdb.wal
+*.parquet
+models/artifacts/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Sistema
+.DS_Store
+Thumbs.db

@@ -17,9 +17,9 @@ DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEEPSEEK_API_KEY_ENV = "DEEPSEEK_API_KEY"
 
 _SYSTEM_PROMPT = (
-    "You summarize a public-health forecast in plain language. "
-    "Never make clinical recommendations or decide actions; only summarize "
-    "the provided drivers and actions."
+    "Resumí en español, en lenguaje claro, un pronóstico de salud pública. "
+    "Nunca hagas recomendaciones clínicas ni decidas acciones; solo resumí "
+    "los impulsores y las acciones provistas."
 )
 
 
@@ -29,16 +29,26 @@ class NarrativeResult:
     text: str
 
 
+_DIRECTIONS = {"up": "al alza", "down": "a la baja"}
+
+
 def render_template(payload: dict) -> str:
     """Deterministic prose from the aggregated payload."""
     unit = payload["unit"]
     drivers = payload["drivers"]
-    top = ", ".join(f"{d['feature']} ({d['direction']})" for d in drivers)
+    top = ", ".join(
+        f"{_driver_name(d)} ({_DIRECTIONS.get(d.get('direction'), d.get('direction', ''))})"
+        for d in drivers
+    )
     actions = "; ".join(d["action"] for d in drivers if d.get("action"))
     return (
-        f"For {unit}, the forecast is driven mainly by: {top}. "
-        f"Recommended preventive actions: {actions}."
+        f"Para {unit}, el pronóstico está impulsado principalmente por: {top}. "
+        f"Acciones preventivas recomendadas: {actions}."
     )
+
+
+def _driver_name(driver: dict) -> str:
+    return driver.get("driver") or driver.get("feature") or ""
 
 
 def deepseek_narrative(payload: dict) -> str | None:

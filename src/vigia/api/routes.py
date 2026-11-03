@@ -84,7 +84,7 @@ def _parquet_paths(session: Session) -> list[Path]:
     if not paths:
         raise HTTPException(
             status_code=404,
-            detail="no data yet: upload a file or load the demo dataset",
+            detail="sin datos: subí un archivo o cargá el dataset de demostración",
         )
     return paths
 
@@ -130,7 +130,7 @@ def list_uploads(session: Session = Depends(get_session)) -> list[dict]:
 def upload_quality(upload_id: int, session: Session = Depends(get_session)) -> dict:
     record = session.get(Upload, upload_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="upload not found")
+        raise HTTPException(status_code=404, detail="carga no encontrada")
     return json.loads(Path(record.quality_path).read_text(encoding="utf-8"))
 
 

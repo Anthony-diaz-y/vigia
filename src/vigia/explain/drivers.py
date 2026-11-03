@@ -33,14 +33,24 @@ FEATURES: tuple[str, ...] = (
 DEFAULT_RIDGE_LAMBDA = 1.0
 DEFAULT_PROVISIONAL_WEEKS = 6
 
+#: Human-readable Spanish labels for the feature keys shown to the user.
+DRIVER_LABELS: dict[str, str] = {
+    "recent_level": "Casos recientes",
+    "recent_level_2w": "Casos hace 2 semanas",
+    "seasonal_baseline": "Temporada previa",
+    "year_over_year_trend": "Tendencia interanual",
+    "seasonal_phase_sin": "Estacionalidad",
+    "seasonal_phase_cos": "Estacionalidad (fase)",
+}
+
 #: Deterministic driver -> preventive action table. The LLM never writes these.
 ACTION_TABLE: dict[str, str] = {
-    "recent_level": "Intensify case investigation in reporting units.",
-    "recent_level_2w": "Sustain active surveillance in districts with recent transmission.",
-    "seasonal_baseline": "Prepare surge capacity ahead of the expected seasonal peak.",
-    "year_over_year_trend": "Scale up larval source reduction to counter the growing trend.",
-    "seasonal_phase_sin": "Time preventive campaigns to the seasonal transmission window.",
-    "seasonal_phase_cos": "Align staffing and supplies with the seasonal transmission window.",
+    "recent_level": "Intensificar la investigación de casos en las unidades notificadoras.",
+    "recent_level_2w": "Sostener la vigilancia activa en los distritos con transmisión reciente.",
+    "seasonal_baseline": "Preparar capacidad de respuesta antes del pico estacional esperado.",
+    "year_over_year_trend": "Reforzar el control larvario para contrarrestar la tendencia creciente.",
+    "seasonal_phase_sin": "Calendarizar las campañas preventivas según la temporada de transmisión.",
+    "seasonal_phase_cos": "Alinear personal e insumos con la temporada de transmisión.",
 }
 
 
@@ -136,11 +146,13 @@ def top_drivers(
         order = np.argsort(-abs_mean_shap)[:top_k]
 
         for rank, index in enumerate(order, start=1):
+            feature = FEATURES[index]
             rows.append(
                 {
                     **geo_row,
                     "rank": int(rank),
-                    "feature": FEATURES[index],
+                    "feature": feature,
+                    "driver": DRIVER_LABELS[feature],
                     "mean_shap": float(mean_shap[index]),
                     "abs_mean_shap": float(abs_mean_shap[index]),
                     "direction": "up" if mean_shap[index] >= 0 else "down",
@@ -149,7 +161,8 @@ def top_drivers(
 
     return pd.DataFrame(
         rows,
-        columns=geo + ["rank", "feature", "mean_shap", "abs_mean_shap", "direction"],
+        columns=geo
+        + ["rank", "feature", "driver", "mean_shap", "abs_mean_shap", "direction"],
     )
 
 

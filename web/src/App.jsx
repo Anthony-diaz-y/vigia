@@ -15,6 +15,10 @@ import * as api from './api'
 
 const COLORS = ['#0f766e', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#059669']
 
+const UPLOAD_STATUS_LABELS = { ok: 'OK', ok_with_issues: 'OK con observaciones' }
+const FORECAST_STATUS_LABELS = { publish: 'Publicado', insufficient_evidence: 'Evidencia insuficiente' }
+const DIRECTION_LABELS = { up: 'sube', down: 'baja' }
+
 function Section({ title, children }) {
   return (
     <section className="section">
@@ -124,7 +128,7 @@ export default function App() {
   }
 
   const onReset = async () => {
-    if (!window.confirm('Clear all ingested data?')) return
+    if (!window.confirm('¿Borrar todos los datos ingeridos?')) return
     setBusy(true)
     setError(null)
     try {
@@ -140,7 +144,7 @@ export default function App() {
   const seriesData = useMemo(() => {
     const totals = {}
     for (const row of series) {
-      const key = `${row.year}-W${String(row.epi_week).padStart(2, '0')}`
+      const key = `${row.year}-S${String(row.epi_week).padStart(2, '0')}`
       totals[key] = (totals[key] || 0) + (row.cases || 0)
     }
     return Object.entries(totals)
@@ -174,22 +178,22 @@ export default function App() {
     <>
       <header>
         <h1>vigia</h1>
-        <span className="muted">dengue decision support</span>
+        <span className="muted">soporte de decisión en dengue</span>
         <div className="controls">
           <input
             type="text"
             value={token}
-            placeholder="access token"
+            placeholder="token de acceso"
             onChange={(e) => onTokenChange(e.target.value)}
             onBlur={refresh}
-            title="Access token"
+            title="Token de acceso"
           />
           <input
             type="number"
             value={year}
             min={2000}
             onChange={(e) => setYear(Number(e.target.value))}
-            title="Year for heatmap and ranking"
+            title="Año para mapa de calor y ranking"
           />
           <input
             ref={fileRef}
@@ -199,16 +203,16 @@ export default function App() {
             style={{ display: 'none' }}
           />
           <button onClick={() => fileRef.current?.click()} disabled={busy}>
-            Upload
+            Subir
           </button>
           <button className="primary" onClick={onDemo} disabled={busy}>
-            Load demo data
+            Cargar datos demo
           </button>
           <button onClick={refresh} disabled={busy}>
-            {busy ? 'Loading…' : 'Refresh'}
+            {busy ? 'Cargando…' : 'Actualizar'}
           </button>
-          <button onClick={onReset} disabled={busy} title="Clear all ingested data">
-            Reset
+          <button onClick={onReset} disabled={busy} title="Borrar todos los datos ingeridos">
+            Borrar datos
           </button>
         </div>
       </header>
@@ -217,32 +221,32 @@ export default function App() {
         {error && <div className="error">{error}</div>}
 
         {empty && (
-          <Section title="No data yet">
+          <Section title="Sin datos aún">
             <p className="muted">
-              Upload a surveillance export (CSV/XLSX) or load the synthetic demo
-              dataset to see the dashboard.
+              Subí un archivo de vigilancia (CSV/XLSX) o cargá el dataset de
+              demostración para ver el panel.
             </p>
           </Section>
         )}
 
         {uploads.length > 0 && (
-          <Section title={`Ingested files (${uploads.length})`}>
+          <Section title={`Archivos ingeridos (${uploads.length})`}>
             <table>
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th>Status</th>
-                  <th>Rows in</th>
-                  <th>Valid</th>
-                  <th>Dropped</th>
-                  <th>Duplicates</th>
+                  <th>Archivo</th>
+                  <th>Estado</th>
+                  <th>Filas leídas</th>
+                  <th>Válidas</th>
+                  <th>Descartadas</th>
+                  <th>Duplicadas</th>
                 </tr>
               </thead>
               <tbody>
                 {uploads.map((row) => (
                   <tr key={row.id}>
                     <td>{row.filename}</td>
-                    <td>{row.status}</td>
+                    <td>{UPLOAD_STATUS_LABELS[row.status] || row.status}</td>
                     <td>{row.rows_in}</td>
                     <td>{row.rows_valid}</td>
                     <td>{row.rows_dropped}</td>
@@ -255,7 +259,7 @@ export default function App() {
         )}
 
         {seriesData.length > 0 && (
-          <Section title="Weekly cases (total)">
+          <Section title="Casos semanales (total)">
             <div className="chart">
               <ResponsiveContainer>
                 <LineChart data={seriesData}>
@@ -271,7 +275,7 @@ export default function App() {
         )}
 
         {interannual.length > 0 && (
-          <Section title="Interannual comparison (by epidemiological week)">
+          <Section title="Comparación interanual (por semana epidemiológica)">
             <div className="chart">
               <ResponsiveContainer>
                 <LineChart data={interannual}>
@@ -296,11 +300,11 @@ export default function App() {
         )}
 
         {heatmap && (
-          <Section title={`Heatmap by department and week (${year})`}>
+          <Section title={`Mapa de calor por departamento y semana (${year})`}>
             <div className="heatmap" style={{ gridTemplateColumns: `auto repeat(${heatmap.weeks.length}, 14px)` }}>
               <div className="row-label" />
               {heatmap.weeks.map((week) => (
-                <div key={week} className="row-label muted" title={`week ${week}`}>
+                <div key={week} className="row-label muted" title={`semana ${week}`}>
                   {week}
                 </div>
               ))}
@@ -317,7 +321,7 @@ export default function App() {
         )}
 
         {ranking.length > 0 && (
-          <Section title={`Ranking by cases${year ? ` (${year})` : ''}`}>
+          <Section title={`Ranking por casos${year ? ` (${year})` : ''}`}>
             <div className="chart">
               <ResponsiveContainer>
                 <BarChart data={ranking} layout="vertical">
@@ -333,20 +337,20 @@ export default function App() {
         )}
 
         {anomalies.length > 0 && (
-          <Section title={`Anomalies (${flagged.length} flagged)`}>
+          <Section title={`Anomalías (${flagged.length} señaladas)`}>
             {flagged.length === 0 ? (
-              <p className="muted">No anomaly flags for the current data.</p>
+              <p className="muted">Sin anomalías para los datos actuales.</p>
             ) : (
               <table>
                 <thead>
                   <tr>
-                    <th>Department</th>
-                    <th>Year</th>
-                    <th>Week</th>
-                    <th>Cases</th>
-                    <th>Baseline</th>
+                    <th>Departamento</th>
+                    <th>Año</th>
+                    <th>Semana</th>
+                    <th>Casos</th>
+                    <th>Base</th>
                     <th>Residual</th>
-                    <th>Robust z</th>
+                    <th>z robusto</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -368,15 +372,15 @@ export default function App() {
         )}
 
         {forecast && (
-          <Section title="Forecast scorecard">
+          <Section title="Scorecard de pronóstico">
             <table>
               <thead>
                 <tr>
-                  <th>Department</th>
-                  <th>Windows</th>
+                  <th>Departamento</th>
+                  <th>Ventanas</th>
                   <th>MASE</th>
                   <th>WIS</th>
-                  <th>Status</th>
+                  <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -386,7 +390,7 @@ export default function App() {
                     <td>{row.windows}</td>
                     <td>{row.mase == null ? '—' : row.mase.toFixed(3)}</td>
                     <td>{row.wis == null ? '—' : row.wis.toFixed(3)}</td>
-                    <td>{row.status}</td>
+                    <td>{FORECAST_STATUS_LABELS[row.status] || row.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -419,15 +423,15 @@ export default function App() {
         )}
 
         {explain && explain.drivers.length > 0 && (
-          <Section title="Top drivers per department">
+          <Section title="Principales impulsores por departamento">
             <table>
               <thead>
                 <tr>
-                  <th>Department</th>
-                  <th>Rank</th>
-                  <th>Driver</th>
-                  <th>Direction</th>
-                  <th>Action</th>
+                  <th>Departamento</th>
+                  <th>Posición</th>
+                  <th>Impulsor</th>
+                  <th>Dirección</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -435,8 +439,8 @@ export default function App() {
                   <tr key={i}>
                     <td>{row.department}</td>
                     <td>{row.rank}</td>
-                    <td>{row.feature}</td>
-                    <td>{row.direction}</td>
+                    <td>{row.driver}</td>
+                    <td>{DIRECTION_LABELS[row.direction] || row.direction}</td>
                     <td>{row.action}</td>
                   </tr>
                 ))}
@@ -452,7 +456,7 @@ export default function App() {
       </main>
 
       <footer className="disclaimer">
-        {health ? health.disclaimer : 'Decision-support tool, not a medical device.'}
+        {health ? health.disclaimer : 'Herramienta de apoyo a la decisión, no un dispositivo médico.'}
       </footer>
     </>
   )

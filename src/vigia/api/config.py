@@ -8,8 +8,8 @@ from pathlib import Path
 
 #: Fixed, non-negotiable disclaimer shown on every surface.
 DISCLAIMER = (
-    "Decision-support tool, not a medical device. It does not replace the "
-    "health authority."
+    "Herramienta de apoyo a la decisión, no un dispositivo médico. "
+    "No reemplaza a la autoridad sanitaria."
 )
 
 DEFAULT_ACCESS_TOKEN = "vigia-dev"

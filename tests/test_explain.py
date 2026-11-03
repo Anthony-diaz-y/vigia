@@ -79,6 +79,7 @@ def test_top_drivers_returns_top_5_per_unit(tmp_path: Path) -> None:
         "department",
         "rank",
         "feature",
+        "driver",
         "mean_shap",
         "abs_mean_shap",
         "direction",
@@ -119,14 +120,16 @@ def test_narrative_template_is_deterministic() -> None:
         "unit": "LIMA",
         "drivers": [
             {
+                "driver": "Casos recientes",
                 "feature": "recent_level",
                 "direction": "up",
-                "action": "Intensify case investigation.",
+                "action": "Intensificar la investigación de casos.",
             },
             {
+                "driver": "Temporada previa",
                 "feature": "seasonal_baseline",
                 "direction": "down",
-                "action": "Prepare surge capacity.",
+                "action": "Preparar capacidad de respuesta.",
             },
         ],
     }
@@ -134,8 +137,8 @@ def test_narrative_template_is_deterministic() -> None:
     second = render_template(payload)
     assert first == second
     assert "LIMA" in first
-    assert "recent_level (up)" in first
-    assert "Intensify case investigation." in first
+    assert "Casos recientes (al alza)" in first
+    assert "Intensificar la investigación de casos." in first
 
 
 def test_narrative_falls_back_without_key(monkeypatch: pytest.MonkeyPatch) -> None:

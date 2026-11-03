@@ -42,7 +42,7 @@ def explain(
             str(value) for value in (key if isinstance(key, tuple) else (key,))
         )
         payload_drivers = group[
-            ["feature", "direction", "mean_shap", "action"]
+            ["driver", "feature", "direction", "mean_shap", "action"]
         ].to_dict(orient="records")
         narratives.append(narrative({"unit": unit, "drivers": payload_drivers}))
 

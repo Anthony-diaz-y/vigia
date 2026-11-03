@@ -16,4 +16,4 @@ def require_token(request: Request) -> None:
         provided = request.headers.get("X-Access-Token")
 
     if not provided or provided != token:
-        raise HTTPException(status_code=401, detail="invalid or missing access token")
+        raise HTTPException(status_code=401, detail="token de acceso inválido o ausente")

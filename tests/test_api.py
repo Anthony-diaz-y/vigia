@@ -25,7 +25,7 @@ def _auth() -> dict[str, str]:
 def test_health_is_public_with_disclaimer(client: TestClient) -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert "medical device" in response.json()["disclaimer"]
+    assert "dispositivo médico" in response.json()["disclaimer"]
 
 
 def test_missing_token_is_rejected(client: TestClient) -> None:

@@ -13,8 +13,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from epiforecast.ingest import ingest_file
-from epiforecast.ingest.errors import (
+from vigia.ingest import ingest_file
+from vigia.ingest.errors import (
     MissingRequiredColumns,
     PiiDetected,
     UnsupportedFile,

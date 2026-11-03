@@ -14,8 +14,8 @@ from pathlib import Path
 import yaml
 from rapidfuzz import fuzz, process
 
-from epiforecast.ingest.contract import CANONICAL_COLUMNS
-from epiforecast.ingest.errors import PiiDetected, SourceConfigError
+from vigia.ingest.contract import CANONICAL_COLUMNS
+from vigia.ingest.errors import PiiDetected, SourceConfigError
 
 FUZZY_THRESHOLD = 85.0
 

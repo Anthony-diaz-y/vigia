@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from epiforecast.ingest.contract import (
+from vigia.ingest.contract import (
     AGE_BANDS,
     CANONICAL_COLUMNS,
     KEY_COLUMNS,
@@ -24,8 +24,8 @@ from epiforecast.ingest.contract import (
     UBIGEO_LENGTH,
     UNKNOWN,
 )
-from epiforecast.ingest.mapping import MappingResult, SourceConfig
-from epiforecast.ingest.quality import IssueCollector, QualityIssue
+from vigia.ingest.mapping import MappingResult, SourceConfig
+from vigia.ingest.quality import IssueCollector, QualityIssue
 
 STRING_COLUMNS = (
     "disease",

@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 from charset_normalizer import from_bytes
 
-from epiforecast.ingest.errors import EmptyFile, FileTooLarge, UnsupportedFile
+from vigia.ingest.errors import EmptyFile, FileTooLarge, UnsupportedFile
 
 MAX_BYTES = 50 * 1024 * 1024
 MAX_ROWS = 2_000_000

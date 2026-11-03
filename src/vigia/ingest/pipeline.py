@@ -11,17 +11,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from epiforecast.ingest.errors import MissingRequiredColumns
-from epiforecast.ingest.mapping import (
+from vigia.ingest.errors import MissingRequiredColumns
+from vigia.ingest.mapping import (
     MappingResult,
     SourceConfig,
     detect_pii,
     load_source_config,
     resolve_mapping,
 )
-from epiforecast.ingest.normalize import NormalizedTable, normalize
-from epiforecast.ingest.quality import QualityReport
-from epiforecast.ingest.readers import RawTable, file_hash, read_table
+from vigia.ingest.normalize import NormalizedTable, normalize
+from vigia.ingest.quality import QualityReport
+from vigia.ingest.readers import RawTable, file_hash, read_table
 
 DEFAULT_SOURCE = "minsa_dengue"
 

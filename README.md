@@ -1,4 +1,7 @@
-# epiforecast
+# vigia
+
+*Vigia*: the lookout that raises the alarm before the outbreak lands. The name
+comes from *vigilancia epidemiologica*, the practice this tool supports.
 
 Ingestion, analysis and short-term forecasting for Peruvian public health
 surveillance data (dengue first, multi-disease by design).
@@ -25,7 +28,7 @@ diseases, district-level granularity.
 
 ```
 config/mappings/     Per-source column mapping and PII rules (YAML)
-src/epiforecast/     Python package
+src/vigia/     Python package
   ingest/            Readers, mapping, normalization, quality, pipeline
 tests/               Contract tests, synthetic fixtures
 ```

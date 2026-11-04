@@ -14,6 +14,7 @@ TOKEN = "test-token"
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VIGIA_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("VIGIA_ACCESS_TOKEN", TOKEN)
+    monkeypatch.delenv("VIGIA_DATABASE_URL", raising=False)
     from vigia.api.main import create_app
 
     with TestClient(create_app()) as test_client:

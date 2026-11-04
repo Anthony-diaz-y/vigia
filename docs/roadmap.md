@@ -96,6 +96,8 @@ it defaults to SQLite (dev and tests unchanged); set it to a
 `postgresql+psycopg://` URL to run metadata on PostgreSQL. `build_engine` applies
 SQLite-specific connect args only for SQLite URLs. Driver: `psycopg[binary]`.
 Validated with a skip-guarded smoke test against a Docker Postgres.
+Configuration loads from `.env` (via `python-dotenv`); copy `.env.example` to
+`.env` and adjust it.
 
 ## Open decisions
 

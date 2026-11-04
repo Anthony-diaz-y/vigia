@@ -72,6 +72,9 @@ assignment.
 Metadata storage defaults to SQLite. Set `VIGIA_DATABASE_URL` to a
 `postgresql+psycopg://user:pass@host:port/db` URL to run it on PostgreSQL.
 
+Copy `.env.example` to `.env` to set the token and database URL without typing
+them on every launch (`.env` is gitignored).
+
 ## Data sources
 
 - MINSA / CDC Peru open data: dengue, malaria, acute respiratory infections.

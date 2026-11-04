@@ -62,12 +62,13 @@ cd web && npm run dev                       # dev server on :5173, proxies /api
 ```
 
 Access is token-gated: set `VIGIA_ACCESS_TOKEN` (default `vigia-dev`) and pass
-it as the `X-Access-Token` header or in the UI token field. The dashboard has a
-"Load demo data" button that ingests a synthetic three-year dataset.
+it as the `X-Access-Token` header or in the UI token field.
 
 Uploads go through a mapping review step: before ingestion, the dashboard shows
 how source columns map to canonical columns and you can confirm or correct the
-assignment.
+assignment. Once several files are uploaded, the file selector in the header
+scopes every chart, scorecard and forecast to the file you pick (`upload_id`
+on the API), or to all of them at once.
 
 Metadata storage defaults to SQLite. Set `VIGIA_DATABASE_URL` to a
 `postgresql+psycopg://user:pass@host:port/db` URL to run it on PostgreSQL.

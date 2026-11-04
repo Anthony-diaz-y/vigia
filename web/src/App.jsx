@@ -131,6 +131,7 @@ export default function App() {
   const [theme, setTheme] = useState(readTheme)
   const [showAllRanking, setShowAllRanking] = useState(false)
   const [explainDept, setExplainDept] = useState(null)
+  const [activeUploadId, setActiveUploadId] = useState(null)
   const fileRef = useRef(null)
   const [review, setReview] = useState(null)
   const [reviewFile, setReviewFile] = useState(null)
@@ -159,13 +160,13 @@ export default function App() {
       }
 
       const [s, ia, hm, rk, an, fc, ex] = await Promise.all([
-        api.endpoints.series(),
-        api.endpoints.interannual(),
-        api.endpoints.heatmap(year),
-        api.endpoints.ranking(year),
-        api.endpoints.anomalies(),
-        api.endpoints.forecast(),
-        api.endpoints.explain(),
+        api.endpoints.series(activeUploadId),
+        api.endpoints.interannual(activeUploadId),
+        api.endpoints.heatmap(year, activeUploadId),
+        api.endpoints.ranking(year, activeUploadId),
+        api.endpoints.anomalies(activeUploadId),
+        api.endpoints.forecast(activeUploadId),
+        api.endpoints.explain(activeUploadId),
       ])
       setSeries(s)
       setInterannual(ia)
@@ -179,7 +180,7 @@ export default function App() {
     } finally {
       setBusy(false)
     }
-  }, [year])
+  }, [year, activeUploadId])
 
   useEffect(() => {
     refresh()
@@ -232,7 +233,8 @@ export default function App() {
     setBusy(true)
     setError(null)
     try {
-      await api.endpoints.upload(reviewFile, mapping)
+      const created = await api.endpoints.upload(reviewFile, mapping)
+      if (created && created.id) setActiveUploadId(created.id)
       setReview(null)
       setReviewFile(null)
       setReviewMapping({})
@@ -250,25 +252,13 @@ export default function App() {
     setReviewMapping({})
   }
 
-  const onDemo = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      await api.endpoints.loadDemo()
-      await refresh()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const onReset = async () => {
     if (!window.confirm('¿Borrar todos los datos ingeridos?')) return
     setBusy(true)
     setError(null)
     try {
       await api.endpoints.clear()
+      setActiveUploadId(null)
       await refresh()
     } catch (err) {
       setError(err.message)
@@ -514,9 +504,23 @@ export default function App() {
             <button className="btn" onClick={() => fileRef.current?.click()} disabled={busy}>
               Subir
             </button>
-            <button className="btn btn-primary" onClick={onDemo} disabled={busy}>
-              Cargar datos demo
-            </button>
+            <select
+              className="file-select"
+              value={activeUploadId ?? ''}
+              onChange={(event) =>
+                setActiveUploadId(event.target.value ? Number(event.target.value) : null)
+              }
+              disabled={busy || uploads.length === 0}
+              title="Archivo a analizar"
+              aria-label="Archivo a analizar"
+            >
+              <option value="">Todos los archivos</option>
+              {uploads.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.filename}
+                </option>
+              ))}
+            </select>
             <button className="btn" onClick={refresh} disabled={busy}>
               {busy ? 'Cargando…' : 'Actualizar'}
             </button>
@@ -537,8 +541,8 @@ export default function App() {
           {empty && (
             <Section title="Sin datos aún">
               <p className="muted">
-                Subí un archivo de vigilancia (CSV/XLSX) o cargá el dataset de
-                demostración para ver el panel.
+                Subí un archivo de vigilancia (CSV/XLSX) para ver el panel de
+                análisis y el pronóstico.
               </p>
             </Section>
           )}

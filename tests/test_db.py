@@ -41,17 +41,22 @@ def _postgres_available() -> bool:
 
 
 @pytest.mark.skipif(not _postgres_available(), reason="PostgreSQL no disponible")
-def test_postgres_smoke_demo_load(tmp_path, monkeypatch) -> None:
+def test_postgres_smoke_upload(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("VIGIA_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("VIGIA_ACCESS_TOKEN", TOKEN)
     monkeypatch.setenv("VIGIA_DATABASE_URL", PG_URL)
 
     from fastapi.testclient import TestClient
 
+    from demo_data import demo_csv_text
     from vigia.api.main import create_app
 
     with TestClient(create_app()) as client:
-        response = client.post("/api/demo/load", headers=_auth())
+        response = client.post(
+            "/api/upload",
+            headers=_auth(),
+            files={"file": ("historico.csv", demo_csv_text().encode("utf-8"), "text/csv")},
+        )
         assert response.status_code == 200
         assert response.json()["rows_valid"] == 624
 

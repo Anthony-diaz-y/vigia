@@ -35,10 +35,22 @@ def test_missing_token_is_rejected(client: TestClient) -> None:
     assert client.get("/api/analysis/series").status_code == 401
 
 
-def test_demo_load_then_analysis_forecast_explain_export(client: TestClient) -> None:
-    response = client.post("/api/demo/load", headers=_auth())
+def _upload_demo_csv(client: TestClient) -> dict:
+    """Upload the synthetic weekly fixture (no demo endpoint in production)."""
+    from demo_data import demo_csv_text
+
+    response = client.post(
+        "/api/upload",
+        headers=_auth(),
+        files={"file": ("historico.csv", demo_csv_text().encode("utf-8"), "text/csv")},
+    )
     assert response.status_code == 200
-    assert response.json()["rows_valid"] == 624
+    return response.json()
+
+
+def test_upload_then_analysis_forecast_explain_export(client: TestClient) -> None:
+    payload = _upload_demo_csv(client)
+    assert payload["rows_valid"] == 624
 
     uploads = client.get("/api/uploads", headers=_auth()).json()
     assert len(uploads) == 1
@@ -95,7 +107,7 @@ def test_upload_csv_and_quality(client: TestClient) -> None:
 
 
 def test_clear_uploads(client: TestClient) -> None:
-    client.post("/api/demo/load", headers=_auth())
+    _upload_demo_csv(client)
     assert len(client.get("/api/uploads", headers=_auth()).json()) == 1
 
     response = client.delete("/api/uploads", headers=_auth())
@@ -234,3 +246,51 @@ def test_upload_without_age_columns_does_not_crash(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["rows_valid"] == 1
+
+
+def _upload_department(client: TestClient, filename: str, department: str, ubigeo: str) -> dict:
+    csv_text = (
+        "departamento,ano,semana,ubigeo,edad,tipo_edad,sexo,casos\n"
+        f"{department},2024,1,{ubigeo},30,ANOS,F,7\n"
+    )
+    response = client.post(
+        "/api/upload",
+        headers=_auth(),
+        files={"file": (filename, csv_text.encode("utf-8"), "text/csv")},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def test_analysis_can_be_scoped_to_one_upload(client: TestClient) -> None:
+    lima = _upload_department(client, "lima.csv", "LIMA", "150101")
+    piura = _upload_department(client, "piura.csv", "PIURA", "200101")
+
+    all_ranking = client.get("/api/analysis/ranking?year=2024", headers=_auth()).json()
+    assert {row["department"] for row in all_ranking} == {"LIMA", "PIURA"}
+
+    lima_ranking = client.get(
+        f"/api/analysis/ranking?year=2024&upload_id={lima['id']}", headers=_auth()
+    ).json()
+    assert [row["department"] for row in lima_ranking] == ["LIMA"]
+
+    piura_ranking = client.get(
+        f"/api/analysis/ranking?year=2024&upload_id={piura['id']}", headers=_auth()
+    ).json()
+    assert [row["department"] for row in piura_ranking] == ["PIURA"]
+
+    scoped_series = client.get(
+        f"/api/analysis/series?upload_id={piura['id']}", headers=_auth()
+    ).json()
+    assert {row["department"] for row in scoped_series} == {"PIURA"}
+
+
+def test_unknown_upload_id_returns_404(client: TestClient) -> None:
+    _upload_department(client, "lima.csv", "LIMA", "150101")
+    response = client.get("/api/analysis/series?upload_id=9999", headers=_auth())
+    assert response.status_code == 404
+    assert "no encontrada" in response.json()["detail"]
+
+
+def test_demo_endpoint_is_gone(client: TestClient) -> None:
+    assert client.post("/api/demo/load", headers=_auth()).status_code in (404, 405)

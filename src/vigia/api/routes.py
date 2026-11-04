@@ -32,7 +32,6 @@ from vigia.ingest.readers import read_table
 
 from vigia.api.auth import require_token
 from vigia.api.config import Settings
-from vigia.api.demo import demo_csv_text
 from vigia.api.deps import get_session, get_settings, reconcile, tenant_parquet_paths
 from vigia.api.models import Upload
 from vigia.api.serialize import to_jsonable
@@ -93,12 +92,14 @@ def _store_ingest(
     return _upload_payload(record)
 
 
-def _parquet_paths(session: Session) -> list[Path]:
-    paths = tenant_parquet_paths(session)
+def _parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
+    paths = tenant_parquet_paths(session, upload_id)
     if not paths:
+        if upload_id is not None:
+            raise HTTPException(status_code=404, detail="carga no encontrada")
         raise HTTPException(
             status_code=404,
-            detail="sin datos: subí un archivo o cargá el dataset de demostración",
+            detail="sin datos: subí un archivo de vigilancia",
         )
     return paths
 
@@ -164,16 +165,6 @@ def preview_upload(
         tmp_path.unlink(missing_ok=True)
 
 
-@router.post("/demo/load")
-def load_demo(
-    session: Session = Depends(get_session),
-    settings: Settings = Depends(get_settings),
-) -> dict:
-    raw_path = settings.raw_dir / "demo.csv"
-    raw_path.write_text(demo_csv_text(), encoding="utf-8")
-    return _store_ingest(session, settings, raw_path, "minsa_dengue", "demo.csv")
-
-
 @router.get("/uploads")
 def list_uploads(session: Session = Depends(get_session)) -> list[dict]:
     reconcile(session)
@@ -206,9 +197,10 @@ def clear_uploads(
 @router.get("/analysis/series")
 def series(
     level: str = Query("department"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ):
-    frame = weekly_series(_parquet_paths(session), level=level)
+    frame = weekly_series(_parquet_paths(session, upload_id), level=level)
     return to_jsonable(frame)
 
 
@@ -216,10 +208,11 @@ def series(
 def interannual(
     level: str = Query("department"),
     geography: str | None = Query(None),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ):
     frame = interannual_comparison(
-        _parquet_paths(session), level=level, geography=geography
+        _parquet_paths(session, upload_id), level=level, geography=geography
     )
     return to_jsonable(frame.reset_index())
 
@@ -228,9 +221,10 @@ def interannual(
 def heatmap(
     year: int = Query(...),
     level: str = Query("department"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ) -> dict:
-    frame = make_heatmap(_parquet_paths(session), year=year, level=level)
+    frame = make_heatmap(_parquet_paths(session, upload_id), year=year, level=level)
     return {
         "geographies": [str(value) for value in frame.index],
         "weeks": [int(value) for value in frame.columns],
@@ -242,9 +236,10 @@ def heatmap(
 def ranking(
     level: str = Query("department"),
     year: int | None = Query(None),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ):
-    frame = weekly_series(_parquet_paths(session), level=level)
+    frame = weekly_series(_parquet_paths(session, upload_id), level=level)
     if year is not None:
         frame = frame[frame["year"] == year]
     geo = geography_columns(level)
@@ -261,18 +256,22 @@ def ranking(
 @router.get("/analysis/anomalies")
 def anomalies(
     level: str = Query("department"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ):
-    return to_jsonable(make_anomalies(_parquet_paths(session), level=level))
+    return to_jsonable(make_anomalies(_parquet_paths(session, upload_id), level=level))
 
 
 @router.get("/forecast")
 def forecast(
     level: str = Query("department"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> dict:
-    result = run_forecast(_parquet_paths(session), level=level, out_dir=settings.registry_dir)
+    result = run_forecast(
+        _parquet_paths(session, upload_id), level=level, out_dir=settings.registry_dir
+    )
     return {
         "model_id": result.model_id,
         "scorecard": to_jsonable(result.scorecard),
@@ -283,9 +282,10 @@ def forecast(
 @router.get("/explain")
 def explain(
     level: str = Query("department"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ) -> dict:
-    result = run_explain(_parquet_paths(session), level=level)
+    result = run_explain(_parquet_paths(session, upload_id), level=level)
     return {
         "drivers": to_jsonable(result.drivers),
         "narratives": [
@@ -297,9 +297,10 @@ def explain(
 @router.get("/export")
 def export_data(
     format: str = Query("csv"),
+    upload_id: int | None = Query(None),
     session: Session = Depends(get_session),
 ):
-    frames = [pd.read_parquet(path) for path in _parquet_paths(session)]
+    frames = [pd.read_parquet(path) for path in _parquet_paths(session, upload_id)]
     combined = pd.concat(frames, ignore_index=True)
 
     if format == "parquet":

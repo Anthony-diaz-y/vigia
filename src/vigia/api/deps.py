@@ -37,10 +37,13 @@ def reconcile(session: Session) -> None:
     session.commit()
 
 
-def tenant_parquet_paths(session: Session) -> list[Path]:
-    """Every registered Parquet file that still exists on disk."""
+def tenant_parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
+    """Registered Parquet files that still exist, optionally for one upload."""
     reconcile(session)
-    rows = session.query(Upload.normalized_path).all()
+    query = session.query(Upload.normalized_path)
+    if upload_id is not None:
+        query = query.filter(Upload.id == upload_id)
+    rows = query.all()
     paths: list[Path] = []
     for (path,) in rows:
         if path:

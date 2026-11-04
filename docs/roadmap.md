@@ -99,6 +99,23 @@ Validated with a skip-guarded smoke test against a Docker Postgres.
 Configuration loads from `.env` (via `python-dotenv`); copy `.env.example` to
 `.env` and adjust it.
 
+### M8 - Production-ready dashboard (done)
+
+The dashboard moved from a demo-oriented single page to a themed, module-based
+application: light/dark themes with a persisted preference, a professional
+button scale, a sidebar with one module per stage (Resumen, Análisis,
+Pronóstico, Explicación, Ingesta), and card layouts tuned for reading by a
+health authority (KPI bands, quality bars, methodological notes).
+
+### M9 - Per-file analysis and demo removal (done)
+
+- `upload_id` scopes every analysis, forecast, explanation and export endpoint
+  to one uploaded file; omitted, it aggregates all files.
+- The dashboard exposes a file selector in the header and re-scopes every view
+  on change, plus a "Todos los archivos" aggregate option.
+- The demo dataset endpoint and its button are gone. The synthetic three-year
+  fixture now lives only in `tests/demo_data.py` as test data.
+
 ## Open decisions
 
 - Object storage provider account (Cloudflare R2 chosen, not provisioned yet).

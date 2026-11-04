@@ -263,6 +263,11 @@ select:focus {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+.file-select {
+  max-width: 200px;
+  font-weight: 500;
+}
+
 input::placeholder { color: var(--muted); }
 
 /* ============================================================

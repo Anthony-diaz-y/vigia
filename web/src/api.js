@@ -23,6 +23,17 @@ async function request(path, options = {}) {
   return response.json()
 }
 
+function qs(params) {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  }
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
+
 export const endpoints = {
   health: () => request('/api/health'),
   preview: (file) => {
@@ -38,15 +49,18 @@ export const endpoints = {
     }
     return request('/api/upload', { method: 'POST', body: form })
   },
-  loadDemo: () => request('/api/demo/load', { method: 'POST' }),
   uploads: () => request('/api/uploads'),
   clear: () => request('/api/uploads', { method: 'DELETE' }),
   quality: (id) => request(`/api/uploads/${id}/quality`),
-  series: () => request('/api/analysis/series'),
-  interannual: () => request('/api/analysis/interannual'),
-  heatmap: (year) => request(`/api/analysis/heatmap?year=${year}`),
-  ranking: (year) => request(`/api/analysis/ranking${year ? `?year=${year}` : ''}`),
-  anomalies: () => request('/api/analysis/anomalies'),
-  forecast: () => request('/api/forecast'),
-  explain: () => request('/api/explain'),
+  series: (uploadId) => request(`/api/analysis/series${qs({ upload_id: uploadId })}`),
+  interannual: (uploadId) => request(`/api/analysis/interannual${qs({ upload_id: uploadId })}`),
+  heatmap: (year, uploadId) =>
+    request(`/api/analysis/heatmap${qs({ year, upload_id: uploadId })}`),
+  ranking: (year, uploadId) =>
+    request(`/api/analysis/ranking${qs({ year, upload_id: uploadId })}`),
+  anomalies: (uploadId) => request(`/api/analysis/anomalies${qs({ upload_id: uploadId })}`),
+  forecast: (uploadId) => request(`/api/forecast${qs({ upload_id: uploadId })}`),
+  explain: (uploadId) => request(`/api/explain${qs({ upload_id: uploadId })}`),
+  export: (format, uploadId) =>
+    request(`/api/export${qs({ format, upload_id: uploadId })}`),
 }

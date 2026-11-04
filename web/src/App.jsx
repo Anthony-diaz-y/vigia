@@ -219,6 +219,19 @@ export default function App() {
 
   const empty = !busy && uploads.length === 0 && series.length === 0
 
+  const totalCases = useMemo(() => {
+    return series
+      .filter((row) => row.year === year)
+      .reduce((acc, row) => acc + (row.cases || 0), 0)
+  }, [series, year])
+
+  const forecastTotal = useMemo(
+    () => (forecast ? forecast.scorecard.length : 0),
+    [forecast],
+  )
+
+  const lastUpload = uploads.length > 0 ? uploads[0] : null
+
   return (
     <>
       <header>
@@ -349,6 +362,37 @@ export default function App() {
         )}
 
         {uploads.length > 0 && (
+          <div className="kpis">
+            <div className="kpi">
+              <div className="label">Casos {year}</div>
+              <div className="value">{totalCases.toLocaleString('es-PE')}</div>
+              <div className="delta">total de casos registrados</div>
+            </div>
+            <div className="kpi">
+              <div className="label">Anomalías activas</div>
+              <div className="value">{flagged.length}</div>
+              <div className={flagged.length > 0 ? 'delta warn' : 'delta'}>
+                {flagged.length > 0 ? flagged.map((row) => row.department).join(' · ') : 'sin señales'}
+              </div>
+            </div>
+            <div className="kpi">
+              <div className="label">Pronósticos publicados</div>
+              <div className="value">{published.length} / {forecastTotal}</div>
+              <div className="delta">
+                {published.length > 0 ? published.map((row) => row.department).join(' · ') : 'sin publicar'}
+              </div>
+            </div>
+            <div className="kpi">
+              <div className="label">Última ingesta</div>
+              <div className="value value-small">{lastUpload ? lastUpload.filename : '—'}</div>
+              <div className="delta">
+                {lastUpload ? `${lastUpload.rows_in} filas · ${UPLOAD_STATUS_LABELS[lastUpload.status] || lastUpload.status}` : ''}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {uploads.length > 0 && (
           <Section title={`Archivos ingeridos (${uploads.length})`}>
             <table>
               <thead>
@@ -365,7 +409,11 @@ export default function App() {
                 {uploads.map((row) => (
                   <tr key={row.id}>
                     <td>{row.filename}</td>
-                    <td>{UPLOAD_STATUS_LABELS[row.status] || row.status}</td>
+                    <td>
+                      <span className={`badge ${row.status === 'ok' ? 'ok' : 'warn'}`}>
+                        {UPLOAD_STATUS_LABELS[row.status] || row.status}
+                      </span>
+                    </td>
                     <td>{row.rows_in}</td>
                     <td>{row.rows_valid}</td>
                     <td>{row.rows_dropped}</td>
@@ -418,103 +466,119 @@ export default function App() {
           </Section>
         )}
 
-        {heatmap && (
-          <Section title={`Mapa de calor por departamento y semana (${year})`}>
-            <div className="heatmap" style={{ gridTemplateColumns: `auto repeat(${heatmap.weeks.length}, 14px)` }}>
-              <div className="row-label" />
-              {heatmap.weeks.map((week) => (
-                <div key={week} className="row-label muted" title={`semana ${week}`}>
-                  {week}
-                </div>
-              ))}
-              {heatmap.geographies.map((geo, rowIndex) => (
-                <HeatmapRow
-                  key={geo}
-                  label={geo}
-                  values={heatmap.values[rowIndex]}
-                  max={heatMax}
-                />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {ranking.length > 0 && (
-          <Section title={`Ranking por casos${year ? ` (${year})` : ''}`}>
-            <div className="chart">
-              <ResponsiveContainer>
-                <BarChart data={ranking} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey={ranking[0]?.province ? 'province' : 'department'} width={110} />
-                  <Tooltip />
-                  <Bar dataKey="cases" fill={COLORS[1]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Section>
-        )}
-
-        {anomalies.length > 0 && (
-          <Section title={`Anomalías (${flagged.length} señaladas)`}>
-            {flagged.length === 0 ? (
-              <p className="muted">Sin anomalías para los datos actuales.</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Departamento</th>
-                    <th>Año</th>
-                    <th>Semana</th>
-                    <th>Casos</th>
-                    <th>Base</th>
-                    <th>Residual</th>
-                    <th>z robusto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {flagged.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.department}</td>
-                      <td>{row.year}</td>
-                      <td>{row.epi_week}</td>
-                      <td>{row.cases}</td>
-                      <td>{row.seasonal_baseline}</td>
-                      <td>{row.residual}</td>
-                      <td>{row.robust_z.toFixed ? row.robust_z.toFixed(2) : row.robust_z}</td>
-                    </tr>
+        {(heatmap || ranking.length > 0) && (
+          <div className="grid2">
+            {heatmap && (
+              <Section title={`Mapa de calor por departamento y semana (${year})`}>
+                <div className="heatmap" style={{ gridTemplateColumns: `auto repeat(${heatmap.weeks.length}, 14px)` }}>
+                  <div className="row-label" />
+                  {heatmap.weeks.map((week) => (
+                    <div key={week} className="row-label muted" title={`semana ${week}`}>
+                      {week}
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                  {heatmap.geographies.map((geo, rowIndex) => (
+                    <HeatmapRow
+                      key={geo}
+                      label={geo}
+                      values={heatmap.values[rowIndex]}
+                      max={heatMax}
+                    />
+                  ))}
+                </div>
+              </Section>
             )}
-          </Section>
+
+            {ranking.length > 0 && (
+              <Section title={`Ranking por casos${year ? ` (${year})` : ''}`}>
+                <div className="chart">
+                  <ResponsiveContainer>
+                    <BarChart data={ranking} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey={ranking[0]?.province ? 'province' : 'department'} width={110} />
+                      <Tooltip />
+                      <Bar dataKey="cases" fill={COLORS[1]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Section>
+            )}
+          </div>
         )}
 
-        {forecast && (
-          <Section title="Scorecard de pronóstico">
-            <table>
-              <thead>
-                <tr>
-                  <th>Departamento</th>
-                  <th>Ventanas</th>
-                  <th>MASE</th>
-                  <th>WIS</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {forecast.scorecard.map((row) => (
-                  <tr key={row.department}>
-                    <td>{row.department}</td>
-                    <td>{row.windows}</td>
-                    <td>{row.mase == null ? '—' : row.mase.toFixed(3)}</td>
-                    <td>{row.wis == null ? '—' : row.wis.toFixed(3)}</td>
-                    <td>{FORECAST_STATUS_LABELS[row.status] || row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {(forecast || anomalies.length > 0) && (
+          <div className="grid2b">
+            {forecast && (
+              <Section title="Scorecard de pronóstico">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Departamento</th>
+                      <th>Ventanas</th>
+                      <th>MASE</th>
+                      <th>WIS</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecast.scorecard.map((row) => (
+                      <tr key={row.department}>
+                        <td>{row.department}</td>
+                        <td>{row.windows}</td>
+                        <td>{row.mase == null ? '—' : row.mase.toFixed(3)}</td>
+                        <td>{row.wis == null ? '—' : row.wis.toFixed(3)}</td>
+                        <td>
+                          <span className={`badge ${row.status === 'publish' ? 'ok' : 'warn'}`}>
+                            {FORECAST_STATUS_LABELS[row.status] || row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Section>
+            )}
 
+            {anomalies.length > 0 && (
+              <Section title={`Anomalías (${flagged.length} señaladas)`}>
+                {flagged.length === 0 ? (
+                  <p className="muted">Sin anomalías para los datos actuales.</p>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Departamento</th>
+                        <th>Año</th>
+                        <th>Semana</th>
+                        <th>Casos</th>
+                        <th>z robusto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flagged.map((row, i) => (
+                        <tr key={i}>
+                          <td>{row.department}</td>
+                          <td>{row.year}</td>
+                          <td>{row.epi_week}</td>
+                          <td>{row.cases}</td>
+                          <td>
+                            <span className="badge danger">
+                              {row.robust_z.toFixed ? row.robust_z.toFixed(2) : row.robust_z}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </Section>
+            )}
+          </div>
+        )}
+
+        {forecast && published.length > 0 && (
+          <Section title="Pronóstico por departamento">
             {published.map((dept) => {
               const data = forecast.forecasts
                 .filter((f) => f.department === dept.department)

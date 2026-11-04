@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-operational-overview.html",
+  "handoffs": {
+    "01-operational-overview.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-04T01:47:42.890Z",
+      "startedAt": "2026-11-04T01:50:13.779Z",
+      "implementedAt": "2026-11-04T01:52:23.754Z",
+      "note": "Vista operativa implementada: KPIs, badges de estado y grillas en App.jsx + App.css, respetando tokens de system.md.",
+      "previewUrl": "http://127.0.0.1:8000/"
+    }
+  }
+}

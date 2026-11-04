@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vigia — Briefing narrativo</title>
+<style>
+  :root { --accent:#0f766e; --border:#e2e8f0; --muted:#64748b; --text:#0f172a; --bg:#f8fafc; --surface:#fff; --title:#334155; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { position:sticky; top:0; display:flex; align-items:center; gap:12px; padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border); }
+  header h1 { margin:0; font-size:18px; }
+  header .sub { color:var(--muted); font-size:13px; }
+  header .controls { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  input, button { padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; background:var(--surface); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  main { max-width:960px; margin:0 auto; padding:32px 24px; display:flex; flex-direction:column; gap:28px; }
+  .lead { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px; }
+  .lead .eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .lead h2 { margin:8px 0 12px; font-size:26px; line-height:1.25; }
+  .lead h2 strong { color:var(--accent); }
+  .lead p { margin:0; font-size:15px; color:#334155; line-height:1.6; max-width:62ch; }
+  .lead .meta { margin-top:14px; font-size:13px; color:var(--muted); }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .card h3 { margin:0 0 12px; font-size:15px; color:var(--title); text-transform:uppercase; letter-spacing:0.04em; }
+  .chart { height:220px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .fact { display:flex; gap:12px; align-items:baseline; border-bottom:1px solid var(--border); padding:10px 0; }
+  .fact:last-child { border-bottom:0; }
+  .fact .n { font-size:22px; font-weight:600; color:var(--accent); min-width:70px; }
+  .fact .t { font-size:14px; color:#334155; }
+  .rank-row { display:grid; grid-template-columns:110px 1fr 46px; gap:8px; align-items:center; margin-bottom:8px; font-size:13px; }
+  .rank-bar { height:14px; border-radius:3px; background:var(--accent); }
+  .narrative { border-left:3px solid var(--accent); padding:10px 14px; background:#f0fdfa; border-radius:0 8px 8px 0; font-size:14px; margin-top:10px; }
+  .narrative .src { color:var(--muted); font-size:12px; }
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .step { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .step .k { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+  .step .a { font-size:14px; margin-top:6px; color:#334155; line-height:1.4; }
+  footer.disclaimer { max-width:960px; margin:0 auto 24px; padding:12px 20px; font-size:13px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; }
+  .muted { color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>vigia</h1><span class="sub">soporte de decisión en dengue</span>
+  <div class="controls"><input type="text" value="token de acceso" style="width:130px"><button class="primary">Actualizar</button></div>
+</header>
+
+<main>
+  <section class="lead">
+    <div class="eyebrow">Resumen semanal · 2024 · semana 45</div>
+    <h2>LIMA sube <strong>23%</strong> sobre lo esperado y LORETO marca una <strong>anomalía activa</strong></h2>
+    <p>Los casos semanales de LIMA están por encima del patrón estacional para esta altura del año, con una señal robusta en la semana 45. LORETO mantiene el mayor volumen y su residual z supera el umbral de alerta. PIURA sigue estable dentro de lo esperado.</p>
+    <div class="meta">Basado en 624 filas ingeridas de minsa_dengue.csv · pronóstico publicado para LIMA y PIURA</div>
+  </section>
+
+  <section class="card">
+    <h3>La señal</h3>
+    <div class="chart">
+      <svg viewBox="0 0 900 200" preserveAspectRatio="none" style="width:100%;height:100%">
+        <g stroke="#e2e8f0"><line x1="0" y1="0" x2="900" y2="0"/><line x1="0" y1="50" x2="900" y2="50"/><line x1="0" y1="100" x2="900" y2="100"/><line x1="0" y1="150" x2="900" y2="150"/><line x1="0" y1="200" x2="900" y2="200"/></g>
+        <path d="M0,185 C60,180 90,130 130,115 C180,95 210,140 250,150 C300,162 330,80 370,60 C420,40 450,120 490,130 C540,142 570,70 610,55 C660,38 690,110 730,120 C780,132 810,65 850,55 C880,48 895,90 900,95" fill="none" stroke="#0f766e" stroke-width="3"/>
+        <circle cx="890" cy="88" r="6" fill="#b91c1c"/>
+      </svg>
+    </div>
+    <div class="muted">Casos semanales totales · el punto rojo marca la última semana (provisional)</div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h3>Dónde</h3>
+      <div class="rank-row"><span>LORETO</span><div><div class="rank-bar" style="width:100%"></div></div><span>512</span></div>
+      <div class="rank-row"><span>PIURA</span><div><div class="rank-bar" style="width:74%"></div></div><span>379</span></div>
+      <div class="rank-row"><span>LIMA</span><div><div class="rank-bar" style="width:55%"></div></div><span>283</span></div>
+      <div class="rank-row"><span>AMAZONAS</span><div><div class="rank-bar" style="width:21%"></div></div><span>110</span></div>
+    </div>
+    <div class="card">
+      <h3>Por qué</h3>
+      <div class="fact"><span class="n">+23%</span><span class="t">desvío de LIMA sobre la base estacional en la semana 45</span></div>
+      <div class="fact"><span class="n">3.2</span><span class="t">z robusto de LORETO: residuo fuera del umbral</span></div>
+      <div class="fact"><span class="n">2</span><span class="t">departamentos con pronóstico publicable (LIMA, PIURA)</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Qué hacer</h3>
+    <div class="steps">
+      <div class="step"><div class="k">Verificación</div><div class="a">Confirmar la notificación de LIMA en la semana 45: descartar retraso de reporte antes de escalar.</div></div>
+      <div class="step"><div class="k">Monitoreo</div><div class="a">Seguir LORETO en las próximas 2 semanas; es el de mayor volumen y señal más fuerte.</div></div>
+      <div class="step"><div class="k">Preparación</div><div class="a">Revisar capacidad de respuesta en LIMA y LORETO ante un posible pico temprano.</div></div>
+    </div>
+    <div class="narrative"><span class="src">[determinista]</span> El aumento de LIMA se explica por la intensificación de casos en distritos del cono norte; la acción sugerida es verificar la completitud del reporte antes de declarar brote.</div>
+  </section>
+</main>
+
+<footer class="disclaimer">Herramienta de apoyo a la decisión, no un dispositivo médico. No reemplaza a la autoridad sanitaria.</footer>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vigia — Design system</title>
+<style>
+  :root {
+    --accent: #0f766e;
+    --border: #e2e8f0;
+    --muted: #64748b;
+    --text: #0f172a;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-title: #334155;
+    --error: #b91c1c; --error-bg: #fef2f2; --error-border: #fecaca;
+    --warning: #92400e; --warning-bg: #fffbeb; --warning-border: #fde68a;
+    --info-bg: #f0fdfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--background); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 40px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .board { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .section h2 { margin: 0 0 16px; font-size: 15px; color: var(--surface-title); text-transform: uppercase; letter-spacing: 0.04em; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .swatch { width: 150px; }
+  .chip { height: 56px; border-radius: 8px; border: 1px solid var(--border); }
+  .swatch .name { font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .swatch .val { font-size: 12px; color: var(--muted); }
+  .type-row { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--border); padding: 10px 0; }
+  .type-row:last-child { border-bottom: 0; }
+  .type-row .label { width: 130px; color: var(--muted); font-size: 12px; }
+  .spacing-demo { display: flex; align-items: flex-end; gap: 12px; }
+  .space-bar { background: var(--accent); opacity: 0.85; }
+  .space-wrap { font-size: 12px; color: var(--muted); text-align: center; }
+  .radius-demo { display: flex; gap: 16px; }
+  .radius-box { width: 90px; height: 60px; border: 1px solid var(--border); background: var(--info-bg); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); }
+  .comp-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  button { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; font-size: 14px; font-family: inherit; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  .error { padding: 12px; border: 1px solid var(--error-border); background: var(--error-bg); color: var(--error); border-radius: 8px; font-size: 14px; }
+  .narrative { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--info-bg); border-radius: 0 8px 8px 0; font-size: 14px; }
+  .disclaimer { padding: 12px 20px; font-size: 13px; color: var(--warning); background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 12px; }
+  .heatmap { display: inline-grid; grid-template-columns: repeat(8, 14px); gap: 2px; }
+  .cell { width: 14px; height: 14px; border-radius: 2px; background: rgba(15,118,110,0.9); }
+</style>
+</head>
+<body>
+<div class="board">
+  <header>
+    <h1>Vigia — Design system</h1>
+    <span class="muted">Tokens extraídos de web/src/App.css</span>
+  </header>
+
+  <section class="section">
+    <h2>Colores</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#0f766e"></div><div class="name">accent</div><div class="val">#0f766e</div></div>
+      <div class="swatch"><div class="chip" style="background:#e2e8f0"></div><div class="name">border</div><div class="val">#e2e8f0</div></div>
+      <div class="swatch"><div class="chip" style="background:#64748b"></div><div class="name">muted</div><div class="val">#64748b</div></div>
+      <div class="swatch"><div class="chip" style="background:#0f172a"></div><div class="name">text</div><div class="val">#0f172a</div></div>
+      <div class="swatch"><div class="chip" style="background:#f8fafc"></div><div class="name">background</div><div class="val">#f8fafc</div></div>
+      <div class="swatch"><div class="chip" style="background:#334155"></div><div class="name">surface-title</div><div class="val">#334155</div></div>
+      <div class="swatch"><div class="chip" style="background:#fef2f2;border-color:#fecaca"></div><div class="name">error</div><div class="val">#b91c1c / #fef2f2</div></div>
+      <div class="swatch"><div class="chip" style="background:#fffbeb;border-color:#fde68a"></div><div class="name">warning</div><div class="val">#92400e / #fffbeb</div></div>
+      <div class="swatch"><div class="chip" style="background:#f0fdfa"></div><div class="name">info-bg</div><div class="val">#f0fdfa</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Tipografía</h2>
+    <div class="type-row"><span class="label">18 · título</span><span style="font-size:18px">Vigilancia epidemiológica</span></div>
+    <div class="type-row"><span class="label">15 · sección</span><span style="font-size:15px;text-transform:uppercase;letter-spacing:0.04em;color:#334155">Casos semanales</span></div>
+    <div class="type-row"><span class="label">14 · control</span><span style="font-size:14px">Confirmar e ingestar</span></div>
+    <div class="type-row"><span class="label">13 · cuerpo</span><span style="font-size:13px">Carga y análisis de datos de vigilancia del dengue.</span></div>
+    <div class="type-row"><span class="label">12 · etiqueta</span><span style="font-size:12px;color:#64748b">LIMA · PIURA · LORETO</span></div>
+  </section>
+
+  <section class="section">
+    <h2>Espaciado y radio</h2>
+    <div class="spacing-demo">
+      <div class="space-wrap"><div class="space-bar" style="width:2px;height:40px"></div>2</div>
+      <div class="space-wrap"><div class="space-bar" style="width:8px;height:40px"></div>8</div>
+      <div class="space-wrap"><div class="space-bar" style="width:12px;height:40px"></div>12</div>
+      <div class="space-wrap"><div class="space-bar" style="width:16px;height:40px"></div>16</div>
+      <div class="space-wrap"><div class="space-bar" style="width:20px;height:40px"></div>20</div>
+    </div>
+    <div class="radius-demo" style="margin-top:16px">
+      <div class="radius-box" style="border-radius:2px">2</div>
+      <div class="radius-box" style="border-radius:8px">8</div>
+      <div class="radius-box" style="border-radius:12px">12</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Componentes</h2>
+    <div class="comp-row">
+      <button>Actualizar</button>
+      <button class="primary">Cargar datos demo</button>
+      <button disabled>Subir</button>
+      <input type="text" value="token de acceso">
+    </div>
+    <div class="comp-row" style="margin-top:16px">
+      <div style="flex:1;min-width:320px">
+        <table>
+          <thead><tr><th>Archivo</th><th>Estado</th><th>Filas</th></tr></thead>
+          <tbody><tr><td>minsa_dengue.csv</td><td>OK</td><td>624</td></tr><tr><td>upload.csv</td><td>OK con observaciones</td><td>1</td></tr></tbody>
+        </table>
+      </div>
+      <div class="error">El archivo contiene columnas de datos personales (dni) y no puede ingerirse.</div>
+    </div>
+    <div class="comp-row" style="margin-top:16px">
+      <div class="narrative">[determinista] LIMA sube por aumento de casos en la semana 45; verificar notificación tardía.</div>
+      <div class="heatmap"><div class="cell"></div><div class="cell" style="background:rgba(15,118,110,0.55)"></div><div class="cell" style="background:rgba(15,118,110,0.25)"></div><div class="cell" style="background:rgba(15,118,110,0.7)"></div><div class="cell" style="background:rgba(15,118,110,0.4)"></div><div class="cell" style="background:rgba(15,118,110,0.15)"></div><div class="cell" style="background:rgba(15,118,110,0.85)"></div><div class="cell" style="background:rgba(15,118,110,0.3)"></div></div>
+    </div>
+    <div class="disclaimer" style="margin-top:16px">Herramienta de apoyo a la decisión, no un dispositivo médico. No reemplaza a la autoridad sanitaria.</div>
+  </section>
+</div>
+</body>
+</html>

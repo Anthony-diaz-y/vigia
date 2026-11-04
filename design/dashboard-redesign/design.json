@@ -1,0 +1,9 @@
+{
+  "title": "Rediseño del dashboard vigia",
+  "brief": "Rediseñar la UI del dashboard de vigilancia de dengue (audiencia: profesionales de salud pública / epidemiología, acceso por invitación).",
+  "artboards": [
+    { "file": "01-operational-overview.html", "title": "Vista operativa", "tradeoff": "Denso y escaneable: KPIs y gráficos en una pantalla; puede sentirse cargado.", "width": 1440, "height": 900 },
+    { "file": "02-briefing-narrative.html", "title": "Briefing narrativo", "tradeoff": "Historia clara de arriba hacia abajo; menos libertad de exploración libre.", "width": 1440, "height": 900 },
+    { "file": "03-analyst-workbench.html", "title": "Mesa de trabajo", "tradeoff": "Foco profundo por módulo con navegación lateral; más clics para cambiar de vista.", "width": 1440, "height": 900 }
+  ]
+}

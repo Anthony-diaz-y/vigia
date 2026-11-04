@@ -355,12 +355,20 @@ export default function App() {
                 <Section title="Casos semanales (total)">
                   <div className="chart">
                     <ResponsiveContainer>
-                      <LineChart data={seriesData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                        <YAxis />
+                      <LineChart data={seriesData} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 10, fill: '#64748b' }}
+                          minTickGap={32}
+                          label={{ value: 'Semana epidemiológica (año-S##)', position: 'insideBottom', offset: -16, style: { fontSize: 12, fill: '#64748b' } }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: '#64748b' }}
+                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
+                        />
                         <Tooltip />
-                        <Line type="monotone" dataKey="total" stroke={COLORS[0]} dot={false} />
+                        <Line type="monotone" dataKey="total" name="Casos" stroke={COLORS[0]} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -371,10 +379,17 @@ export default function App() {
                 <Section title="Comparación interanual (por semana epidemiológica)">
                   <div className="chart">
                     <ResponsiveContainer>
-                      <LineChart data={interannual}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="epi_week" />
-                        <YAxis />
+                      <LineChart data={interannual} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="epi_week"
+                          tick={{ fontSize: 11, fill: '#64748b' }}
+                          label={{ value: 'Semana epidemiológica', position: 'insideBottom', offset: -16, style: { fontSize: 12, fill: '#64748b' } }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: '#64748b' }}
+                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
+                        />
                         <Tooltip />
                         <Legend />
                         {interannualYears.map((yr, i) => (
@@ -383,6 +398,7 @@ export default function App() {
                             type="monotone"
                             dataKey={yr}
                             stroke={COLORS[i % COLORS.length]}
+                            strokeWidth={2}
                             dot={false}
                           />
                         ))}

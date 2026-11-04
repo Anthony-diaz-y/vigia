@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from vigia.ingest.contract import CANONICAL_COLUMNS
 from vigia.ingest.errors import MissingRequiredColumns
 from vigia.ingest.mapping import (
     MappingResult,
@@ -96,28 +97,24 @@ def ingest_file(
 def _resolve(
     table: RawTable, config: SourceConfig, mapping_override: dict[str, str] | None
 ) -> MappingResult:
-    mapping = resolve_mapping(list(table.frame.columns), config)
-    if mapping_override:
-        merged = dict(mapping.mapping)
-        merged.update(
-            {
-                canonical: source_column
-                for canonical, source_column in mapping_override.items()
-                if source_column in table.frame.columns
-            }
-        )
-        missing = [column for column in config.required if column not in merged]
+    columns = list(table.frame.columns)
+    if mapping_override is not None:
+        merged = {
+            canonical: source_column
+            for canonical, source_column in mapping_override.items()
+            if canonical in CANONICAL_COLUMNS and source_column in columns
+        }
         mapping = MappingResult(
             mapping=merged,
-            unmapped_columns=[
-                name for name in table.frame.columns if name not in set(merged.values())
-            ],
-            missing_required=missing,
+            unmapped_columns=[name for name in columns if name not in set(merged.values())],
+            missing_required=[column for column in config.required if column not in merged],
         )
+    else:
+        mapping = resolve_mapping(columns, config)
     if mapping.missing_required:
         raise MissingRequiredColumns(
             missing=mapping.missing_required,
-            available=list(table.frame.columns),
+            available=columns,
         )
     return mapping
 

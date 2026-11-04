@@ -7,10 +7,11 @@ import io
 import json
 import logging
 import shutil
+import tempfile
 from pathlib import Path
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -24,7 +25,10 @@ from vigia.analysis.engine import geography_columns
 from vigia.explain import explain as run_explain
 from vigia.forecast import forecast as run_forecast
 from vigia.ingest import ingest_file
+from vigia.ingest.contract import CANONICAL_COLUMNS
 from vigia.ingest.errors import IngestError
+from vigia.ingest.mapping import find_pii, load_source_config, resolve_mapping
+from vigia.ingest.readers import read_table
 
 from vigia.api.auth import require_token
 from vigia.api.config import Settings
@@ -54,9 +58,19 @@ def _upload_payload(record: Upload) -> dict:
 
 
 def _store_ingest(
-    session: Session, settings: Settings, raw_path: Path, source: str, filename: str
+    session: Session,
+    settings: Settings,
+    raw_path: Path,
+    source: str,
+    filename: str,
+    mapping: dict[str, str] | None = None,
 ) -> dict:
-    result = ingest_file(raw_path, out_dir=settings.uploads_dir, source=source)
+    result = ingest_file(
+        raw_path,
+        out_dir=settings.uploads_dir,
+        source=source,
+        mapping_override=mapping,
+    )
     existing = session.query(Upload).filter_by(file_hash=result.file_hash).first()
     if existing is not None:
         return _upload_payload(existing)
@@ -93,6 +107,7 @@ def _parquet_paths(session: Session) -> list[Path]:
 def upload(
     file: UploadFile = File(...),
     source: str = Query("minsa_dengue"),
+    mapping: str | None = Form(None),
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> dict:
@@ -102,11 +117,51 @@ def upload(
     raw_path = settings.raw_dir / f"{digest}{suffix}"
     raw_path.write_bytes(data)
 
+    mapping_override = json.loads(mapping) if mapping else None
     try:
-        return _store_ingest(session, settings, raw_path, source, file.filename or raw_path.name)
+        return _store_ingest(
+            session,
+            settings,
+            raw_path,
+            source,
+            file.filename or raw_path.name,
+            mapping_override,
+        )
     except IngestError as exc:
         logger.warning("upload rejected (%s): %s", file.filename, exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/upload/preview")
+def preview_upload(
+    file: UploadFile = File(...),
+    source: str = Query("minsa_dengue"),
+) -> dict:
+    """Preview the column mapping for a file without ingesting it."""
+    data = file.file.read()
+    suffix = Path(file.filename or "upload.csv").suffix or ".csv"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        handle.write(data)
+        tmp_path = Path(handle.name)
+    try:
+        config = load_source_config(source)
+        table = read_table(tmp_path)
+        columns = [str(name) for name in table.frame.columns]
+        resolved = resolve_mapping(columns, config)
+        return {
+            "source": source,
+            "columns": columns,
+            "mapping": resolved.mapping,
+            "unmapped_columns": resolved.unmapped_columns,
+            "missing_required": resolved.missing_required,
+            "pii_detected": find_pii(columns, config),
+            "canonical_columns": list(CANONICAL_COLUMNS),
+            "required": list(config.required),
+        }
+    except IngestError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 @router.post("/demo/load")

@@ -79,10 +79,15 @@ def load_source_config(source: str) -> SourceConfig:
         raise SourceConfigError(f"invalid source mapping {source}: {exc}") from exc
 
 
+def find_pii(columns: list[str], config: SourceConfig) -> list[str]:
+    """Return the headers that look like personal data, without raising."""
+    blocked = set(config.pii_aliases)
+    return [name for name in columns if normalize_header(name) in blocked]
+
+
 def detect_pii(columns: list[str], config: SourceConfig) -> None:
     """Reject the upload when any header looks like personal data."""
-    blocked = set(config.pii_aliases)
-    hits = [name for name in columns if normalize_header(name) in blocked]
+    hits = find_pii(columns, config)
     if hits:
         raise PiiDetected(hits)
 

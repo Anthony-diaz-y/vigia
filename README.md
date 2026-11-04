@@ -65,6 +65,10 @@ Access is token-gated: set `VIGIA_ACCESS_TOKEN` (default `vigia-dev`) and pass
 it as the `X-Access-Token` header or in the UI token field. The dashboard has a
 "Load demo data" button that ingests a synthetic three-year dataset.
 
+Uploads go through a mapping review step: before ingestion, the dashboard shows
+how source columns map to canonical columns and you can confirm or correct the
+assignment.
+
 ## Data sources
 
 - MINSA / CDC Peru open data: dengue, malaria, acute respiratory infections.

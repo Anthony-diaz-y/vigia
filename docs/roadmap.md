@@ -81,11 +81,22 @@ Done when: the scorecard per department exists and the publication gate works.
 - Fixed disclaimer: support tool, not a medical device, does not replace the
   health authority.
 
+### M6 - Mapping review (done)
+
+Completes the "mapping review" step of M5 S1. `POST /api/upload/preview`
+returns the auto-mapping, unmapped columns, missing required columns and PII
+matches without ingesting. `POST /api/upload` accepts an authoritative `mapping`
+override, and the dashboard shows a review step to confirm or correct column
+assignments before ingest. Also fixed a crash when an upload had no age column.
+
 ## Open decisions
 
-- Commit policy for non-code docs.
-- Whether the UI reads DuckDB directly from the API or always through the worker.
 - Object storage provider account (Cloudflare R2 chosen, not provisioned yet).
+
+Resolved in M6: commit policy for non-code docs (docs ship in the same
+work-unit commit as their code; standalone doc updates use a `docs:` commit)
+and UI data access (until a worker exists, the API computes synchronously and
+the UI reads only JSON from API endpoints; revisit with the worker).
 
 ## How to resume
 

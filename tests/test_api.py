@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -128,3 +130,106 @@ def test_dangling_record_self_heals(client: TestClient, tmp_path) -> None:
     assert client.get("/api/analysis/series", headers=_auth()).status_code == 404
     # Listing uploads self-heals the dangling row.
     assert client.get("/api/uploads", headers=_auth()).json() == []
+
+
+def test_preview_returns_mapping_without_ingesting(client: TestClient) -> None:
+    csv_text = (
+        "departamento,provincia,distrito,enfermedad,ano,semana,diagnostico,"
+        "tipo_diagnostico,ubigeo,edad,tipo_edad,sexo,casos\n"
+        "LIMA,LIMA,LIMA,DENGUE,2024,1,DENGUE SIN SIGNOS DE ALARMA,"
+        "CONFIRMADO,150101,30,ANOS,F,7\n"
+    )
+    response = client.post(
+        "/api/upload/preview",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mapping"]["cases"] == "casos"
+    assert payload["mapping"]["year"] == "ano"
+    assert payload["mapping"]["epi_week"] == "semana"
+    assert payload["mapping"]["ubigeo"] == "ubigeo"
+    assert payload["missing_required"] == []
+    assert payload["pii_detected"] == []
+    assert payload["canonical_columns"]
+    # Preview must not ingest anything.
+    assert client.get("/api/uploads", headers=_auth()).json() == []
+
+
+def test_preview_reports_missing_required(client: TestClient) -> None:
+    csv_text = "departamento,ano,semana,casos\nLIMA,2024,1,7\n"
+    response = client.post(
+        "/api/upload/preview",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+    )
+    assert response.status_code == 200
+    assert "ubigeo" in response.json()["missing_required"]
+
+
+def test_preview_detects_pii_without_rejecting(client: TestClient) -> None:
+    csv_text = (
+        "departamento,ano,semana,ubigeo,casos,dni\n"
+        "LIMA,2024,1,150101,7,12345678\n"
+    )
+    response = client.post(
+        "/api/upload/preview",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+    )
+    assert response.status_code == 200
+    assert "dni" in response.json()["pii_detected"]
+
+
+def test_upload_applies_mapping_override(client: TestClient) -> None:
+    csv_text = (
+        "departamento,ano,semana,ubigeo,edad,tipo_edad,sexo,casos,total\n"
+        "LIMA,2024,1,150101,30,ANOS,F,111,222\n"
+    )
+    response = client.post(
+        "/api/upload",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+        data={
+            "mapping": json.dumps(
+                {
+                    "ubigeo": "ubigeo",
+                    "year": "ano",
+                    "epi_week": "semana",
+                    "department": "departamento",
+                    "age_group": "edad",
+                    "age_type": "tipo_edad",
+                    "sex": "sexo",
+                    "cases": "total",
+                }
+            )
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["rows_valid"] == 1
+    exported = client.get("/api/export?format=csv", headers=_auth()).text
+    assert "222" in exported
+    assert "111" not in exported
+
+
+def test_upload_override_missing_required_is_rejected(client: TestClient) -> None:
+    csv_text = "departamento,ano,semana,ubigeo,casos\nLIMA,2024,1,150101,7\n"
+    response = client.post(
+        "/api/upload",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+        data={"mapping": json.dumps({"cases": "casos"})},
+    )
+    assert response.status_code == 422
+
+
+def test_upload_without_age_columns_does_not_crash(client: TestClient) -> None:
+    csv_text = "departamento,ano,semana,ubigeo,casos\nLIMA,2024,1,150101,7\n"
+    response = client.post(
+        "/api/upload",
+        headers=_auth(),
+        files={"file": ("upload.csv", csv_text.encode("utf-8"), "text/csv")},
+    )
+    assert response.status_code == 200
+    assert response.json()["rows_valid"] == 1

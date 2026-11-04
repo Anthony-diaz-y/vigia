@@ -238,7 +238,7 @@ def _sex(text: pd.Series) -> pd.Series:
 
 
 def _age_group(age: pd.Series, age_type: pd.Series) -> pd.Series:
-    years = _numeric(age)
+    years = _numeric(age).astype("float64")
     months = age_type.str.contains("MES", na=False)
     conditions = [years.between(low, high) for low, high, _ in AGE_BANDS]
     labels = [label for _, _, label in AGE_BANDS]

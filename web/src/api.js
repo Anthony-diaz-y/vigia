@@ -25,9 +25,17 @@ async function request(path, options = {}) {
 
 export const endpoints = {
   health: () => request('/api/health'),
-  upload: (file) => {
+  preview: (file) => {
     const form = new FormData()
     form.append('file', file)
+    return request('/api/upload/preview', { method: 'POST', body: form })
+  },
+  upload: (file, mapping) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (mapping) {
+      form.append('mapping', JSON.stringify(mapping))
+    }
     return request('/api/upload', { method: 'POST', body: form })
   },
   loadDemo: () => request('/api/demo/load', { method: 'POST' }),

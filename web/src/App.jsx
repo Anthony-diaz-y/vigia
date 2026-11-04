@@ -43,6 +43,9 @@ export default function App() {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const fileRef = useRef(null)
+  const [review, setReview] = useState(null)
+  const [reviewFile, setReviewFile] = useState(null)
+  const [reviewMapping, setReviewMapping] = useState({})
 
   const refresh = useCallback(async () => {
     setBusy(true)
@@ -98,20 +101,57 @@ export default function App() {
     api.setToken(value)
   }
 
-  const onUpload = async (event) => {
+  const onFileSelected = async (event) => {
     const file = event.target.files[0]
     if (!file) return
     setBusy(true)
     setError(null)
     try {
-      await api.endpoints.upload(file)
-      await refresh()
+      const preview = await api.endpoints.preview(file)
+      const initial = {}
+      for (const canonical of preview.canonical_columns) {
+        initial[canonical] = preview.mapping[canonical] || ''
+      }
+      setReview(preview)
+      setReviewFile(file)
+      setReviewMapping(initial)
     } catch (err) {
       setError(err.message)
     } finally {
       setBusy(false)
       event.target.value = ''
     }
+  }
+
+  const onMappingChange = (canonical, sourceHeader) => {
+    setReviewMapping((previous) => ({ ...previous, [canonical]: sourceHeader }))
+  }
+
+  const onConfirmReview = async () => {
+    if (!reviewFile) return
+    const mapping = {}
+    for (const [canonical, sourceHeader] of Object.entries(reviewMapping)) {
+      if (sourceHeader) mapping[canonical] = sourceHeader
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await api.endpoints.upload(reviewFile, mapping)
+      setReview(null)
+      setReviewFile(null)
+      setReviewMapping({})
+      await refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onCancelReview = () => {
+    setReview(null)
+    setReviewFile(null)
+    setReviewMapping({})
   }
 
   const onDemo = async () => {
@@ -172,6 +212,11 @@ export default function App() {
     return Math.max(1, ...heatmap.values.flat())
   }, [heatmap])
 
+  const liveMissingRequired = useMemo(() => {
+    if (!review) return []
+    return review.required.filter((required) => !reviewMapping[required])
+  }, [review, reviewMapping])
+
   const empty = !busy && uploads.length === 0 && series.length === 0
 
   return (
@@ -199,7 +244,7 @@ export default function App() {
             ref={fileRef}
             type="file"
             accept=".csv,.txt,.xlsx"
-            onChange={onUpload}
+            onChange={onFileSelected}
             style={{ display: 'none' }}
           />
           <button onClick={() => fileRef.current?.click()} disabled={busy}>
@@ -218,6 +263,80 @@ export default function App() {
       </header>
 
       <main>
+        {review && (
+          <Section title="Revisar mapeo de columnas">
+            <p className="muted">
+              Confirmá cómo se mapean las columnas del archivo a las canónicas
+              antes de ingestar. Podés reasignar cualquier columna.
+            </p>
+            {review.pii_detected.length > 0 && (
+              <div className="error">
+                El archivo contiene columnas de datos personales (
+                {review.pii_detected.join(', ')}) y no puede ingerirse.
+              </div>
+            )}
+            {liveMissingRequired.length > 0 && (
+              <div className="error">
+                Faltan columnas requeridas: {liveMissingRequired.join(', ')}
+              </div>
+            )}
+            <table>
+              <thead>
+                <tr>
+                  <th>Columna canónica</th>
+                  <th>Columna del archivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {review.canonical_columns.map((canonical) => (
+                  <tr key={canonical}>
+                    <td>
+                      {canonical}
+                      {review.required.includes(canonical) && (
+                        <span className="muted"> *</span>
+                      )}
+                    </td>
+                    <td>
+                      <select
+                        value={reviewMapping[canonical] || ''}
+                        onChange={(e) => onMappingChange(canonical, e.target.value)}
+                      >
+                        <option value="">(sin mapear)</option>
+                        {review.columns.map((column) => (
+                          <option key={column} value={column}>
+                            {column}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {review.unmapped_columns.length > 0 && (
+              <p className="muted">
+                Columnas del archivo sin mapear: {review.unmapped_columns.join(', ')}
+              </p>
+            )}
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <button
+                className="primary"
+                onClick={onConfirmReview}
+                disabled={
+                  busy ||
+                  liveMissingRequired.length > 0 ||
+                  review.pii_detected.length > 0
+                }
+              >
+                Confirmar e ingestar
+              </button>
+              <button onClick={onCancelReview} disabled={busy}>
+                Cancelar
+              </button>
+            </div>
+          </Section>
+        )}
+
         {error && <div className="error">{error}</div>}
 
         {empty && (

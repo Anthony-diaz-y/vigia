@@ -1,0 +1,27 @@
+# Dev PostgreSQL for vigia metadata (M7).
+#
+# Usage:
+#   docker compose up -d      # start Postgres in the background
+#   docker compose stop       # pause the container
+#   docker compose start      # resume it
+#   docker compose down       # stop and remove the container (keeps the volume)
+#   docker compose down -v    # stop, remove, and delete the data volume
+#
+# Connection (matches tests/test_db.py default):
+#   postgresql+psycopg://vigia:vigia@localhost:55432/vigia
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vigia-pg
+    environment:
+      POSTGRES_USER: vigia
+      POSTGRES_PASSWORD: vigia
+      POSTGRES_DB: vigia
+    ports:
+      - "55432:5432"
+    volumes:
+      - vigia-pg-data:/var/lib/postgresql/data
+
+volumes:
+  vigia-pg-data:

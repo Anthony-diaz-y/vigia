@@ -562,6 +562,99 @@ th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.strong { font-weight: 650; }
 
 /* ============================================================
+   Forecast module
+   ============================================================ */
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 14px;
+}
+
+.forecast-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--surface-2);
+}
+
+.forecast-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.forecast-card-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.chart-forecast { height: 240px; }
+
+.forecast-values { margin-top: 8px; font-size: 12px; }
+
+.forecast-values th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 8px;
+}
+
+.forecast-values td { padding: 5px 8px; }
+
+/* MASE quality bar */
+.quality-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.quality-track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.quality-fill { height: 100%; border-radius: 999px; }
+.quality-fill.ok { background: var(--accent); }
+.quality-fill.warn { background: var(--warning); }
+.quality-fill.danger { background: var(--danger); }
+
+/* Custom chart tooltip */
+.chart-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  font-size: 12px;
+  min-width: 150px;
+}
+
+.chart-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted);
+  padding: 1px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip-row strong { color: var(--text); font-weight: 600; }
+
+/* ============================================================
    Grids
    ============================================================ */
 .grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; align-items: stretch; }

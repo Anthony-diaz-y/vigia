@@ -3,6 +3,8 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  ComposedChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -85,6 +87,31 @@ function severityOf(z) {
   if (value >= 3) return { label: 'Alta', cls: 'danger' }
   if (value >= 2.5) return { label: 'Media', cls: 'warn' }
   return { label: 'Baja', cls: 'ok' }
+}
+
+/** MASE is "better when lower": <1 beats the seasonal baseline at 2x. */
+function maseQuality(mase) {
+  const value = Number(mase)
+  if (!Number.isFinite(value)) return { label: '—', cls: 'warn', width: 0 }
+  if (value <= 0.75) return { label: 'Muy bueno', cls: 'ok', width: 100 }
+  if (value < 1) return { label: 'Bueno', cls: 'ok', width: 75 }
+  if (value < 1.5) return { label: 'Limitado', cls: 'warn', width: 45 }
+  return { label: 'Débil', cls: 'danger', width: 22 }
+}
+
+function ForecastTooltip({ active, payload }) {
+  if (!active || !payload || payload.length === 0) return null
+  const point = payload[0].payload
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip-title">
+        Horizonte S+{point.horizon} · semana {point.target}
+      </div>
+      <div className="chart-tooltip-row"><span>p90</span><strong>{formatNumber(point.p90, 0)}</strong></div>
+      <div className="chart-tooltip-row"><span>p50 (mediana)</span><strong>{formatNumber(point.p50, 0)}</strong></div>
+      <div className="chart-tooltip-row"><span>p10</span><strong>{formatNumber(point.p10, 0)}</strong></div>
+    </div>
+  )
 }
 
 export default function App() {
@@ -324,6 +351,29 @@ export default function App() {
     () => (heatmap ? heatmap.geographies.length - heatmapRows.length : 0),
     [heatmap, heatmapRows],
   )
+
+  const evaluated = useMemo(
+    () => (forecast ? forecast.scorecard.filter((row) => row.windows > 0) : []),
+    [forecast],
+  )
+
+  const notEvaluated = useMemo(
+    () => (forecast ? forecast.scorecard.length - evaluated.length : 0),
+    [forecast, evaluated],
+  )
+
+  const meanMase = useMemo(() => {
+    const values = published
+      .map((row) => Number(row.mase))
+      .filter((value) => Number.isFinite(value))
+    if (values.length === 0) return null
+    return values.reduce((acc, value) => acc + value, 0) / values.length
+  }, [published])
+
+  const maxHorizon = useMemo(() => {
+    if (!forecast || forecast.forecasts.length === 0) return 0
+    return Math.max(...forecast.forecasts.map((row) => row.horizon))
+  }, [forecast])
 
   const liveMissingRequired = useMemo(() => {
     if (!review) return []
@@ -721,67 +771,178 @@ export default function App() {
 
           {activeView === 'pronostico' && forecast && (
             <>
+              <div className="kpis">
+                <div className="kpi">
+                  <div className="label">Publicados</div>
+                  <div className="value">{published.length} / {forecastTotal}</div>
+                  <div className="delta">superan el baseline estacional</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Evaluados</div>
+                  <div className="value">{evaluated.length}</div>
+                  <div className="delta">con ventanas de backtest</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">MASE promedio</div>
+                  <div className="value">{meanMase === null ? '—' : formatNumber(meanMase, 2)}</div>
+                  <div className={meanMase !== null && meanMase < 1 ? 'delta' : 'delta warn'}>
+                    {meanMase === null ? 'sin datos' : meanMase < 1 ? 'mejor que el baseline' : 'no supera el baseline'}
+                  </div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Horizonte</div>
+                  <div className="value">{maxHorizon} <span style={{ fontSize: 15, fontWeight: 500 }}>sem.</span></div>
+                  <div className="delta">cuantiles p10 · p50 · p90</div>
+                </div>
+              </div>
+
               <Section title="Scorecard de pronóstico">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Departamento</th>
-                      <th>Ventanas</th>
-                      <th>MASE</th>
-                      <th>WIS</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.scorecard.map((row) => (
-                      <tr key={row.department}>
-                        <td>{row.department}</td>
-                        <td>{row.windows}</td>
-                        <td>{row.mase == null ? '—' : row.mase.toFixed(3)}</td>
-                        <td>{row.wis == null ? '—' : row.wis.toFixed(3)}</td>
-                        <td>
-                          <span className={`badge ${row.status === 'publish' ? 'ok' : 'warn'}`}>
-                            {FORECAST_STATUS_LABELS[row.status] || row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="card-sub">
+                  Evaluación por departamento con backtest de origen rodante. Un MASE
+                  menor a 1 indica mejor desempeño que el baseline estacional
+                  (SeasonalNaive de 52 semanas).
+                </div>
+                {evaluated.length === 0 ? (
+                  <p className="muted">
+                    Ningún departamento alcanzó el mínimo de ventanas de backtest.
+                  </p>
+                ) : (
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Departamento</th>
+                          <th className="num">Ventanas</th>
+                          <th className="num">MASE</th>
+                          <th className="num">WIS</th>
+                          <th>Desempeño</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {evaluated.map((row) => {
+                          const quality = maseQuality(row.mase)
+                          return (
+                            <tr key={row.department}>
+                              <td>{row.department}</td>
+                              <td className="num">{row.windows}</td>
+                              <td className="num strong">{formatNumber(row.mase, 3)}</td>
+                              <td className="num">{formatNumber(row.wis, 3)}</td>
+                              <td>
+                                <div className="quality-cell">
+                                  <div className="quality-track">
+                                    <div
+                                      className={`quality-fill ${quality.cls}`}
+                                      style={{ width: `${quality.width}%` }}
+                                    />
+                                  </div>
+                                  <span className={`badge ${quality.cls}`}>{quality.label}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`badge ${row.status === 'publish' ? 'ok' : 'warn'}`}>
+                                  {FORECAST_STATUS_LABELS[row.status] || row.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {notEvaluated > 0 && (
+                  <div className="card-note">
+                    {notEvaluated} departamento{notEvaluated > 1 ? 's' : ''} sin evidencia
+                    suficiente: no alcanzan el mínimo de ventanas de backtest, por lo
+                    que no se publica pronóstico.
+                  </div>
+                )}
               </Section>
 
               {published.length > 0 && (
-                <Section title="Pronóstico por departamento">
-                  {published.map((dept) => {
-                    const data = forecast.forecasts
-                      .filter((f) => f.department === dept.department)
-                      .map((f) => ({ horizon: f.horizon, p10: f.p10, p50: f.p50, p90: f.p90 }))
-                    return (
-                      <div key={dept.department} style={{ marginTop: 12 }}>
-                        <div className="muted">{dept.department}</div>
-                        <div className="chart" style={{ height: 180 }}>
-                          <ResponsiveContainer>
-                            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                              <XAxis
-                                dataKey="horizon"
-                                tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                                label={{ value: 'Horizonte (semanas)', position: 'insideBottom', offset: -16, style: { fontSize: 11, fill: 'var(--muted)' } }}
-                              />
-                              <YAxis
-                                tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                                label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 11, fill: 'var(--muted)' } }}
-                              />
-                              <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} />
-                              <Line dataKey="p50" name="p50" stroke={COLORS[0]} strokeWidth={2} />
-                              <Line dataKey="p10" name="p10" stroke={COLORS[3]} strokeDasharray="4 4" dot={false} />
-                              <Line dataKey="p90" name="p90" stroke={COLORS[2]} strokeDasharray="4 4" dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    )
-                  })}
+                <Section title="Pronóstico publicado por departamento">
+                  <div className="card-sub">
+                    La banda sombreada cubre el intervalo p10–p90; la línea central es
+                    la mediana (p50). A menor amplitud, mayor certeza.
+                  </div>
+                  <div className="forecast-grid">
+                    {published.map((dept) => {
+                      const rows = forecast.forecasts
+                        .filter((f) => f.department === dept.department)
+                        .sort((a, b) => a.horizon - b.horizon)
+                      const chartData = rows.map((f) => ({
+                        horizon: f.horizon,
+                        p10: f.p10,
+                        p50: f.p50,
+                        p90: f.p90,
+                        low: f.p10,
+                        band: f.p90 - f.p10,
+                        target: f.target_epi_week,
+                      }))
+                      return (
+                        <article className="forecast-card" key={dept.department}>
+                          <header className="forecast-card-head">
+                            <h3>{dept.department}</h3>
+                            <span className="badge ok">
+                              MASE {formatNumber(dept.mase, 2)}
+                            </span>
+                          </header>
+                          <div className="chart chart-forecast">
+                            <ResponsiveContainer>
+                              <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 30, left: 8 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                                <XAxis
+                                  dataKey="horizon"
+                                  tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                                  tickFormatter={(value) => `S+${value}`}
+                                  label={{ value: 'Horizonte (semanas)', position: 'insideBottom', offset: -18, style: { fontSize: 11, fill: 'var(--muted)' } }}
+                                />
+                                <YAxis
+                                  tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                                  label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 11, fill: 'var(--muted)' } }}
+                                />
+                                <Tooltip content={<ForecastTooltip />} />
+                                <Area type="monotone" dataKey="low" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
+                                <Area type="monotone" dataKey="band" stackId="band" stroke="none" fill={COLORS[0]} fillOpacity={0.2} isAnimationActive={false} />
+                                <Line type="monotone" dataKey="p50" name="p50" stroke={COLORS[0]} strokeWidth={2.5} dot={{ r: 3 }} />
+                              </ComposedChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <table className="forecast-values">
+                            <thead>
+                              <tr>
+                                <th>Horizonte</th>
+                                <th className="num">Semana</th>
+                                <th className="num">p10</th>
+                                <th className="num">p50</th>
+                                <th className="num">p90</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row) => (
+                                <tr key={row.horizon}>
+                                  <td>S+{row.horizon}</td>
+                                  <td className="num">{row.target_epi_week}</td>
+                                  <td className="num">{formatNumber(row.p10, 0)}</td>
+                                  <td className="num strong">{formatNumber(row.p50, 0)}</td>
+                                  <td className="num">{formatNumber(row.p90, 0)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </article>
+                      )
+                    })}
+                  </div>
+                  <div className="method-note">
+                    <strong>Por qué se publica o no.</strong> Solo se publica el pronóstico
+                    de los departamentos cuyo MASE en backtest supera al baseline
+                    estacional. El resto se marca como <em>evidencia insuficiente</em>
+                    para no presentar cifras sin respaldo. El WIS resume el error de la
+                    distribución (menor es mejor). Un pronóstico es apoyo a la decisión,
+                    no una predicción exacta.
+                  </div>
                 </Section>
               )}
             </>

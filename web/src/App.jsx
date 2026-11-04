@@ -17,7 +17,6 @@ const COLORS = ['#0f766e', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#059669'
 
 const UPLOAD_STATUS_LABELS = { ok: 'OK', ok_with_issues: 'OK con observaciones' }
 const FORECAST_STATUS_LABELS = { publish: 'Publicado', insufficient_evidence: 'Evidencia insuficiente' }
-const DIRECTION_LABELS = { up: 'sube', down: 'baja' }
 
 const VIEWS = [
   { id: 'resumen', label: 'Resumen', icon: '◧' },
@@ -131,6 +130,7 @@ export default function App() {
   const [activeView, setActiveView] = useState('resumen')
   const [theme, setTheme] = useState(readTheme)
   const [showAllRanking, setShowAllRanking] = useState(false)
+  const [explainDept, setExplainDept] = useState(null)
   const fileRef = useRef(null)
   const [review, setReview] = useState(null)
   const [reviewFile, setReviewFile] = useState(null)
@@ -374,6 +374,62 @@ export default function App() {
     if (!forecast || forecast.forecasts.length === 0) return 0
     return Math.max(...forecast.forecasts.map((row) => row.horizon))
   }, [forecast])
+
+  const explainDepartments = useMemo(() => {
+    if (!explain) return []
+    return [...new Set(explain.drivers.map((row) => row.department))]
+  }, [explain])
+
+  const activeExplainDept =
+    explainDept && explainDepartments.includes(explainDept)
+      ? explainDept
+      : explainDepartments[0]
+
+  const activeDrivers = useMemo(() => {
+    if (!explain || !activeExplainDept) return []
+    return explain.drivers
+      .filter((row) => row.department === activeExplainDept)
+      .sort((a, b) => a.rank - b.rank)
+  }, [explain, activeExplainDept])
+
+  const maxDriverShap = useMemo(
+    () => activeDrivers.reduce((acc, row) => Math.max(acc, Number(row.abs_mean_shap) || 0), 0),
+    [activeDrivers],
+  )
+
+  const activeNarrative = useMemo(() => {
+    if (!explain || !activeExplainDept) return null
+    return explain.narratives[explainDepartments.indexOf(activeExplainDept)] || null
+  }, [explain, activeExplainDept, explainDepartments])
+
+  const topDriversPerDept = useMemo(() => {
+    if (!explain || explainDepartments.length === 0) return 0
+    return Math.round(explain.drivers.length / explainDepartments.length)
+  }, [explain, explainDepartments])
+
+  const dominantDriver = useMemo(() => {
+    if (!explain) return ''
+    const counts = new Map()
+    for (const row of explain.drivers) {
+      if (row.rank !== 1) continue
+      counts.set(row.driver, (counts.get(row.driver) || 0) + 1)
+    }
+    let best = ''
+    let bestCount = 0
+    for (const [name, count] of counts) {
+      if (count > bestCount) {
+        best = name
+        bestCount = count
+      }
+    }
+    return best
+  }, [explain])
+
+  const narrativeSource = useMemo(() => {
+    if (!explain || explain.narratives.length === 0) return '—'
+    const sources = [...new Set(explain.narratives.map((item) => item.source))]
+    return sources.length === 1 ? sources[0] : sources.join(' / ')
+  }, [explain])
 
   const liveMissingRequired = useMemo(() => {
     if (!review) return []
@@ -949,35 +1005,113 @@ export default function App() {
           )}
 
           {activeView === 'explicacion' && explain && explain.drivers.length > 0 && (
-            <Section title="Principales impulsores por departamento">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Departamento</th>
-                    <th>Posición</th>
-                    <th>Impulsor</th>
-                    <th>Dirección</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {explain.drivers.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.department}</td>
-                      <td>{row.rank}</td>
-                      <td>{row.driver}</td>
-                      <td>{DIRECTION_LABELS[row.direction] || row.direction}</td>
-                      <td>{row.action}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {explain.narratives.map((item, i) => (
-                <div className="narrative" key={i}>
-                  <span className="muted">[{item.source}]</span> {item.text}
+            <>
+              <div className="kpis">
+                <div className="kpi">
+                  <div className="label">Departamentos</div>
+                  <div className="value">{explainDepartments.length}</div>
+                  <div className="delta">con explicación disponible</div>
                 </div>
-              ))}
-            </Section>
+                <div className="kpi">
+                  <div className="label">Impulsores</div>
+                  <div className="value">{topDriversPerDept}</div>
+                  <div className="delta">por departamento</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Driver dominante</div>
+                  <div className="value value-small">{dominantDriver || '—'}</div>
+                  <div className="delta">señal más frecuente</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Narrativa</div>
+                  <div className="value value-small">{narrativeSource}</div>
+                  <div className="delta">texto generado sobre datos agregados</div>
+                </div>
+              </div>
+
+              <div className="dept-picker" role="tablist" aria-label="Departamento">
+                {explainDepartments.map((dept) => (
+                  <button
+                    key={dept}
+                    role="tab"
+                    aria-selected={activeExplainDept === dept}
+                    className={`dept-pill${activeExplainDept === dept ? ' active' : ''}`}
+                    onClick={() => setExplainDept(dept)}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid2">
+                <Section title={`Impulsores · ${activeExplainDept}`}>
+                  <div className="card-sub">
+                    Contribución media de cada factor al pronóstico, en valor
+                    absoluto (escala SHAP sobre el modelo lineal). Una barra más
+                    larga implica mayor peso en la explicación.
+                  </div>
+                  <div className="driver-list">
+                    {activeDrivers.map((row) => {
+                      const width = maxDriverShap ? (row.abs_mean_shap / maxDriverShap) * 100 : 0
+                      const up = row.direction === 'up'
+                      return (
+                        <div className="driver-item" key={row.feature}>
+                          <div className="driver-head">
+                            <span className="driver-name">
+                              <span className="driver-rank">{row.rank}</span>
+                              {row.driver}
+                            </span>
+                            <span className={`badge ${up ? 'warn' : 'ok'}`}>
+                              {up ? '↑ al alza' : '↓ a la baja'}
+                            </span>
+                          </div>
+                          <div className="driver-track">
+                            <div
+                              className={`driver-fill ${up ? 'up' : 'down'}`}
+                              style={{ width: `${width}%` }}
+                            />
+                          </div>
+                          <div className="driver-value">
+                            contribución {formatNumber(row.abs_mean_shap, 2)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Section>
+
+                <Section title="Acciones recomendadas">
+                  <div className="card-sub">
+                    Tabla determinista que traduce cada impulsor en una acción
+                    preventiva. El modelo no decide: solo ordena y explica.
+                  </div>
+                  <ul className="action-list">
+                    {activeDrivers.map((row) => (
+                      <li className="action-item" key={`a-${row.feature}`}>
+                        <div className="action-head">
+                          <span className="driver-rank">{row.rank}</span>
+                          <span className="action-driver">{row.driver}</span>
+                        </div>
+                        <p className="action-text">{row.action}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              </div>
+
+              {activeNarrative && (
+                <Section title={`Lectura · ${activeExplainDept}`}>
+                  <div className="narrative">
+                    <span className="muted">[{activeNarrative.source}]</span>{' '}
+                    {activeNarrative.text}
+                  </div>
+                  <div className="card-note">
+                    El texto se redacta sobre un resumen agregado; no aporta cifras
+                    nuevas ni reemplaza la revisión del equipo de epidemiología.
+                  </div>
+                </Section>
+              )}
+            </>
           )}
 
           {activeView === 'ingesta' && uploads.length > 0 && (

@@ -655,6 +655,103 @@ td.strong { font-weight: 650; }
 .chart-tooltip-row strong { color: var(--text); font-weight: 600; }
 
 /* ============================================================
+   Explanation module
+   ============================================================ */
+.dept-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.dept-pill {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dept-pill:hover { background: var(--surface-2); color: var(--text); }
+.dept-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.dept-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.driver-list { display: flex; flex-direction: column; gap: 14px; }
+
+.driver-item { display: flex; flex-direction: column; gap: 5px; }
+
+.driver-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.driver-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.driver-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.driver-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.driver-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+.driver-fill.up { background: linear-gradient(90deg, var(--warning), color-mix(in srgb, var(--warning) 55%, var(--surface))); }
+.driver-fill.down { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--surface))); }
+
+.driver-value {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.action-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.action-item {
+  border-left: 2px solid var(--border);
+  padding: 2px 0 2px 12px;
+}
+
+.action-head { display: flex; align-items: center; gap: 8px; }
+
+.action-driver { font-size: 13px; font-weight: 600; }
+
+.action-text {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ============================================================
    Grids
    ============================================================ */
 .grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; align-items: stretch; }

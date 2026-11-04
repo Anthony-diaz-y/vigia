@@ -103,6 +103,7 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [activeView, setActiveView] = useState('resumen')
   const [theme, setTheme] = useState(readTheme)
+  const [showAllRanking, setShowAllRanking] = useState(false)
   const fileRef = useRef(null)
   const [review, setReview] = useState(null)
   const [reviewFile, setReviewFile] = useState(null)
@@ -303,6 +304,25 @@ export default function App() {
   const sortedFlagged = useMemo(
     () => [...flagged].sort((a, b) => Number(b.robust_z) - Number(a.robust_z)),
     [flagged],
+  )
+
+  const RANKING_PREVIEW = 8
+
+  const visibleRanking = useMemo(
+    () => (showAllRanking ? ranking : ranking.slice(0, RANKING_PREVIEW)),
+    [ranking, showAllRanking],
+  )
+
+  const heatmapRows = useMemo(() => {
+    if (!heatmap) return []
+    return heatmap.geographies
+      .map((geo, index) => ({ geo, values: heatmap.values[index] }))
+      .filter((row) => row.values.some((value) => value > 0))
+  }, [heatmap])
+
+  const hiddenHeatmapRows = useMemo(
+    () => (heatmap ? heatmap.geographies.length - heatmapRows.length : 0),
+    [heatmap, heatmapRows],
   )
 
   const liveMissingRequired = useMemo(() => {
@@ -554,13 +574,13 @@ export default function App() {
                               {week % 4 === 1 ? week : ''}
                             </div>
                           ))}
-                          {heatmap.geographies.map((geo, rowIndex) => (
+                          {heatmapRows.map(({ geo, values }) => (
                             <Fragment key={geo}>
                               <div className="hm-ylabel" title={geo}>
                                 {geo}
                               </div>
-                              {heatmap.values[rowIndex].map((value, cellIndex) => {
-                                const alpha = 0.08 + 0.9 * (value / heatMax)
+                              {values.map((value, cellIndex) => {
+                                const alpha = 0.08 + 0.9 * Math.sqrt(value / heatMax)
                                 return (
                                   <div
                                     key={`${geo}-${cellIndex}`}
@@ -580,8 +600,11 @@ export default function App() {
                         <span className="muted">{heatMax} casos</span>
                       </div>
                       <div className="card-note">
-                        Las semanas sin notificación aparecen en blanco. Escala
-                        relativa al máximo del período.
+                        Escala relativa al máximo del período y en raíz cuadrada para
+                        que los valores bajos sigan siendo visibles. Las semanas sin
+                        notificación aparecen en blanco.
+                        {hiddenHeatmapRows > 0 &&
+                          ` Se omiten ${hiddenHeatmapRows} departamento${hiddenHeatmapRows > 1 ? 's' : ''} sin casos notificados.`}
                       </div>
                     </>
                   ) : (
@@ -592,8 +615,8 @@ export default function App() {
                 <Section title={`Ranking por casos · ${year}`}>
                   {ranking.length > 0 ? (
                     <>
-                      <div className="rank-list">
-                        {ranking.map((row) => {
+                      <div className={`rank-list${showAllRanking ? ' rank-list-scroll' : ''}`}>
+                        {visibleRanking.map((row) => {
                           const name = row.province || row.department
                           const share = rankingTotal ? (row.cases / rankingTotal) * 100 : 0
                           const width = rankingMax ? (row.cases / rankingMax) * 100 : 0
@@ -611,6 +634,18 @@ export default function App() {
                           )
                         })}
                       </div>
+                      {ranking.length > RANKING_PREVIEW && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost rank-toggle"
+                          onClick={() => setShowAllRanking((value) => !value)}
+                          aria-expanded={showAllRanking}
+                        >
+                          {showAllRanking
+                            ? 'Ver menos'
+                            : `Ver los ${ranking.length} departamentos`}
+                        </button>
+                      )}
                       <div className="card-note">
                         Ordenado por casos acumulados del año. Porcentaje sobre el
                         total notificado.

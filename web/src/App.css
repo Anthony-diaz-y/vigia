@@ -469,6 +469,36 @@ footer.disclaimer {
    ============================================================ */
 .rank-list { display: flex; flex-direction: column; gap: 12px; }
 
+.rank-list-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.rank-list-scroll::-webkit-scrollbar { width: 8px; }
+.rank-list-scroll::-webkit-scrollbar-track { background: transparent; }
+.rank-list-scroll::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+}
+
+.rank-toggle {
+  margin-top: 14px;
+  width: 100%;
+  height: 34px;
+  font-size: 13px;
+  color: var(--accent);
+  border: 1px dashed var(--border);
+}
+
+.rank-toggle:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .rank-item { display: flex; flex-direction: column; gap: 4px; }
 
 .rank-head {

@@ -35,9 +35,10 @@ body {
 }
 
 .sidebar .brand {
-  font-size: 18px;
-  font-weight: 600;
-  padding: 4px 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 8px 20px;
 }
 
 .sidebar .brand span {
@@ -47,9 +48,9 @@ body {
   font-weight: 400;
 }
 
-.logo { object-fit: contain; display: block; }
-.logo-sm { width: 28px; height: 28px; }
-.logo-lg { width: 56px; height: 56px; margin-bottom: 8px; }
+.logo { object-fit: contain; display: block; border-radius: 50%; }
+.logo-sm { width: 32px; height: 32px; }
+.logo-lg { width: 64px; height: 64px; }
 
 .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
 
@@ -153,6 +154,7 @@ main {
 }
 
 .chart { height: 280px; }
+.chart-tall { height: 380px; }
 .muted { color: var(--muted); font-size: 13px; }
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -248,8 +250,9 @@ footer.disclaimer {
   .kpis { grid-template-columns: repeat(2, 1fr); }
   .grid2 { grid-template-columns: 1fr; }
   .sidebar { width: 64px; padding: 16px 8px; }
-  .sidebar .brand span, .sidebar .side-foot { display: none; }
-  .sidebar .brand { font-size: 14px; text-align: center; padding: 4px 0 16px; }
+  .sidebar .side-foot { display: none; }
+  .sidebar .brand { padding: 4px 0 16px; }
+  .sidebar .brand .logo-lg { width: 40px; height: 40px; }
   .sidebar nav button { text-align: center; padding: 10px 4px; font-size: 0; }
   .sidebar nav button::first-letter { font-size: 14px; }
 }

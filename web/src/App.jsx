@@ -246,8 +246,6 @@ export default function App() {
       <aside className="sidebar">
         <div className="brand">
           <img className="logo logo-lg" src="/logo.webp" alt="vigia" />
-          vigia
-          <span>soporte de decisión en dengue</span>
         </div>
         <nav>
           {VIEWS.map((view) => (
@@ -270,7 +268,6 @@ export default function App() {
       <div className="workspace">
         <header>
           <img className="logo logo-sm" src="/logo.webp" alt="vigia" />
-          <h1>vigia</h1>
           <span className="muted">soporte de decisión en dengue</span>
           <div className="controls">
             <input
@@ -379,21 +376,22 @@ export default function App() {
 
               {interannual.length > 0 && (
                 <Section title="Comparación interanual (por semana epidemiológica)">
-                  <div className="chart">
+                  <div className="chart chart-tall">
                     <ResponsiveContainer>
-                      <LineChart data={interannual} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                      <LineChart data={interannual} margin={{ top: 8, right: 24, bottom: 32, left: 16 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis
                           dataKey="epi_week"
                           tick={{ fontSize: 11, fill: '#64748b' }}
-                          label={{ value: 'Semana epidemiológica', position: 'insideBottom', offset: -16, style: { fontSize: 12, fill: '#64748b' } }}
+                          interval={3}
+                          label={{ value: 'Semana epidemiológica', position: 'insideBottom', offset: -18, style: { fontSize: 12, fill: '#64748b' } }}
                         />
                         <YAxis
                           tick={{ fontSize: 11, fill: '#64748b' }}
-                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
+                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', offset: 0, style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
                         />
                         <Tooltip />
-                        <Legend />
+                        <Legend verticalAlign="top" align="right" height={32} iconType="plainline" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
                         {interannualYears.map((yr, i) => (
                           <Line
                             key={yr}

@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -71,6 +69,22 @@ function Section({ title, children }) {
       {children}
     </section>
   )
+}
+
+function formatNumber(value, decimals = 0) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
+  return Number(value).toLocaleString('es-PE', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+}
+
+function severityOf(z) {
+  const value = Number(z)
+  if (!Number.isFinite(value)) return { label: '—', cls: 'warn' }
+  if (value >= 3) return { label: 'Alta', cls: 'danger' }
+  if (value >= 2.5) return { label: 'Media', cls: 'warn' }
+  return { label: 'Baja', cls: 'ok' }
 }
 
 export default function App() {
@@ -265,6 +279,31 @@ export default function App() {
     if (!heatmap) return 1
     return Math.max(1, ...heatmap.values.flat())
   }, [heatmap])
+
+  const peakWeekly = useMemo(() => {
+    if (!heatmap) return 0
+    return Math.max(0, ...heatmap.values.flat())
+  }, [heatmap])
+
+  const weeksWithSignal = useMemo(
+    () => new Set(flagged.map((row) => `${row.year}-${row.epi_week}`)).size,
+    [flagged],
+  )
+
+  const rankingTotal = useMemo(
+    () => ranking.reduce((acc, row) => acc + (row.cases || 0), 0),
+    [ranking],
+  )
+
+  const rankingMax = useMemo(
+    () => ranking.reduce((acc, row) => Math.max(acc, row.cases || 0), 0),
+    [ranking],
+  )
+
+  const sortedFlagged = useMemo(
+    () => [...flagged].sort((a, b) => Number(b.robust_z) - Number(a.robust_z)),
+    [flagged],
+  )
 
   const liveMissingRequired = useMemo(() => {
     if (!review) return []
@@ -471,90 +510,177 @@ export default function App() {
 
           {activeView === 'analisis' && uploads.length > 0 && (
             <>
-              {(heatmap || ranking.length > 0) && (
-                <div className="grid2">
-                  {heatmap && (
-                    <Section title={`Mapa de calor por departamento y semana (${year})`}>
-                      <div className="heatmap" style={{ gridTemplateColumns: `auto repeat(${heatmap.weeks.length}, 14px)` }}>
-                        <div className="row-label" />
-                        {heatmap.weeks.map((week) => (
-                          <div key={week} className="row-label muted" title={`semana ${week}`}>
-                            {week}
-                          </div>
-                        ))}
-                        {heatmap.geographies.map((geo, rowIndex) => (
-                          <HeatmapRow
-                            key={geo}
-                            label={geo}
-                            values={heatmap.values[rowIndex]}
-                            max={heatMax}
-                          />
-                        ))}
-                      </div>
-                    </Section>
-                  )}
-
-                  {ranking.length > 0 && (
-                    <Section title={`Ranking por casos${year ? ` (${year})` : ''}`}>
-                      <div className="chart">
-                        <ResponsiveContainer>
-                          <BarChart data={ranking} layout="vertical" margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                            <XAxis
-                              type="number"
-                              tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                              label={{ value: 'Casos', position: 'insideBottom', offset: -14, style: { fontSize: 12, fill: 'var(--muted)' } }}
-                            />
-                            <YAxis
-                              type="category"
-                              dataKey={ranking[0]?.province ? 'province' : 'department'}
-                              width={110}
-                              tick={{ fontSize: 11, fill: 'var(--muted)' }}
-                            />
-                            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} cursor={{ fill: 'var(--surface-2)' }} />
-                            <Bar dataKey="cases" name="Casos" fill={COLORS[1]} radius={[0, 3, 3, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </Section>
-                  )}
+              <div className="kpis">
+                <div className="kpi">
+                  <div className="label">Casos notificados</div>
+                  <div className="value">{totalCases.toLocaleString('es-PE')}</div>
+                  <div className="delta">acumulado {year}</div>
                 </div>
-              )}
+                <div className="kpi">
+                  <div className="label">Departamentos</div>
+                  <div className="value">{heatmap ? heatmap.geographies.length : '—'}</div>
+                  <div className="delta">con datos en el período</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Semanas con señal</div>
+                  <div className="value">{weeksWithSignal}</div>
+                  <div className={weeksWithSignal > 0 ? 'delta warn' : 'delta'}>
+                    {weeksWithSignal > 0 ? 'revisar notificación' : 'sin señales'}
+                  </div>
+                </div>
+                <div className="kpi">
+                  <div className="label">Pico semanal</div>
+                  <div className="value">{peakWeekly.toLocaleString('es-PE')}</div>
+                  <div className="delta">casos en la semana más alta</div>
+                </div>
+              </div>
 
-              {anomalies.length > 0 && (
-                <Section title={`Anomalías (${flagged.length} señaladas)`}>
-                  {flagged.length === 0 ? (
-                    <p className="muted">Sin anomalías para los datos actuales.</p>
+              <div className="grid2">
+                <Section title="Mapa de calor · departamento × semana">
+                  <div className="card-sub">
+                    Intensidad de casos notificados en {year}. Cada columna es una
+                    semana epidemiológica, cada fila un departamento.
+                  </div>
+                  {heatmap ? (
+                    <>
+                      <div className="heatmap-scroll">
+                        <div
+                          className="heatmap-grid"
+                          style={{ gridTemplateColumns: `132px repeat(${heatmap.weeks.length}, 16px)` }}
+                        >
+                          <div className="hm-corner" />
+                          {heatmap.weeks.map((week) => (
+                            <div key={`w-${week}`} className="hm-xlabel" title={`Semana ${week}`}>
+                              {week % 4 === 1 ? week : ''}
+                            </div>
+                          ))}
+                          {heatmap.geographies.map((geo, rowIndex) => (
+                            <Fragment key={geo}>
+                              <div className="hm-ylabel" title={geo}>
+                                {geo}
+                              </div>
+                              {heatmap.values[rowIndex].map((value, cellIndex) => {
+                                const alpha = 0.08 + 0.9 * (value / heatMax)
+                                return (
+                                  <div
+                                    key={`${geo}-${cellIndex}`}
+                                    className="hm-cell"
+                                    title={`${geo} · semana ${heatmap.weeks[cellIndex]}: ${value} casos`}
+                                    style={{ background: `rgba(var(--heat), ${alpha.toFixed(3)})` }}
+                                  />
+                                )
+                              })}
+                            </Fragment>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="hm-legend">
+                        <span className="muted">0</span>
+                        <span className="hm-legend-bar" />
+                        <span className="muted">{heatMax} casos</span>
+                      </div>
+                      <div className="card-note">
+                        Las semanas sin notificación aparecen en blanco. Escala
+                        relativa al máximo del período.
+                      </div>
+                    </>
                   ) : (
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Departamento</th>
-                          <th>Año</th>
-                          <th>Semana</th>
-                          <th>Casos</th>
-                          <th>z robusto</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {flagged.map((row, i) => (
-                          <tr key={i}>
-                            <td>{row.department}</td>
-                            <td>{row.year}</td>
-                            <td>{row.epi_week}</td>
-                            <td>{row.cases}</td>
-                            <td>
-                              <span className="badge danger">
-                                {row.robust_z.toFixed ? row.robust_z.toFixed(2) : row.robust_z}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <p className="muted">Sin datos para el año seleccionado.</p>
                   )}
                 </Section>
-              )}
+
+                <Section title={`Ranking por casos · ${year}`}>
+                  {ranking.length > 0 ? (
+                    <>
+                      <div className="rank-list">
+                        {ranking.map((row) => {
+                          const name = row.province || row.department
+                          const share = rankingTotal ? (row.cases / rankingTotal) * 100 : 0
+                          const width = rankingMax ? (row.cases / rankingMax) * 100 : 0
+                          return (
+                            <div className="rank-item" key={name}>
+                              <div className="rank-head">
+                                <span className="rank-name">{name}</span>
+                                <span className="rank-value">{row.cases.toLocaleString('es-PE')}</span>
+                              </div>
+                              <div className="rank-track">
+                                <div className="rank-fill" style={{ width: `${width}%` }} />
+                              </div>
+                              <div className="rank-share">{share.toFixed(1)}% del total</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="card-note">
+                        Ordenado por casos acumulados del año. Porcentaje sobre el
+                        total notificado.
+                      </div>
+                    </>
+                  ) : (
+                    <p className="muted">Sin datos de ranking para el año seleccionado.</p>
+                  )}
+                </Section>
+              </div>
+
+              <Section title={`Anomalías detectadas · ${flagged.length} señaladas`}>
+                <div className="card-sub">
+                  Semanas cuyo volumen se aparta del patrón estacional esperado,
+                  sobre todo el período disponible y ordenadas por severidad.
+                </div>
+                {anomalies.length === 0 ? (
+                  <p className="muted">Sin datos de anomalías para el período.</p>
+                ) : flagged.length === 0 ? (
+                  <p className="muted">
+                    Sin anomalías: todas las semanas se mantienen dentro del rango
+                    esperado.
+                  </p>
+                ) : (
+                  <>
+                    <div className="table-scroll">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Severidad</th>
+                            <th>Departamento</th>
+                            <th>Año</th>
+                            <th>Semana</th>
+                            <th className="num">Casos</th>
+                            <th className="num">Base estacional</th>
+                            <th className="num">Residual</th>
+                            <th className="num">z robusto</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedFlagged.map((row) => (
+                            <tr key={`${row.department}-${row.year}-${row.epi_week}`}>
+                              <td>
+                                <span className={`badge ${severityOf(row.robust_z).cls}`}>
+                                  {severityOf(row.robust_z).label}
+                                </span>
+                              </td>
+                              <td>{row.department}</td>
+                              <td>{row.year}</td>
+                              <td>{row.epi_week}</td>
+                              <td className="num">{row.cases}</td>
+                              <td className="num">{formatNumber(row.seasonal_baseline, 1)}</td>
+                              <td className="num">{formatNumber(row.residual, 1)}</td>
+                              <td className="num strong">{formatNumber(row.robust_z, 2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="method-note">
+                      <strong>Cómo leerlo.</strong> El <em>z robusto</em> mide cuánto
+                      se aparta una semana de su base estacional, en desviaciones
+                      robustas (MAD). Valores sobre 2,5 se consideran señal; sobre 3,
+                      señal alta. El <em>residual</em> es la diferencia cruda entre los
+                      casos observados y la base. Una señal puede deberse a un brote
+                      real o a notificación tardía: verificar antes de escalar.
+                    </div>
+                  </>
+                )}
+              </Section>
             </>
           )}
 
@@ -774,25 +900,5 @@ export default function App() {
         </div>
       )}
     </div>
-  )
-}
-
-function HeatmapRow({ label, values, max }) {
-  return (
-    <>
-      <div className="row-label">{label}</div>
-      {values.map((value, i) => {
-        const intensity = value / max
-        const alpha = 0.08 + 0.9 * intensity
-        return (
-          <div
-            key={i}
-            className="cell"
-            title={value}
-            style={{ background: `rgba(var(--heat), ${alpha})` }}
-          />
-        )
-      })}
-    </>
   )
 }

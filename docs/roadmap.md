@@ -89,6 +89,14 @@ matches without ingesting. `POST /api/upload` accepts an authoritative `mapping`
 override, and the dashboard shows a review step to confirm or correct column
 assignments before ingest. Also fixed a crash when an upload had no age column.
 
+### M7 - PostgreSQL system of record (done)
+
+The metadata database URL is now configurable via `VIGIA_DATABASE_URL`. Unset,
+it defaults to SQLite (dev and tests unchanged); set it to a
+`postgresql+psycopg://` URL to run metadata on PostgreSQL. `build_engine` applies
+SQLite-specific connect args only for SQLite URLs. Driver: `psycopg[binary]`.
+Validated with a skip-guarded smoke test against a Docker Postgres.
+
 ## Open decisions
 
 - Object storage provider account (Cloudflare R2 chosen, not provisioned yet).

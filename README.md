@@ -34,7 +34,7 @@ src/vigia/           Python package
   analysis/          DuckDB series, comparison, heatmap/ranking, anomalies
   forecast/          Seasonal-drift forecast, backtest, scorecard, registry
   explain/           SHAP drivers, action table, narrative
-  api/               FastAPI app, SQLite metadata, token auth
+  api/               FastAPI app, metadata (SQLite/PostgreSQL), token auth
 web/                 React (Vite) dashboard
 tests/               Contract tests, synthetic fixtures
 ```
@@ -68,6 +68,9 @@ it as the `X-Access-Token` header or in the UI token field. The dashboard has a
 Uploads go through a mapping review step: before ingestion, the dashboard shows
 how source columns map to canonical columns and you can confirm or correct the
 assignment.
+
+Metadata storage defaults to SQLite. Set `VIGIA_DATABASE_URL` to a
+`postgresql+psycopg://user:pass@host:port/db` URL to run it on PostgreSQL.
 
 ## Data sources
 

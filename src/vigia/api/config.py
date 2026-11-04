@@ -25,10 +25,11 @@ class Settings:
     def from_env(cls) -> "Settings":
         data = Path(os.environ.get("VIGIA_DATA_DIR", Path.cwd() / "data"))
         data.mkdir(parents=True, exist_ok=True)
+        default_db = f"sqlite:///{data / 'vigia.db'}"
         return cls(
             data_dir=data,
             access_token=os.environ.get("VIGIA_ACCESS_TOKEN", DEFAULT_ACCESS_TOKEN),
-            database_url=f"sqlite:///{data / 'vigia.db'}",
+            database_url=os.environ.get("VIGIA_DATABASE_URL", default_db),
         )
 
     @property

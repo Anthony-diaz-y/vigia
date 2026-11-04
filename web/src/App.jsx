@@ -245,6 +245,7 @@ export default function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
+          <img className="logo logo-lg" src="/logo.webp" alt="vigia" />
           vigia
           <span>soporte de decisión en dengue</span>
         </div>
@@ -268,6 +269,7 @@ export default function App() {
 
       <div className="workspace">
         <header>
+          <img className="logo logo-sm" src="/logo.webp" alt="vigia" />
           <h1>vigia</h1>
           <span className="muted">soporte de decisión en dengue</span>
           <div className="controls">

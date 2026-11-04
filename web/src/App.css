@@ -47,6 +47,10 @@ body {
   font-weight: 400;
 }
 
+.logo { object-fit: contain; display: block; }
+.logo-sm { width: 28px; height: 28px; }
+.logo-lg { width: 56px; height: 56px; margin-bottom: 8px; }
+
 .sidebar nav { display: flex; flex-direction: column; gap: 4px; }
 
 .sidebar nav button {

@@ -21,15 +21,21 @@ substitutes the official health authority.
 - Idempotent by file hash.
 - Personal-data columns are rejected before storage.
 
-Out of scope for now: forecasting, dashboards, API, authentication, other
-diseases, district-level granularity.
+Out of scope: other diseases, district-level series, nominal patient records,
+clinical recommendations, multi-tenant billing, real-time ingest.
 
 ## Layout
 
 ```
 config/mappings/     Per-source column mapping and PII rules (YAML)
-src/vigia/     Python package
+docs/roadmap.md      Durable state: decisions, milestones, resume steps
+src/vigia/           Python package
   ingest/            Readers, mapping, normalization, quality, pipeline
+  analysis/          DuckDB series, comparison, heatmap/ranking, anomalies
+  forecast/          Seasonal-drift forecast, backtest, scorecard, registry
+  explain/           SHAP drivers, action table, narrative
+  api/               FastAPI app, SQLite metadata, token auth
+web/                 React (Vite) dashboard
 tests/               Contract tests, synthetic fixtures
 ```
 
@@ -43,6 +49,21 @@ DuckDB as the per-job analytical engine, object storage for raw uploads.
 uv sync
 uv run pytest
 ```
+
+## Run
+
+```bash
+# API plus the built dashboard on http://localhost:8000
+uv run uvicorn vigia.api.main:app --reload
+
+# Build the dashboard first (or run it in dev mode with hot reload)
+cd web && npm install && npm run build      # FastAPI then serves web/dist
+cd web && npm run dev                       # dev server on :5173, proxies /api
+```
+
+Access is token-gated: set `VIGIA_ACCESS_TOKEN` (default `vigia-dev`) and pass
+it as the `X-Access-Token` header or in the UI token field. The dashboard has a
+"Load demo data" button that ingests a synthetic three-year dataset.
 
 ## Data sources
 

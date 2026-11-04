@@ -2,22 +2,44 @@
 
 Extracted from the project source. Every entry names its source path.
 
-Source: `web/src/App.css` (all tokens); chart series colors from `web/src/App.jsx`.
+Source: `web/src/App.css` (tokens); chart series colors from `web/src/App.jsx`.
+The system is themeable: `:root` holds light tokens, `[data-theme="dark"]`
+overrides them. Components must reference tokens, never raw hex values.
 
-## Colors
+## Colors — light
 
-| Token | Value | Usage | Source |
-| --- | --- | --- | --- |
-| `--accent` | `#0f766e` | Primary actions, active accent, narrative border | App.css |
-| `--border` | `#e2e8f0` | Borders, dividers, table rules | App.css |
-| `--muted` | `#64748b` | Secondary text, table headers | App.css |
-| `text` | `#0f172a` | Body text | App.css |
-| `background` | `#f8fafc` | App background | App.css |
-| `surface` | `#ffffff` | Header, cards/sections | App.css |
-| `surface-title` | `#334155` | Section titles | App.css |
-| `error` | `#b91c1c` / bg `#fef2f2` / border `#fecaca` | Error state | App.css |
-| `warning` | `#92400e` / bg `#fffbeb` / border `#fde68a` | Disclaimer / warning | App.css |
-| `info-bg` | `#f0fdfa` | Narrative callout background | App.css |
+| Token | Value | Usage |
+| --- | --- | --- |
+| `--bg` | `#f8fafc` | App background |
+| `--surface` | `#ffffff` | Cards, header, sidebar |
+| `--surface-2` | `#f1f5f9` | Hover, muted fills |
+| `--border` | `#e2e8f0` | Borders, dividers |
+| `--text` | `#0f172a` | Body text |
+| `--muted` | `#64748b` | Secondary text, labels |
+| `--accent` | `#0f766e` | Primary action, active nav |
+| `--accent-hover` | `#115e56` | Primary hover |
+| `--accent-soft` | `#f0fdfa` | Narrative callout |
+| `--accent-contrast` | `#ffffff` | Text on accent |
+| `--danger` | `#b91c1c` | Errors, destructive text |
+| `--warning` | `#92400e` | Disclaimer |
+
+## Colors — dark (`[data-theme="dark"]`)
+
+| Token | Value |
+| --- | --- |
+| `--bg` | `#0b1220` |
+| `--surface` | `#111a2b` |
+| `--surface-2` | `#16223a` |
+| `--border` | `#243349` |
+| `--text` | `#e6edf7` |
+| `--muted` | `#94a3b8` |
+| `--accent` | `#14b8a6` |
+| `--accent-hover` | `#2dd4bf` |
+| `--accent-contrast` | `#04211f` |
+
+Theme is chosen from `localStorage['vigia-theme']`, falling back to
+`prefers-color-scheme`; an inline script in `web/index.html` applies it before
+first paint to avoid a flash.
 
 Chart series (data viz): `#0f766e`, `#2563eb`, `#d97706`, `#dc2626`, `#7c3aed`, `#059669` (App.jsx `COLORS`).
 
@@ -33,19 +55,24 @@ Chart series (data viz): `#0f766e`, `#2563eb`, `#d97706`, `#dc2626`, `#7c3aed`, 
 
 ## Radius
 
-2 heatmap cells · 8 buttons/inputs/callouts · 12 cards.
+2 heatmap cells · 8 (`--radius-sm`) buttons/inputs/callouts · 10 (`--radius`) cards.
 
 ## Shadows
 
-None defined in the source.
+`--shadow-sm` cards and buttons · `--shadow-md` modal and tooltips. Dark theme
+deepens both.
 
 ## Component rules
 
-- **Header**: sticky, `surface`, 1px `--border` bottom, 18px title.
-- **Button**: white bg, 1px `--border`, radius 8, padding 8×12; `.primary` = `--accent` bg + white text; disabled = 50% opacity.
-- **Section/card**: `surface`, 1px `--border`, radius 12, padding 16; h2 uppercase 15px `surface-title`.
-- **Table**: 13px, `--muted` 600 headers, rows divided by `--border`.
-- **Error**: radius 8, red block.
-- **Narrative**: 3px `--accent` left border, `#f0fdfa` bg, radius 0 8 8 0.
-- **Disclaimer**: amber block, radius 12.
-- **Heatmap**: 14×14 cells, radius 2, 2px gap, teal alpha intensity.
+- **Header**: sticky, translucent `--surface` with backdrop blur, 1px `--border` bottom. Logo only (32px, circular); no repeated wordmark.
+- **Sidebar**: 232px, `--surface`, circular 64px logo, `.nav-btn` items (radius 8, hover `--surface-2`, active = `--accent` fill with `--accent-contrast` text).
+- **Button** (`.btn`): height 36, radius 8, weight 500, 0.15s transitions, `:focus-visible` accent ring. Intents: `.btn-primary` (accent fill), `.btn` (surface + border), `.btn-ghost` (transparent), `.btn-danger` (red text). `.btn-icon` is a 36×36 square. Disabled = 45% opacity.
+- **Inputs**: height 36, radius 8, focus = accent border + 3px accent ring at 22%.
+- **Section/card**: `--surface`, `--border`, radius 10, padding 18, `--shadow-sm`.
+- **Table**: 13px body, 11px uppercase 600 headers in `--muted`, row hover `--surface-2`.
+- **Badge**: pill, 11px 600; `.ok` / `.warn` / `.danger` use the semantic token pairs.
+- **Narrative**: 3px `--accent` left border, `--accent-soft` background.
+- **Disclaimer**: `--warning` on `--warning-bg`, top border only.
+- **Heatmap**: 14×14 cells, radius 2, intensity via `rgba(var(--heat), alpha)` so it flips with the theme.
+- **Charts**: grid `var(--chart-grid)`, ticks `var(--muted)`, tooltip uses `TOOLTIP_STYLE` from tokens; every axis carries a title.
+- **Motion**: respect `prefers-reduced-motion` — transitions disabled.

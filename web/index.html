@@ -6,6 +6,20 @@
     <meta name="theme-color" content="#0f766e" />
     <link rel="icon" type="image/webp" href="/logo.webp" />
     <title>vigia</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('vigia-theme')
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          document.documentElement.setAttribute('data-theme', theme)
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

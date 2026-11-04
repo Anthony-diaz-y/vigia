@@ -20,12 +20,49 @@ const FORECAST_STATUS_LABELS = { publish: 'Publicado', insufficient_evidence: 'E
 const DIRECTION_LABELS = { up: 'sube', down: 'baja' }
 
 const VIEWS = [
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'analisis', label: 'Análisis' },
-  { id: 'pronostico', label: 'Pronóstico' },
-  { id: 'explicacion', label: 'Explicación' },
-  { id: 'ingesta', label: 'Ingesta' },
+  { id: 'resumen', label: 'Resumen', icon: '◧' },
+  { id: 'analisis', label: 'Análisis', icon: '▤' },
+  { id: 'pronostico', label: 'Pronóstico', icon: '◔' },
+  { id: 'explicacion', label: 'Explicación', icon: '◈' },
+  { id: 'ingesta', label: 'Ingesta', icon: '⇪' },
 ]
+
+const THEME_KEY = 'vigia-theme'
+
+function readTheme() {
+  if (typeof window === 'undefined') return 'light'
+  const stored = window.localStorage.getItem(THEME_KEY)
+  if (stored === 'light' || stored === 'dark') return stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+const TOOLTIP_STYLE = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  color: 'var(--text)',
+  fontSize: 12,
+  boxShadow: 'var(--shadow-md)',
+}
+
+function SunIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  )
+}
+
+function MoonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
+  )
+}
 
 function Section({ title, children }) {
   return (
@@ -51,6 +88,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [activeView, setActiveView] = useState('resumen')
+  const [theme, setTheme] = useState(readTheme)
   const fileRef = useRef(null)
   const [review, setReview] = useState(null)
   const [reviewFile, setReviewFile] = useState(null)
@@ -104,6 +142,13 @@ export default function App() {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme((previous) => (previous === 'dark' ? 'light' : 'dark'))
 
   const onTokenChange = (value) => {
     setToken(value)
@@ -251,10 +296,11 @@ export default function App() {
           {VIEWS.map((view) => (
             <button
               key={view.id}
-              className={activeView === view.id ? 'active' : ''}
+              className={`nav-btn${activeView === view.id ? ' active' : ''}`}
               onClick={() => setActiveView(view.id)}
             >
-              {view.label}
+              <span className="nav-icon" aria-hidden="true">{view.icon}</span>
+              <span>{view.label}</span>
             </button>
           ))}
         </nav>
@@ -292,16 +338,29 @@ export default function App() {
               onChange={onFileSelected}
               style={{ display: 'none' }}
             />
-            <button onClick={() => fileRef.current?.click()} disabled={busy}>
+            <button
+              className="btn btn-icon btn-ghost"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+              aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+            <button className="btn" onClick={() => fileRef.current?.click()} disabled={busy}>
               Subir
             </button>
-            <button className="primary" onClick={onDemo} disabled={busy}>
+            <button className="btn btn-primary" onClick={onDemo} disabled={busy}>
               Cargar datos demo
             </button>
-            <button onClick={refresh} disabled={busy}>
+            <button className="btn" onClick={refresh} disabled={busy}>
               {busy ? 'Cargando…' : 'Actualizar'}
             </button>
-            <button onClick={onReset} disabled={busy} title="Borrar todos los datos ingeridos">
+            <button
+              className="btn btn-danger"
+              onClick={onReset}
+              disabled={busy}
+              title="Borrar todos los datos ingeridos"
+            >
               Borrar datos
             </button>
           </div>
@@ -354,19 +413,19 @@ export default function App() {
                 <Section title="Casos semanales (total)">
                   <div className="chart">
                     <ResponsiveContainer>
-                      <LineChart data={seriesData} margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <LineChart data={seriesData} margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                         <XAxis
                           dataKey="label"
-                          tick={{ fontSize: 10, fill: '#64748b' }}
+                          tick={{ fontSize: 10, fill: 'var(--muted)' }}
                           minTickGap={32}
-                          label={{ value: 'Semana epidemiológica (año-S##)', position: 'insideBottom', offset: -16, style: { fontSize: 12, fill: '#64748b' } }}
+                          label={{ value: 'Semana epidemiológica (año-S##)', position: 'insideBottom', offset: -16, style: { fontSize: 12, fill: 'var(--muted)' } }}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: '#64748b' }}
-                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
+                          tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12, fill: 'var(--muted)' } }}
                         />
-                        <Tooltip />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} />
                         <Line type="monotone" dataKey="total" name="Casos" stroke={COLORS[0]} strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -378,20 +437,20 @@ export default function App() {
                 <Section title="Comparación interanual (por semana epidemiológica)">
                   <div className="chart chart-tall">
                     <ResponsiveContainer>
-                      <LineChart data={interannual} margin={{ top: 8, right: 24, bottom: 32, left: 16 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <LineChart data={interannual} margin={{ top: 8, right: 24, bottom: 36, left: 16 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                         <XAxis
                           dataKey="epi_week"
-                          tick={{ fontSize: 11, fill: '#64748b' }}
+                          tick={{ fontSize: 11, fill: 'var(--muted)' }}
                           interval={3}
-                          label={{ value: 'Semana epidemiológica', position: 'insideBottom', offset: -18, style: { fontSize: 12, fill: '#64748b' } }}
+                          label={{ value: 'Semana epidemiológica', position: 'insideBottom', offset: -22, style: { fontSize: 12, fill: 'var(--muted)' } }}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: '#64748b' }}
-                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', offset: 0, style: { textAnchor: 'middle', fontSize: 12, fill: '#64748b' } }}
+                          tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                          label={{ value: 'Casos', angle: -90, position: 'insideLeft', offset: 0, style: { textAnchor: 'middle', fontSize: 12, fill: 'var(--muted)' } }}
                         />
-                        <Tooltip />
-                        <Legend verticalAlign="top" align="right" height={32} iconType="plainline" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} />
+                        <Legend verticalAlign="top" align="right" height={36} iconType="plainline" wrapperStyle={{ fontSize: 12, paddingBottom: 12, color: 'var(--muted)' }} />
                         {interannualYears.map((yr, i) => (
                           <Line
                             key={yr}
@@ -439,12 +498,21 @@ export default function App() {
                     <Section title={`Ranking por casos${year ? ` (${year})` : ''}`}>
                       <div className="chart">
                         <ResponsiveContainer>
-                          <BarChart data={ranking} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" />
-                            <YAxis type="category" dataKey={ranking[0]?.province ? 'province' : 'department'} width={110} />
-                            <Tooltip />
-                            <Bar dataKey="cases" fill={COLORS[1]} />
+                          <BarChart data={ranking} layout="vertical" margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis
+                              type="number"
+                              tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                              label={{ value: 'Casos', position: 'insideBottom', offset: -14, style: { fontSize: 12, fill: 'var(--muted)' } }}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey={ranking[0]?.province ? 'province' : 'department'}
+                              width={110}
+                              tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                            />
+                            <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} cursor={{ fill: 'var(--surface-2)' }} />
+                            <Bar dataKey="cases" name="Casos" fill={COLORS[1]} radius={[0, 3, 3, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -532,14 +600,21 @@ export default function App() {
                         <div className="muted">{dept.department}</div>
                         <div className="chart" style={{ height: 180 }}>
                           <ResponsiveContainer>
-                            <LineChart data={data}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="horizon" />
-                              <YAxis />
-                              <Tooltip />
-                              <Line dataKey="p50" stroke={COLORS[0]} name="p50" />
-                              <Line dataKey="p10" stroke={COLORS[3]} name="p10" strokeDasharray="4 4" />
-                              <Line dataKey="p90" stroke={COLORS[2]} name="p90" strokeDasharray="4 4" />
+                            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                              <XAxis
+                                dataKey="horizon"
+                                tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                                label={{ value: 'Horizonte (semanas)', position: 'insideBottom', offset: -16, style: { fontSize: 11, fill: 'var(--muted)' } }}
+                              />
+                              <YAxis
+                                tick={{ fontSize: 11, fill: 'var(--muted)' }}
+                                label={{ value: 'Casos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 11, fill: 'var(--muted)' } }}
+                              />
+                              <Tooltip contentStyle={TOOLTIP_STYLE} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--muted)' }} />
+                              <Line dataKey="p50" name="p50" stroke={COLORS[0]} strokeWidth={2} />
+                              <Line dataKey="p10" name="p10" stroke={COLORS[3]} strokeDasharray="4 4" dot={false} />
+                              <Line dataKey="p90" name="p90" stroke={COLORS[2]} strokeDasharray="4 4" dot={false} />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
@@ -679,9 +754,12 @@ export default function App() {
                 Columnas del archivo sin mapear: {review.unmapped_columns.join(', ')}
               </p>
             )}
-            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <div className="modal-actions">
+              <button className="btn" onClick={onCancelReview} disabled={busy}>
+                Cancelar
+              </button>
               <button
-                className="primary"
+                className="btn btn-primary"
                 onClick={onConfirmReview}
                 disabled={
                   busy ||
@@ -690,9 +768,6 @@ export default function App() {
                 }
               >
                 Confirmar e ingestar
-              </button>
-              <button onClick={onCancelReview} disabled={busy}>
-                Cancelar
               </button>
             </div>
           </div>
@@ -714,7 +789,7 @@ function HeatmapRow({ label, values, max }) {
             key={i}
             className="cell"
             title={value}
-            style={{ background: `rgba(15, 118, 110, ${alpha})` }}
+            style={{ background: `rgba(var(--heat), ${alpha})` }}
           />
         )
       })}

@@ -24,6 +24,10 @@ models/artifacts/
 node_modules/
 dist/
 .vite/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+.turbo/
 
 # Sistema
 .DS_Store

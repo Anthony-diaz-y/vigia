@@ -14,7 +14,11 @@ TOKEN = "test-token"
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VIGIA_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("VIGIA_ACCESS_TOKEN", TOKEN)
-    monkeypatch.delenv("VIGIA_DATABASE_URL", raising=False)
+    # Point at a throwaway SQLite file instead of deleting the variable:
+    # load_dotenv() (called when vigia.api.config is imported) would otherwise
+    # re-inject VIGIA_DATABASE_URL from the developer's .env and the suite
+    # would silently depend on a running PostgreSQL instance.
+    monkeypatch.setenv("VIGIA_DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
     from vigia.api.main import create_app
 
     with TestClient(create_app()) as test_client:

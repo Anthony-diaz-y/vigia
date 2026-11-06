@@ -124,10 +124,15 @@ the runtime. Decision and consequences: `docs/adr/0001-postgres-system-of-record
 
 - Phase 0 (done): source-hash data cut, contract snapshots and the snapshot
   drift test. Branch `feat/ts-m0-contract-baseline`.
-- Phase 1 (next): pnpm workspace, NestJS skeleton, TypeORM schema/migrations and
-  PostgreSQL integration tests. Branch `feat/ts-m1-postgres-foundation`.
-- Later phases: ingestion, analysis, forecast/explanation, Next.js UI, cutover.
-  Details in `odd/tasks/m10-ts-migration.md`.
+- Phase 1 (done): pnpm workspace, NestJS + zod config, TypeORM schema/migrations,
+  traversal-safe local storage, uploads read API, PostgreSQL integration tests,
+  CI. The target schema uses `vigia_ts` while the legacy Python service keeps
+  `vigia`; `vigia_test` is the integration database. Branch
+  `feat/ts-m1-postgres-foundation`.
+- Phase 2 (next): ingestion into PostgreSQL with parity against
+  `ingest_*.json`. Branch `feat/ts-m2-ingestion`.
+- Later phases: analysis, forecast/explanation, Next.js UI, cutover. Details in
+  `odd/tasks/m10-ts-migration.md`.
 
 The Python implementation is the oracle until a module matches
 `contract/snapshots`; no Python module is removed before its parity gate passes.
@@ -148,4 +153,9 @@ cd C:/workSpace/proyectos/vigia
 git log --oneline
 uv sync
 uv run pytest
+pnpm install
+pnpm build && pnpm typecheck && pnpm lint && pnpm test
+docker compose up -d
+pnpm migration:run
+pnpm --filter @vigia/api test:db
 ```

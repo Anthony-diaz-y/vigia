@@ -36,6 +36,10 @@ keeps a second query engine in the critical path.
    No Python module is deleted before its port passes parity.
 5. **Target stack:** Next.js + Tailwind for the UI, NestJS + TypeORM for the
    API and persistence, TypeScript for the domain and numerical code.
+6. **During the strangler period**, the Python service keeps the `vigia`
+   database and the TypeScript API uses `vigia_ts`. The split avoids colliding
+   with the legacy `public.uploads` table; cutover backfills `vigia_ts`, verifies
+   parity and retires `vigia`. Production uses one database after cutover.
 
 ## Schema consequences
 

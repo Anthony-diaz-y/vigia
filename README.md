@@ -28,6 +28,7 @@ clinical recommendations, multi-tenant billing, real-time ingest.
 
 ```
 config/mappings/     Per-source column mapping and PII rules (YAML)
+contract/            Golden Python snapshots and migration parity notes
 docs/roadmap.md      Durable state: decisions, milestones, resume steps
 src/vigia/           Python package
   ingest/            Readers, mapping, normalization, quality, pipeline
@@ -35,7 +36,10 @@ src/vigia/           Python package
   forecast/          Seasonal-drift forecast, backtest, scorecard, registry
   explain/           SHAP drivers, action table, narrative
   api/               FastAPI app, metadata (SQLite/PostgreSQL), token auth
-web/                 React (Vite) dashboard
+apps/api/            NestJS API (M10): TypeORM, PostgreSQL, token guard
+packages/            Shared TypeScript contracts and epidemiology kernel
+tools/               Contract snapshot generator
+web/                 React (Vite) dashboard (Next.js in M10 phase 5)
 tests/               Contract tests, synthetic fixtures
 ```
 
@@ -52,6 +56,32 @@ while the TypeScript implementation reaches parity.
 uv sync
 uv run pytest
 ```
+
+## TypeScript stack (M10)
+
+The target stack is TypeScript, NestJS, TypeORM, PostgreSQL and (in phase 5)
+Next.js + Tailwind. The Python service remains the oracle until each module
+matches `contract/snapshots`.
+
+```bash
+pnpm install
+docker compose up -d                 # PostgreSQL on :55432
+pnpm migration:run                   # creates the target schema
+pnpm --filter @vigia/api dev         # http://localhost:3001/api
+pnpm lint && pnpm typecheck
+pnpm test                            # unit tests; DB tests are gated
+pnpm --filter @vigia/api test:db     # needs vigia_test
+```
+
+During the strangler period the Python service uses `VIGIA_DATABASE_URL`
+(`vigia`) and the TypeScript API uses `VIGIA_TS_DATABASE_URL` (`vigia_ts`), so
+both schemas can coexist. Cutover backfills `vigia_ts` and retires the Python
+service; see `docs/adr/0001-postgres-system-of-record.md`.
+
+`VIGIA_DB_TESTS=1` enables the PostgreSQL integration suite. The Docker
+entrypoint creates `vigia_test` on a fresh volume; for an existing volume run
+`docker compose exec db createdb -U vigia vigia_test` and
+`docker compose exec db createdb -U vigia vigia_ts` once.
 
 ## Run
 
@@ -73,8 +103,10 @@ assignment. Once several files are uploaded, the file selector in the header
 scopes every chart, scorecard and forecast to the file you pick (`upload_id`
 on the API), or to all of them at once.
 
-Metadata storage defaults to SQLite. Set `VIGIA_DATABASE_URL` to a
-`postgresql+psycopg://user:pass@host:port/db` URL to run it on PostgreSQL.
+Metadata storage defaults to SQLite for the legacy Python service. Set
+`VIGIA_DATABASE_URL` to a `postgresql+psycopg://user:pass@host:port/db` URL to
+run it on PostgreSQL. The NestJS API requires PostgreSQL and reads
+`VIGIA_TS_DATABASE_URL` first.
 
 Copy `.env.example` to `.env` to set the token and database URL without typing
 them on every launch (`.env` is gitignored).

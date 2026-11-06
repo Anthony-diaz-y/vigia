@@ -39,18 +39,26 @@ Decision record: `docs/adr/0001-postgres-system-of-record.md`.
 
 Branch: `feat/ts-m0-contract-baseline`.
 
-### Phase 1 - PostgreSQL foundation (next)
+### Phase 1 - PostgreSQL foundation (done)
 
-- pnpm workspace, `apps/api`, `packages/*`.
-- NestJS skeleton: config, validation, health, token guard, error filter.
+- pnpm workspace, `apps/api`, `packages/epidemiology`, `packages/contracts`.
+- NestJS skeleton: zod-validated config, health, token guard, FastAPI-shaped
+  exception filter, helmet and CORS allow-list.
 - TypeORM entities and initial migration for uploads, quality issues,
-  surveillance cases and model registry.
-- Storage port with a local adapter; keys instead of absolute paths.
-- Integration tests against a real PostgreSQL.
+  surveillance cases and model registry, with `timestamptz`, JSONB, natural-key
+  uniqueness and analytical indices.
+- Storage port with a traversal-safe local adapter; relative keys instead of
+  absolute paths.
+- `GET /api/uploads`, `GET /api/uploads/:id/quality` and `DELETE /api/uploads`
+  read the new schema.
+- Integration tests against a real PostgreSQL plus a `docker/init` script for
+  `vigia_test` and `vigia_ts`.
+- CI runs Python contract tests, TypeScript build/typecheck/lint/format, unit
+  tests and PostgreSQL integration tests.
 
 Branch: `feat/ts-m1-postgres-foundation`.
 
-### Phase 2 - Ingestion
+### Phase 2 - Ingestion (next)
 
 - CSV/XLSX readers, mapping, normalization, quality, dedup and idempotency.
 - Transactional write of upload + rows + quality.
@@ -84,5 +92,11 @@ Branch: `feat/ts-m1-postgres-foundation`.
   no DuckDB. Each phase in its own branch, with tests and cleanup.
 - L2: Phase 0 implemented. `tests/test_api.py` no longer depends on a local
   PostgreSQL. `tools/contract_snapshots.py` writes 25 snapshots from
-  LF-normalized fixtures; 59 tests green. Forecast registry now keys the data
-  cut by source upload hashes so model ids stay stable across pyarrow versions.
+  LF-normalized fixtures; 60 Python tests green. Forecast registry now keys the
+  data cut by source upload hashes so model ids stay stable across pyarrow
+  versions.
+- L3: Phase 1 implemented. `pnpm build/typecheck/lint/test` green; 15 TypeScript
+  unit tests and 7 PostgreSQL integration tests. The target schema lives in
+  `vigia_ts` during the strangler period to avoid colliding with the legacy
+  `vigia.public.uploads`; `vigia_test` is the integration database. CI covers
+  both stacks.

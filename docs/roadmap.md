@@ -10,7 +10,7 @@ truth, not the chat transcript or memory.
 | Product | Turn messy surveillance exports into validated datasets, charts and 1-4 week forecasts with measured accuracy. Decision support, never a medical device. |
 | First disease | Dengue. Multi-disease is designed in the schema, not trained. |
 | Granularity | Department and province in the first cut. District is explicitly out. |
-| Storage | PostgreSQL as system of record, DuckDB ephemeral per worker job as the analytical engine, object storage for raw uploads. |
+| Storage | PostgreSQL as system of record and analytical engine (ADR 0001). DuckDB and Parquet are retired from the runtime in M10; Parquet remains an export format. Object storage holds raw uploads. |
 | Deployment | Railway. Access by invitation at launch. |
 | Language | Code, comments, commits and docs in English. |
 
@@ -115,6 +115,22 @@ health authority (KPI bands, quality bars, methodological notes).
   on change, plus a "Todos los archivos" aggregate option.
 - The demo dataset endpoint and its button are gone. The synthetic three-year
   fixture now lives only in `tests/demo_data.py` as test data.
+
+### M10 - TypeScript and PostgreSQL migration (in progress)
+
+Strangler migration to TypeScript/Next.js/NestJS/PostgreSQL/TypeORM. PostgreSQL
+becomes the system of record and the analytical engine; DuckDB and Parquet leave
+the runtime. Decision and consequences: `docs/adr/0001-postgres-system-of-record.md`.
+
+- Phase 0 (done): source-hash data cut, contract snapshots and the snapshot
+  drift test. Branch `feat/ts-m0-contract-baseline`.
+- Phase 1 (next): pnpm workspace, NestJS skeleton, TypeORM schema/migrations and
+  PostgreSQL integration tests. Branch `feat/ts-m1-postgres-foundation`.
+- Later phases: ingestion, analysis, forecast/explanation, Next.js UI, cutover.
+  Details in `odd/tasks/m10-ts-migration.md`.
+
+The Python implementation is the oracle until a module matches
+`contract/snapshots`; no Python module is removed before its parity gate passes.
 
 ## Open decisions
 

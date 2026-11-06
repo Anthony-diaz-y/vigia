@@ -39,9 +39,12 @@ web/                 React (Vite) dashboard
 tests/               Contract tests, synthetic fixtures
 ```
 
-Persistence target for the full product: PostgreSQL as the system of record,
-DuckDB as the per-job analytical engine, object storage for raw uploads.
-`M1` writes normalized Parquet plus a quality report; it needs no database.
+Persistence target for the full product: PostgreSQL as the system of record and
+analytical engine, object storage for raw uploads. The M10 migration retires
+DuckDB/Parquet from the runtime (see
+`docs/adr/0001-postgres-system-of-record.md`); Parquet remains an export format.
+The current Python slice still writes normalized Parquet plus a quality report
+while the TypeScript implementation reaches parity.
 
 ## Development
 

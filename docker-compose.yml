@@ -1,4 +1,4 @@
-# Dev PostgreSQL for vigia metadata (M7).
+# Development PostgreSQL for vigia (M10): metadata, canonical rows and analytics.
 #
 # Usage:
 #   docker compose up -d      # start Postgres in the background
@@ -7,8 +7,13 @@
 #   docker compose down       # stop and remove the container (keeps the volume)
 #   docker compose down -v    # stop, remove, and delete the data volume
 #
-# Connection (matches tests/test_db.py default):
-#   postgresql+psycopg://vigia:vigia@localhost:55432/vigia
+# Connection:
+#   postgresql://vigia:vigia@localhost:55432/vigia
+#   postgresql://vigia:vigia@localhost:55432/vigia_test   (integration tests)
+#
+# The init script only runs on a fresh volume. If the volume already exists,
+# create the test database once with:
+#   docker compose exec db createdb -U vigia vigia_test
 
 services:
   db:
@@ -19,9 +24,15 @@ services:
       POSTGRES_PASSWORD: vigia
       POSTGRES_DB: vigia
     ports:
-      - "55432:5432"
+      - '55432:5432'
     volumes:
       - vigia-pg-data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U vigia -d vigia']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   vigia-pg-data:

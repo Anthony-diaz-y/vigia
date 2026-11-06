@@ -1,0 +1,38 @@
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Inject,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common'
+import type { ClearUploadsResponse, QualityReportDto, UploadDto } from '@vigia/contracts'
+
+import { AccessTokenGuard } from '../../identity/interface/access-token.guard'
+import { DatasetsService } from '../application/datasets.service'
+
+@Controller('uploads')
+@UseGuards(AccessTokenGuard)
+export class UploadsController {
+  constructor(@Inject(DatasetsService) private readonly datasets: DatasetsService) {}
+
+  @Get()
+  list(): Promise<UploadDto[]> {
+    return this.datasets.list()
+  }
+
+  @Get(':id/quality')
+  quality(
+    @Param('id', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
+    id: number,
+  ): Promise<QualityReportDto> {
+    return this.datasets.quality(id)
+  }
+
+  @Delete()
+  clear(): Promise<ClearUploadsResponse> {
+    return this.datasets.clear()
+  }
+}

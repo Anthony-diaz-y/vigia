@@ -1,0 +1,27 @@
+{
+  "delimiter": ",",
+  "duplicates_collapsed": 0,
+  "encoding": "utf-8-sig",
+  "file_hash": "29d1f8d6a821d4425b931221ba48ece46c06b025228906e42a2dead1238deaac",
+  "issues": [],
+  "mapped_columns": {
+    "age_group": "edad",
+    "age_type": "tipo_edad",
+    "cases": "casos",
+    "department": "departamento",
+    "diagnosis": "diagnostico",
+    "diagnosis_type": "tipo_diagnostico",
+    "disease": "enfermedad",
+    "district": "distrito",
+    "epi_week": "semana",
+    "province": "provincia",
+    "sex": "sexo",
+    "ubigeo": "ubigeo",
+    "year": "ano"
+  },
+  "rows_dropped": 0,
+  "rows_in": 624,
+  "rows_valid": 624,
+  "source_format": "csv",
+  "unmapped_columns": []
+}

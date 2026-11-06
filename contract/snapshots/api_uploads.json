@@ -1,0 +1,14 @@
+[
+  {
+    "created_at": "<timestamp>",
+    "duplicates_collapsed": 0,
+    "file_hash": "29d1f8d6a821d4425b931221ba48ece46c06b025228906e42a2dead1238deaac",
+    "filename": "historico.csv",
+    "id": 1,
+    "rows_dropped": 0,
+    "rows_in": 624,
+    "rows_valid": 624,
+    "source": "minsa_dengue",
+    "status": "ok"
+  }
+]

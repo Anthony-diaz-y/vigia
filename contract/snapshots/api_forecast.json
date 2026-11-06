@@ -1,0 +1,143 @@
+{
+  "forecasts": [
+    {
+      "department": "LIMA",
+      "horizon": 1,
+      "p10": 475.7353479853,
+      "p50": 476.9615384615,
+      "p90": 480.9615384615,
+      "target_epi_week": 47,
+      "target_year": 2024
+    },
+    {
+      "department": "LIMA",
+      "horizon": 2,
+      "p10": 473.776664512,
+      "p50": 474.9615384615,
+      "p90": 478.9764521193,
+      "target_epi_week": 48,
+      "target_year": 2024
+    },
+    {
+      "department": "LIMA",
+      "horizon": 3,
+      "p10": 476.7941176471,
+      "p50": 477.9615384615,
+      "p90": 481.9679487179,
+      "target_epi_week": 49,
+      "target_year": 2024
+    },
+    {
+      "department": "LIMA",
+      "horizon": 4,
+      "p10": 484.817617866,
+      "p50": 485.9615384615,
+      "p90": 489.901391162,
+      "target_epi_week": 50,
+      "target_year": 2024
+    },
+    {
+      "department": "LORETO",
+      "horizon": 1,
+      "p10": 175.7353479853,
+      "p50": 176.9615384615,
+      "p90": 180.9615384615,
+      "target_epi_week": 47,
+      "target_year": 2024
+    },
+    {
+      "department": "LORETO",
+      "horizon": 2,
+      "p10": 171.776664512,
+      "p50": 172.9615384615,
+      "p90": 176.9764521193,
+      "target_epi_week": 48,
+      "target_year": 2024
+    },
+    {
+      "department": "LORETO",
+      "horizon": 3,
+      "p10": 172.7941176471,
+      "p50": 173.9615384615,
+      "p90": 177.9679487179,
+      "target_epi_week": 49,
+      "target_year": 2024
+    },
+    {
+      "department": "LORETO",
+      "horizon": 4,
+      "p10": 178.817617866,
+      "p50": 179.9615384615,
+      "p90": 183.901391162,
+      "target_epi_week": 50,
+      "target_year": 2024
+    },
+    {
+      "department": "PIURA",
+      "horizon": 1,
+      "p10": 325.7353479853,
+      "p50": 326.9615384615,
+      "p90": 330.9615384615,
+      "target_epi_week": 47,
+      "target_year": 2024
+    },
+    {
+      "department": "PIURA",
+      "horizon": 2,
+      "p10": 322.776664512,
+      "p50": 323.9615384615,
+      "p90": 327.9764521193,
+      "target_epi_week": 48,
+      "target_year": 2024
+    },
+    {
+      "department": "PIURA",
+      "horizon": 3,
+      "p10": 324.7941176471,
+      "p50": 325.9615384615,
+      "p90": 329.9679487179,
+      "target_epi_week": 49,
+      "target_year": 2024
+    },
+    {
+      "department": "PIURA",
+      "horizon": 4,
+      "p10": 331.817617866,
+      "p50": 332.9615384615,
+      "p90": 336.901391162,
+      "target_epi_week": 50,
+      "target_year": 2024
+    }
+  ],
+  "model_id": "28a9c197d91b9a33",
+  "scorecard": [
+    {
+      "department": "AMAZONAS",
+      "mase": 1.0585897467,
+      "status": "insufficient_evidence",
+      "windows": 95,
+      "wis": 0.9545322236
+    },
+    {
+      "department": "LIMA",
+      "mase": 0.0212824319,
+      "status": "publish",
+      "windows": 95,
+      "wis": 2.5651978577
+    },
+    {
+      "department": "LORETO",
+      "mase": 0.0427946643,
+      "status": "publish",
+      "windows": 95,
+      "wis": 1.4704610156
+    },
+    {
+      "department": "PIURA",
+      "mase": 0.02666049,
+      "status": "publish",
+      "windows": 95,
+      "wis": 2.0178294366
+    }
+  ]
+}

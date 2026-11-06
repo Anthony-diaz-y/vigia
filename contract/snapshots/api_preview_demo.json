@@ -1,0 +1,57 @@
+{
+  "canonical_columns": [
+    "disease",
+    "ubigeo",
+    "year",
+    "epi_week",
+    "department",
+    "province",
+    "district",
+    "directorate",
+    "sex",
+    "age_group",
+    "age_type",
+    "diagnosis",
+    "diagnosis_type",
+    "cases"
+  ],
+  "columns": [
+    "departamento",
+    "provincia",
+    "distrito",
+    "enfermedad",
+    "ano",
+    "semana",
+    "diagnostico",
+    "tipo_diagnostico",
+    "ubigeo",
+    "edad",
+    "tipo_edad",
+    "sexo",
+    "casos"
+  ],
+  "mapping": {
+    "age_group": "edad",
+    "age_type": "tipo_edad",
+    "cases": "casos",
+    "department": "departamento",
+    "diagnosis": "diagnostico",
+    "diagnosis_type": "tipo_diagnostico",
+    "disease": "enfermedad",
+    "district": "distrito",
+    "epi_week": "semana",
+    "province": "provincia",
+    "sex": "sexo",
+    "ubigeo": "ubigeo",
+    "year": "ano"
+  },
+  "missing_required": [],
+  "pii_detected": [],
+  "required": [
+    "ubigeo",
+    "year",
+    "epi_week"
+  ],
+  "source": "minsa_dengue",
+  "unmapped_columns": []
+}

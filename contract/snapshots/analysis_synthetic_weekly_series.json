@@ -1,0 +1,110 @@
+[
+  {
+    "cases": 5,
+    "department": "LIMA",
+    "epi_week": 1,
+    "year": 2022
+  },
+  {
+    "cases": 10,
+    "department": "LIMA",
+    "epi_week": 2,
+    "year": 2022
+  },
+  {
+    "cases": 15,
+    "department": "LIMA",
+    "epi_week": 3,
+    "year": 2022
+  },
+  {
+    "cases": 6,
+    "department": "LIMA",
+    "epi_week": 1,
+    "year": 2023
+  },
+  {
+    "cases": 11,
+    "department": "LIMA",
+    "epi_week": 2,
+    "year": 2023
+  },
+  {
+    "cases": 16,
+    "department": "LIMA",
+    "epi_week": 3,
+    "year": 2023
+  },
+  {
+    "cases": 7,
+    "department": "LIMA",
+    "epi_week": 1,
+    "year": 2024
+  },
+  {
+    "cases": 12,
+    "department": "LIMA",
+    "epi_week": 2,
+    "year": 2024
+  },
+  {
+    "cases": 50,
+    "department": "LIMA",
+    "epi_week": 3,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "year": 2024
+  }
+]

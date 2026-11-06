@@ -1,0 +1,5 @@
+{
+  "description": "Golden snapshots generated from the Python implementation. A TypeScript port must match them before the Python service is retired.",
+  "oracle": "python",
+  "schema_version": 1
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "cases": 21469,
+    "department": "LIMA",
+    "rank": 1
+  },
+  {
+    "cases": 14735,
+    "department": "PIURA",
+    "rank": 2
+  },
+  {
+    "cases": 8001,
+    "department": "LORETO",
+    "rank": 3
+  },
+  {
+    "cases": 1267,
+    "department": "AMAZONAS",
+    "rank": 4
+  }
+]

@@ -1,0 +1,182 @@
+[
+  {
+    "cases": 5,
+    "department": "LIMA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": -1.0,
+    "robust_z": -0.6745,
+    "seasonal_baseline": 6.0,
+    "year": 2022
+  },
+  {
+    "cases": 10,
+    "department": "LIMA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": -1.0,
+    "robust_z": -0.6745,
+    "seasonal_baseline": 11.0,
+    "year": 2022
+  },
+  {
+    "cases": 15,
+    "department": "LIMA",
+    "epi_week": 3,
+    "is_anomaly": false,
+    "residual": -1.0,
+    "robust_z": -0.6745,
+    "seasonal_baseline": 16.0,
+    "year": 2022
+  },
+  {
+    "cases": 6,
+    "department": "LIMA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 6.0,
+    "year": 2023
+  },
+  {
+    "cases": 11,
+    "department": "LIMA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 11.0,
+    "year": 2023
+  },
+  {
+    "cases": 16,
+    "department": "LIMA",
+    "epi_week": 3,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 16.0,
+    "year": 2023
+  },
+  {
+    "cases": 7,
+    "department": "LIMA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": 1.0,
+    "robust_z": 0.6745,
+    "seasonal_baseline": 6.0,
+    "year": 2024
+  },
+  {
+    "cases": 12,
+    "department": "LIMA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": 1.0,
+    "robust_z": 0.6745,
+    "seasonal_baseline": 11.0,
+    "year": 2024
+  },
+  {
+    "cases": 50,
+    "department": "LIMA",
+    "epi_week": 3,
+    "is_anomaly": true,
+    "residual": 34.0,
+    "robust_z": 22.933,
+    "seasonal_baseline": 16.0,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2022
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2023
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 1,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 2,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2024
+  },
+  {
+    "cases": 22,
+    "department": "PIURA",
+    "epi_week": 3,
+    "is_anomaly": false,
+    "residual": 0.0,
+    "robust_z": 0.0,
+    "seasonal_baseline": 22.0,
+    "year": 2024
+  }
+]

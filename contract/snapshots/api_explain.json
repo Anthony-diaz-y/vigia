@@ -1,0 +1,222 @@
+{
+  "drivers": [
+    {
+      "abs_mean_shap": 1.7414810773,
+      "action": "Preparar capacidad de respuesta antes del pico estacional esperado.",
+      "department": "AMAZONAS",
+      "direction": "down",
+      "driver": "Temporada previa",
+      "feature": "seasonal_baseline",
+      "mean_shap": -5.143278094e-16,
+      "rank": 1
+    },
+    {
+      "abs_mean_shap": 0.6301065618,
+      "action": "Sostener la vigilancia activa en los distritos con transmisión reciente.",
+      "department": "AMAZONAS",
+      "direction": "down",
+      "driver": "Casos hace 2 semanas",
+      "feature": "recent_level_2w",
+      "mean_shap": -1.744636182e-16,
+      "rank": 2
+    },
+    {
+      "abs_mean_shap": 0.3439319209,
+      "action": "Intensificar la investigación de casos en las unidades notificadoras.",
+      "department": "AMAZONAS",
+      "direction": "down",
+      "driver": "Casos recientes",
+      "feature": "recent_level",
+      "mean_shap": -6.627351729e-17,
+      "rank": 3
+    },
+    {
+      "abs_mean_shap": 0.1102660371,
+      "action": "Reforzar el control larvario para contrarrestar la tendencia creciente.",
+      "department": "AMAZONAS",
+      "direction": "up",
+      "driver": "Tendencia interanual",
+      "feature": "year_over_year_trend",
+      "mean_shap": 9.742773481e-17,
+      "rank": 4
+    },
+    {
+      "abs_mean_shap": 0.0159495635,
+      "action": "Calendarizar las campañas preventivas según la temporada de transmisión.",
+      "department": "AMAZONAS",
+      "direction": "down",
+      "driver": "Estacionalidad",
+      "feature": "seasonal_phase_sin",
+      "mean_shap": -1.062075598e-18,
+      "rank": 5
+    },
+    {
+      "abs_mean_shap": 29.7813119383,
+      "action": "Preparar capacidad de respuesta antes del pico estacional esperado.",
+      "department": "LIMA",
+      "direction": "up",
+      "driver": "Temporada previa",
+      "feature": "seasonal_baseline",
+      "mean_shap": 4.350261648e-16,
+      "rank": 1
+    },
+    {
+      "abs_mean_shap": 22.3642305215,
+      "action": "Intensificar la investigación de casos en las unidades notificadoras.",
+      "department": "LIMA",
+      "direction": "down",
+      "driver": "Casos recientes",
+      "feature": "recent_level",
+      "mean_shap": -0.0,
+      "rank": 2
+    },
+    {
+      "abs_mean_shap": 21.0269600867,
+      "action": "Sostener la vigilancia activa en los distritos con transmisión reciente.",
+      "department": "LIMA",
+      "direction": "down",
+      "driver": "Casos hace 2 semanas",
+      "feature": "recent_level_2w",
+      "mean_shap": -0.0,
+      "rank": 3
+    },
+    {
+      "abs_mean_shap": 0.1218385942,
+      "action": "Calendarizar las campañas preventivas según la temporada de transmisión.",
+      "department": "LIMA",
+      "direction": "up",
+      "driver": "Estacionalidad",
+      "feature": "seasonal_phase_sin",
+      "mean_shap": 8.213384621e-18,
+      "rank": 4
+    },
+    {
+      "abs_mean_shap": 0.0376656825,
+      "action": "Reforzar el control larvario para contrarrestar la tendencia creciente.",
+      "department": "LIMA",
+      "direction": "down",
+      "driver": "Tendencia interanual",
+      "feature": "year_over_year_trend",
+      "mean_shap": -1.763045492e-16,
+      "rank": 5
+    },
+    {
+      "abs_mean_shap": 16.1020751858,
+      "action": "Preparar capacidad de respuesta antes del pico estacional esperado.",
+      "department": "LORETO",
+      "direction": "down",
+      "driver": "Temporada previa",
+      "feature": "seasonal_baseline",
+      "mean_shap": -0.0,
+      "rank": 1
+    },
+    {
+      "abs_mean_shap": 4.8290650974,
+      "action": "Intensificar la investigación de casos en las unidades notificadoras.",
+      "department": "LORETO",
+      "direction": "down",
+      "driver": "Casos recientes",
+      "feature": "recent_level",
+      "mean_shap": -9.244306001e-16,
+      "rank": 2
+    },
+    {
+      "abs_mean_shap": 3.518185204,
+      "action": "Sostener la vigilancia activa en los distritos con transmisión reciente.",
+      "department": "LORETO",
+      "direction": "down",
+      "driver": "Casos hace 2 semanas",
+      "feature": "recent_level_2w",
+      "mean_shap": -4.350261648e-16,
+      "rank": 3
+    },
+    {
+      "abs_mean_shap": 0.0582871116,
+      "action": "Reforzar el control larvario para contrarrestar la tendencia creciente.",
+      "department": "LORETO",
+      "direction": "down",
+      "driver": "Tendencia interanual",
+      "feature": "year_over_year_trend",
+      "mean_shap": -2.941949405e-16,
+      "rank": 4
+    },
+    {
+      "abs_mean_shap": 0.0510841908,
+      "action": "Calendarizar las campañas preventivas según la temporada de transmisión.",
+      "department": "LORETO",
+      "direction": "up",
+      "driver": "Estacionalidad",
+      "feature": "seasonal_phase_sin",
+      "mean_shap": 1.699320956e-18,
+      "rank": 5
+    },
+    {
+      "abs_mean_shap": 23.2196315071,
+      "action": "Preparar capacidad de respuesta antes del pico estacional esperado.",
+      "department": "PIURA",
+      "direction": "down",
+      "driver": "Temporada previa",
+      "feature": "seasonal_baseline",
+      "mean_shap": -0.0,
+      "rank": 1
+    },
+    {
+      "abs_mean_shap": 13.5689813361,
+      "action": "Intensificar la investigación de casos en las unidades notificadoras.",
+      "department": "PIURA",
+      "direction": "up",
+      "driver": "Casos recientes",
+      "feature": "recent_level",
+      "mean_shap": 0.0,
+      "rank": 2
+    },
+    {
+      "abs_mean_shap": 12.0078907834,
+      "action": "Sostener la vigilancia activa en los distritos con transmisión reciente.",
+      "department": "PIURA",
+      "direction": "up",
+      "driver": "Casos hace 2 semanas",
+      "feature": "recent_level_2w",
+      "mean_shap": 5.075305255e-16,
+      "rank": 3
+    },
+    {
+      "abs_mean_shap": 0.0843202187,
+      "action": "Calendarizar las campañas preventivas según la temporada de transmisión.",
+      "department": "PIURA",
+      "direction": "up",
+      "driver": "Estacionalidad",
+      "feature": "seasonal_phase_sin",
+      "mean_shap": 1.557710876e-18,
+      "rank": 4
+    },
+    {
+      "abs_mean_shap": 0.0446265209,
+      "action": "Reforzar el control larvario para contrarrestar la tendencia creciente.",
+      "department": "PIURA",
+      "direction": "down",
+      "driver": "Tendencia interanual",
+      "feature": "year_over_year_trend",
+      "mean_shap": -0.0,
+      "rank": 5
+    }
+  ],
+  "narratives": [
+    {
+      "source": "template",
+      "text": "Para AMAZONAS, el pronóstico está impulsado principalmente por: Temporada previa (a la baja), Casos hace 2 semanas (a la baja), Casos recientes (a la baja), Tendencia interanual (al alza), Estacionalidad (a la baja). Acciones preventivas recomendadas: Preparar capacidad de respuesta antes del pico estacional esperado.; Sostener la vigilancia activa en los distritos con transmisión reciente.; Intensificar la investigación de casos en las unidades notificadoras.; Reforzar el control larvario para contrarrestar la tendencia creciente.; Calendarizar las campañas preventivas según la temporada de transmisión.."
+    },
+    {
+      "source": "template",
+      "text": "Para LIMA, el pronóstico está impulsado principalmente por: Temporada previa (al alza), Casos recientes (a la baja), Casos hace 2 semanas (a la baja), Estacionalidad (al alza), Tendencia interanual (a la baja). Acciones preventivas recomendadas: Preparar capacidad de respuesta antes del pico estacional esperado.; Intensificar la investigación de casos en las unidades notificadoras.; Sostener la vigilancia activa en los distritos con transmisión reciente.; Calendarizar las campañas preventivas según la temporada de transmisión.; Reforzar el control larvario para contrarrestar la tendencia creciente.."
+    },
+    {
+      "source": "template",
+      "text": "Para LORETO, el pronóstico está impulsado principalmente por: Temporada previa (a la baja), Casos recientes (a la baja), Casos hace 2 semanas (a la baja), Tendencia interanual (a la baja), Estacionalidad (al alza). Acciones preventivas recomendadas: Preparar capacidad de respuesta antes del pico estacional esperado.; Intensificar la investigación de casos en las unidades notificadoras.; Sostener la vigilancia activa en los distritos con transmisión reciente.; Reforzar el control larvario para contrarrestar la tendencia creciente.; Calendarizar las campañas preventivas según la temporada de transmisión.."
+    },
+    {
+      "source": "template",
+      "text": "Para PIURA, el pronóstico está impulsado principalmente por: Temporada previa (a la baja), Casos recientes (al alza), Casos hace 2 semanas (al alza), Estacionalidad (al alza), Tendencia interanual (a la baja). Acciones preventivas recomendadas: Preparar capacidad de respuesta antes del pico estacional esperado.; Intensificar la investigación de casos en las unidades notificadoras.; Sostener la vigilancia activa en los distritos con transmisión reciente.; Calendarizar las campañas preventivas según la temporada de transmisión.; Reforzar el control larvario para contrarrestar la tendencia creciente.."
+    }
+  ]
+}

@@ -37,17 +37,24 @@ def reconcile(session: Session) -> None:
     session.commit()
 
 
-def tenant_parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
-    """Registered Parquet files that still exist, optionally for one upload."""
+def tenant_uploads(session: Session, upload_id: int | None = None) -> list[Upload]:
+    """Registered uploads whose normalized artifact still exists.
+
+    The metadata row is the unit the API scopes every read to, so callers also
+    need the stable ``file_hash`` (for example the forecast registry data cut),
+    not just the Parquet path.
+    """
     reconcile(session)
-    query = session.query(Upload.normalized_path)
+    query = session.query(Upload)
     if upload_id is not None:
         query = query.filter(Upload.id == upload_id)
-    rows = query.all()
-    paths: list[Path] = []
-    for (path,) in rows:
-        if path:
-            candidate = Path(path)
-            if candidate.exists():
-                paths.append(candidate)
-    return paths
+    records: list[Upload] = []
+    for record in query.all():
+        if record.normalized_path and Path(record.normalized_path).exists():
+            records.append(record)
+    return records
+
+
+def tenant_parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
+    """Registered Parquet files that still exist, optionally for one upload."""
+    return [Path(record.normalized_path) for record in tenant_uploads(session, upload_id)]

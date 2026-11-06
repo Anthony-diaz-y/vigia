@@ -32,7 +32,13 @@ from vigia.ingest.readers import read_table
 
 from vigia.api.auth import require_token
 from vigia.api.config import Settings
-from vigia.api.deps import get_session, get_settings, reconcile, tenant_parquet_paths
+from vigia.api.deps import (
+    get_session,
+    get_settings,
+    reconcile,
+    tenant_parquet_paths,
+    tenant_uploads,
+)
 from vigia.api.models import Upload
 from vigia.api.serialize import to_jsonable
 
@@ -92,16 +98,20 @@ def _store_ingest(
     return _upload_payload(record)
 
 
-def _parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
-    paths = tenant_parquet_paths(session, upload_id)
-    if not paths:
+def _upload_records(session: Session, upload_id: int | None = None) -> list[Upload]:
+    records = tenant_uploads(session, upload_id)
+    if not records:
         if upload_id is not None:
             raise HTTPException(status_code=404, detail="carga no encontrada")
         raise HTTPException(
             status_code=404,
             detail="sin datos: subí un archivo de vigilancia",
         )
-    return paths
+    return records
+
+
+def _parquet_paths(session: Session, upload_id: int | None = None) -> list[Path]:
+    return [Path(record.normalized_path) for record in _upload_records(session, upload_id)]
 
 
 @router.post("/upload")
@@ -269,8 +279,12 @@ def forecast(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> dict:
+    records = _upload_records(session, upload_id)
     result = run_forecast(
-        _parquet_paths(session, upload_id), level=level, out_dir=settings.registry_dir
+        [Path(record.normalized_path) for record in records],
+        level=level,
+        out_dir=settings.registry_dir,
+        file_hashes=[record.file_hash for record in records],
     )
     return {
         "model_id": result.model_id,

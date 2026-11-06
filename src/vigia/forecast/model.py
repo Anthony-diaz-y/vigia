@@ -245,12 +245,18 @@ def forecast(
     level: str = "department",
     config: ForecastConfig | None = None,
     out_dir: str | Path,
+    file_hashes: Sequence[str] | None = None,
 ) -> ForecastResult:
     """Run the forecast pipeline and return a scorecard plus published forecasts.
 
     Reads the M1 Parquet, excludes the last ``provisional_weeks`` per geography,
     runs a rolling-origin backtest, scores each geography, applies the
     publication gate (MASE < 1) and emits a versioned registry artifact.
+
+    ``file_hashes`` identifies the source uploads that produced the Parquet.
+    When provided, the model registry is keyed by those stable, content-based
+    identifiers instead of the bytes of the derived Parquet artifact, which can
+    change across pyarrow versions.
     """
     from vigia.forecast.registry import ModelRegistry, file_sha256, model_id
 
@@ -309,9 +315,13 @@ def forecast(
     ]
     forecasts = pd.DataFrame(forecast_rows, columns=forecast_columns)
 
+    if file_hashes is None:
+        hashes = sorted(file_sha256(Path(p)) for p in parquet_paths)
+    else:
+        hashes = sorted(str(value) for value in file_hashes)
     data_cut = {
         "level": level,
-        "file_hashes": sorted(file_sha256(Path(p)) for p in parquet_paths),
+        "file_hashes": hashes,
         "min_year": int(series["year"].min()),
         "max_year": int(series["year"].max()),
         "n_geographies": int(scorecard.shape[0]),

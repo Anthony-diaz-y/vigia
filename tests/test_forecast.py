@@ -201,6 +201,24 @@ def test_model_registry_is_versioned_and_idempotent(tmp_path: Path) -> None:
     assert set(saved["department"]) == {"TREND", "FLAT", "SHORT", "NOISY"}
 
 
+def test_forecast_registry_prefers_source_hashes(tmp_path: Path) -> None:
+    """The data cut must identify the uploads, not the derived Parquet bytes."""
+    path = _build_parquet(tmp_path)
+
+    result = forecast(
+        [path],
+        level="department",
+        out_dir=tmp_path / "registry",
+        file_hashes=["upload-b", "upload-a"],
+    )
+
+    assert result.data_cut["file_hashes"] == ["upload-a", "upload-b"]
+    saved = json.loads(
+        (result.registry_dir / "data_cut.json").read_text(encoding="utf-8")
+    )
+    assert saved["file_hashes"] == ["upload-a", "upload-b"]
+
+
 def test_forecast_is_reproducible(tmp_path: Path) -> None:
     path = _build_parquet(tmp_path)
     first = forecast([path], level="department", out_dir=tmp_path / "a")

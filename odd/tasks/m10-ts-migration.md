@@ -58,13 +58,23 @@ Branch: `feat/ts-m0-contract-baseline`.
 
 Branch: `feat/ts-m1-postgres-foundation`.
 
-### Phase 2 - Ingestion (next)
+### Phase 2 - Ingestion (done)
 
-- CSV/XLSX readers, mapping, normalization, quality, dedup and idempotency.
-- Transactional write of upload + rows + quality.
-- Parity with `ingest_*.json`.
+- CSV/XLSX readers with encoding, delimiter and size/row/column guards.
+- Alias and fuzzy mapping, PII rejection, canonical normalization, quality
+  issues and natural-key deduplication.
+- Transactional write of upload + surveillance cases + quality issues, SHA-256
+  idempotency and raw/quality artifacts in storage.
+- `POST /api/upload` and `POST /api/upload/preview`, with the legacy status
+  codes and `{detail}` errors.
+- Unit parity with `ingest_clean.json`, `ingest_synthetic.json`,
+  `ingest_demo.json` and `api_preview_demo.json`; PostgreSQL e2e parity with
+  `api_upload.json`, `api_quality.json`, `api_preview_pii.json` and
+  `api_preview_missing_required.json`.
 
-### Phase 3 - Analysis
+Branch: `feat/ts-m2-ingestion`.
+
+### Phase 3 - Analysis (next)
 
 - SQL over `surveillance_cases`: series, interannual, heatmap, ranking,
   anomalies.
@@ -100,3 +110,9 @@ Branch: `feat/ts-m1-postgres-foundation`.
   `vigia_ts` during the strangler period to avoid colliding with the legacy
   `vigia.public.uploads`; `vigia_test` is the integration database. CI covers
   both stacks.
+- L4: Phase 2 implemented. Ingestion reads CSV/XLSX, resolves aliases with the
+  same 85-point fuzzy fallback, rejects PII, applies the canonical contract,
+  records quality issues and collapses duplicate natural keys. Uploads are
+  written transactionally and are idempotent by file hash. The new unit and
+  PostgreSQL suites match the Python snapshots row for row; 28 TypeScript unit
+  tests, 13 PostgreSQL integration tests and 60 Python tests are green.

@@ -129,9 +129,14 @@ the runtime. Decision and consequences: `docs/adr/0001-postgres-system-of-record
   CI. The target schema uses `vigia_ts` while the legacy Python service keeps
   `vigia`; `vigia_test` is the integration database. Branch
   `feat/ts-m1-postgres-foundation`.
-- Phase 2 (next): ingestion into PostgreSQL with parity against
-  `ingest_*.json`. Branch `feat/ts-m2-ingestion`.
-- Later phases: analysis, forecast/explanation, Next.js UI, cutover. Details in
+- Phase 2 (done): CSV/XLSX ingestion, alias and fuzzy mapping, PII rejection,
+  normalization, quality issues, natural-key deduplication, transactional
+  PostgreSQL persistence and SHA-256 idempotency. Parity with `ingest_*.json`
+  and the upload/preview/quality snapshots. Branch `feat/ts-m2-ingestion`.
+- Phase 3 (next): SQL analysis over `surveillance_cases` with parity against
+  `analysis_synthetic_*.json` and
+  `api_series/interannual/heatmap/ranking/anomalies.json`.
+- Later phases: forecast/explanation, Next.js UI, cutover. Details in
   `odd/tasks/m10-ts-migration.md`.
 
 The Python implementation is the oracle until a module matches

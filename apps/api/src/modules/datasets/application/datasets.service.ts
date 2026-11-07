@@ -1,27 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import type { ClearUploadsResponse, QualityReportDto, UploadDto } from '@vigia/contracts'
-import type { UploadStatus } from '@vigia/epidemiology'
 import { DataSource, Repository } from 'typeorm'
 
 import { STORAGE, type StoragePort } from '../../../shared/storage/storage.port'
 import { QualityIssueEntity } from '../infrastructure/persistence/quality-issue.entity'
 import { UploadEntity } from '../infrastructure/persistence/upload.entity'
-
-function toUploadDto(entity: UploadEntity): UploadDto {
-  return {
-    id: entity.id,
-    file_hash: entity.fileHash,
-    filename: entity.filename,
-    source: entity.source,
-    status: entity.status as UploadStatus,
-    rows_in: entity.rowsIn,
-    rows_valid: entity.rowsValid,
-    rows_dropped: entity.rowsDropped,
-    duplicates_collapsed: entity.duplicatesCollapsed,
-    created_at: entity.createdAt.toISOString(),
-  }
-}
+import { toUploadDto } from './upload.mapper'
 
 function toQualityReport(upload: UploadEntity, issues: QualityIssueEntity[]): QualityReportDto {
   return {

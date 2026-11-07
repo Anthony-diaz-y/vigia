@@ -83,6 +83,12 @@ entrypoint creates `vigia_test` on a fresh volume; for an existing volume run
 `docker compose exec db createdb -U vigia vigia_test` and
 `docker compose exec db createdb -U vigia vigia_ts` once.
 
+The NestJS API already serves `/api/health`, the uploads read endpoints and the
+ingestion endpoints `POST /api/upload` and `POST /api/upload/preview`. Ingestion
+keeps the Python status codes, `{detail}` errors, SHA-256 idempotency, PII
+rejection and quality report shape; its unit and PostgreSQL suites compare
+against the snapshots in `contract/snapshots`.
+
 ## Run
 
 ```bash

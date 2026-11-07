@@ -89,6 +89,11 @@ keeps the Python status codes, `{detail}` errors, SHA-256 idempotency, PII
 rejection and quality report shape; its unit and PostgreSQL suites compare
 against the snapshots in `contract/snapshots`.
 
+The analysis endpoints (`/api/analysis/series`, `interannual`, `heatmap`,
+`ranking`, `anomalies`) aggregate `surveillance_cases` in parameterized SQL and
+keep the legacy `level`, `geography`, `year` and `upload_id` filters, response
+shapes and Spanish no-data errors.
+
 ## Run
 
 ```bash

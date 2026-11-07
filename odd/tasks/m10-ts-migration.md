@@ -74,13 +74,21 @@ Branch: `feat/ts-m1-postgres-foundation`.
 
 Branch: `feat/ts-m2-ingestion`.
 
-### Phase 3 - Analysis (next)
+### Phase 3 - Analysis (done)
 
-- SQL over `surveillance_cases`: series, interannual, heatmap, ranking,
-  anomalies.
-- Parity with `analysis_synthetic_*.json` and `api_*.json`.
+- Raw parameterized SQL aggregates `surveillance_cases` into the weekly series;
+  pure domain kernels pivot interannual and heatmap views, rank geographies and
+  compute the robust-z anomalies with pandas median semantics.
+- `GET /api/analysis/{series,interannual,heatmap,ranking,anomalies}` keeps the
+  legacy levels, `upload_id` scoping, 404 no-data messages and JSON value
+  precision.
+- Unit and PostgreSQL parity with `analysis_synthetic_*.json` and
+  `api_series/interannual/heatmap/ranking/anomalies.json`, including the legacy
+  province heatmap labels.
 
-### Phase 4 - Forecast and explanation
+Branch: `feat/ts-m3-analysis`.
+
+### Phase 4 - Forecast and explanation (next)
 
 - Seasonal drift, rolling backtest, MASE/WIS, publication gate, model registry.
 - Ridge + linear SHAP, action table, narrative fallback.
@@ -116,3 +124,10 @@ Branch: `feat/ts-m2-ingestion`.
   written transactionally and are idempotent by file hash. The new unit and
   PostgreSQL suites match the Python snapshots row for row; 28 TypeScript unit
   tests, 13 PostgreSQL integration tests and 60 Python tests are green.
+- L5: Phase 3 implemented. Analysis aggregates canonical cases in parameterized
+  SQL, then applies pure kernels for the interannual/heatmap pivots, ranking and
+  modified z-score anomalies. `upload_id` scoping and the Spanish no-data
+  errors are preserved. Unit tests reproduce every synthetic and demo analysis
+  snapshot; PostgreSQL e2e tests reproduce the SQL cuts and province labels.
+  35 TypeScript API unit tests, 18 PostgreSQL integration tests and 60 Python
+  tests are green.

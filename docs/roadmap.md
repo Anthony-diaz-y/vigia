@@ -133,10 +133,12 @@ the runtime. Decision and consequences: `docs/adr/0001-postgres-system-of-record
   normalization, quality issues, natural-key deduplication, transactional
   PostgreSQL persistence and SHA-256 idempotency. Parity with `ingest_*.json`
   and the upload/preview/quality snapshots. Branch `feat/ts-m2-ingestion`.
-- Phase 3 (next): SQL analysis over `surveillance_cases` with parity against
-  `analysis_synthetic_*.json` and
-  `api_series/interannual/heatmap/ranking/anomalies.json`.
-- Later phases: forecast/explanation, Next.js UI, cutover. Details in
+- Phase 3 (done): SQL analysis over `surveillance_cases` for weekly series,
+  interannual comparison, heatmap, ranking and robust-z anomalies, with parity
+  against `analysis_synthetic_*.json` and the `api_*` analysis snapshots.
+  Branch `feat/ts-m3-analysis`.
+- Phase 4 (next): forecast and explanation parity.
+- Later phases: Next.js UI, cutover. Details in
   `odd/tasks/m10-ts-migration.md`.
 
 The Python implementation is the oracle until a module matches

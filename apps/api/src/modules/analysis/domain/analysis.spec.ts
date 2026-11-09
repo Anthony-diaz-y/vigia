@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import {
@@ -13,24 +13,9 @@ import { describe, expect, it } from 'vitest'
 
 import { buildAnomalies, buildHeatmap, buildInterannual, buildRanking, median } from './analysis'
 
-function repoRoot(): string {
-  let current = process.cwd()
-  for (let depth = 0; depth < 8; depth += 1) {
-    if (existsSync(resolve(current, 'pnpm-workspace.yaml'))) {
-      return current
-    }
-    const parent = resolve(current, '..')
-    if (parent === current) {
-      break
-    }
-    current = parent
-  }
-  throw new Error('repository root not found')
-}
-
 function snapshot(name: string): unknown {
   return JSON.parse(
-    readFileSync(resolve(repoRoot(), 'contract', 'snapshots', name), 'utf8'),
+    readFileSync(resolve(process.cwd(), 'test', 'snapshots', name), 'utf8'),
   ) as unknown
 }
 
@@ -38,7 +23,7 @@ function weekly(name: string): WeeklySeriesRow[] {
   return WeeklySeriesRowSchema.array().parse(snapshot(name)) as WeeklySeriesRow[]
 }
 
-describe('analysis parity with the Python oracle', () => {
+describe('analysis parity with the frozen fixtures', () => {
   it('matches the synthetic weekly fixture', () => {
     const rows = weekly('analysis_synthetic_weekly_series.json')
 

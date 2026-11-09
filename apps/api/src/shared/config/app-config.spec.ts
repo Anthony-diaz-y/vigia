@@ -27,7 +27,7 @@ describe('loadConfig', () => {
     expect(config.databaseSsl).toBe(false)
   })
 
-  it('prefers the TypeScript database URL during the strangler period', () => {
+  it('prefers the explicit VIGIA_TS_DATABASE_URL override', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
       VIGIA_ACCESS_TOKEN: 'secret-token',

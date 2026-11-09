@@ -8,15 +8,6 @@ permissions:
   contents: read
 
 jobs:
-  python:
-    name: Python contract tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: uv sync --group dev
-      - run: uv run pytest
-
   typescript:
     name: TypeScript, lint and PostgreSQL
     runs-on: ubuntu-latest

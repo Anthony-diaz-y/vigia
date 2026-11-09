@@ -1,15 +1,6 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Inject,
-  Query,
-  UnprocessableEntityException,
-  UseGuards,
-} from '@nestjs/common'
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common'
 import type {
   AnomalyRow,
-  GeoLevel,
   HeatmapResponse,
   InterannualRow,
   RankingRow,
@@ -17,6 +8,7 @@ import type {
 } from '@vigia/contracts'
 
 import { AccessTokenGuard } from '../../identity/interface/access-token.guard'
+import { parseInteger, parseLevel, parseOptionalInteger } from '../../../shared/http/query'
 import { AnalysisService } from '../application/analysis.service'
 
 @Controller('analysis')
@@ -76,35 +68,6 @@ export class AnalysisController {
   }
 }
 
-function parseLevel(value: string): GeoLevel {
-  if (value === 'department' || value === 'province') {
-    return value
-  }
-  throw new BadRequestException(`level must be one of ('department', 'province'), got '${value}'`)
-}
-
 function parseUploadId(value: string | undefined): number | undefined {
   return parseOptionalInteger(value, 'upload_id')
-}
-
-function parseOptionalInteger(value: string | undefined, name: string): number | undefined {
-  if (value === undefined) {
-    return undefined
-  }
-  if (!/^-?\d+$/.test(value)) {
-    throw new UnprocessableEntityException(`${name} must be an integer`)
-  }
-  const parsed = Number(value)
-  if (!Number.isSafeInteger(parsed)) {
-    throw new UnprocessableEntityException(`${name} must be an integer`)
-  }
-  return parsed
-}
-
-function parseInteger(value: string | undefined, name: string): number {
-  const parsed = parseOptionalInteger(value, name)
-  if (parsed === undefined) {
-    throw new UnprocessableEntityException(`${name} is required`)
-  }
-  return parsed
 }

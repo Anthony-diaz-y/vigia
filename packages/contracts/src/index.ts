@@ -1,4 +1,6 @@
 export * from './analysis'
 export * from './common'
+export * from './explain'
+export * from './forecast'
 export * from './health'
 export * from './uploads'

@@ -21,6 +21,7 @@ const rawSchema = z
     VIGIA_DATA_DIR: z.string().min(1).default('data'),
     VIGIA_CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
     VIGIA_DATABASE_SSL: z.enum(['true', 'false']).default('false'),
+    DEEPSEEK_API_KEY: z.string().min(1).optional(),
   })
   .superRefine((raw, context) => {
     if (raw.NODE_ENV !== 'production') {
@@ -37,7 +38,7 @@ const rawSchema = z
       context.addIssue({
         code: 'custom',
         path: ['VIGIA_DATABASE_URL'],
-        message: 'set the production VIGIA_TS_DATABASE_URL',
+        message: 'set the production VIGIA_DATABASE_URL',
       })
     }
   })
@@ -52,6 +53,7 @@ export const appConfigSchema = rawSchema.transform((raw) => ({
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0),
   databaseSsl: raw.VIGIA_DATABASE_SSL === 'true',
+  deepseekApiKey: raw.DEEPSEEK_API_KEY,
 }))
 
 export type AppConfig = z.output<typeof appConfigSchema>
@@ -70,7 +72,7 @@ export function loadEnvFiles(paths: readonly string[] = ['.env', '../../.env']):
   }
 }
 
-/** Translate the SQLAlchemy-style URL used by the Python service to a `pg` URL. */
+/** Translate the SQLAlchemy-style URL used by legacy exports to a `pg` URL. */
 export function normalizeDatabaseUrl(url: string): string {
   return url
     .replace(/^postgresql\+psycopg:\/\//, 'postgresql://')

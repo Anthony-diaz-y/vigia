@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import ExcelJS from 'exceljs'
@@ -24,29 +24,14 @@ interface IngestSnapshot {
   rows: unknown[]
 }
 
-function repoRoot(): string {
-  let current = process.cwd()
-  for (let depth = 0; depth < 8; depth += 1) {
-    if (existsSync(resolve(current, 'pnpm-workspace.yaml'))) {
-      return current
-    }
-    const parent = resolve(current, '..')
-    if (parent === current) {
-      break
-    }
-    current = parent
-  }
-  throw new Error('repository root not found')
-}
-
 function fixture(name: string): Buffer {
-  const raw = readFileSync(resolve(repoRoot(), 'tests', 'fixtures', name))
-  // The oracle normalizes fixture line endings before hashing and ingesting.
+  const raw = readFileSync(resolve(process.cwd(), 'test', 'fixtures', name))
+  // Fixtures are stored with LF line endings before hashing and ingesting.
   return Buffer.from(raw.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n'))
 }
 
 function snapshot(name: string): IngestSnapshot {
-  const path = resolve(repoRoot(), 'contract', 'snapshots', name)
+  const path = resolve(process.cwd(), 'test', 'snapshots', name)
   return JSON.parse(readFileSync(path, 'utf8')) as IngestSnapshot
 }
 
@@ -58,7 +43,7 @@ function upload(name: string) {
   })
 }
 
-describe('ingestion parity with the Python oracle', () => {
+describe('ingestion parity with the frozen fixtures', () => {
   it.each([
     ['minsa_dengue_clean.csv', 'ingest_clean.json'],
     ['analysis_synthetic.csv', 'ingest_synthetic.json'],
@@ -97,7 +82,7 @@ describe('ingestion parity with the Python oracle', () => {
       source: 'minsa_dengue',
     })
     const expected = JSON.parse(
-      readFileSync(resolve(repoRoot(), 'contract', 'snapshots', 'api_preview_demo.json'), 'utf8'),
+      readFileSync(resolve(process.cwd(), 'test', 'snapshots', 'api_preview_demo.json'), 'utf8'),
     ) as unknown
     expect(preview).toEqual(expected)
   })

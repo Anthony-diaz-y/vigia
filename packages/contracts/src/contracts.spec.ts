@@ -23,7 +23,7 @@ function repoRoot(): string {
 }
 
 function snapshot(name: string): unknown {
-  const path = resolve(repoRoot(), 'contract', 'snapshots', name)
+  const path = resolve(repoRoot(), 'apps', 'api', 'test', 'snapshots', name)
   return JSON.parse(readFileSync(path, 'utf8')) as unknown
 }
 
@@ -33,7 +33,7 @@ describe('HTTP contracts', () => {
     expect(health.disclaimer).toBe(DISCLAIMER)
   })
 
-  it('parses every upload in the Python uploads snapshot', () => {
+  it('parses every upload in the golden uploads fixture', () => {
     const uploads = snapshot('api_uploads.json')
     expect(Array.isArray(uploads)).toBe(true)
     for (const upload of uploads as unknown[]) {

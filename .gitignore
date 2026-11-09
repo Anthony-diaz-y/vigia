@@ -1,13 +1,3 @@
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.venv/
-dist/
-build/
-*.egg-info/
-
 # Secretos y entorno
 .env
 .env.*
@@ -15,15 +5,12 @@ build/
 
 # Datos y artefactos locales
 data/
-*.duckdb
-*.duckdb.wal
 *.parquet
-models/artifacts/
 
 # Node
 node_modules/
 dist/
-.vite/
+.next/
 coverage/
 *.tsbuildinfo
 .pnpm-store/

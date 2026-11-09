@@ -4,123 +4,98 @@
 comes from *vigilancia epidemiologica*, the practice this tool supports.
 
 Ingestion, analysis and short-term forecasting for Peruvian public health
-surveillance data (dengue first, multi-disease by design).
+surveillance data (dengue first, multi-disease by design). The project turns a
+messy surveillance export (`.csv` / `.xlsx`) into a validated canonical dataset,
+interactive charts and a short-horizon forecast with measured accuracy. It is a
+decision-support tool, not a medical device, and it never substitutes the
+official health authority.
 
-The project turns a messy surveillance export (`.csv` / `.xlsx`) into a validated
-canonical dataset, interactive charts and a short-horizon forecast with measured
-accuracy. It is a decision-support tool, not a medical device, and it never
-substitutes the official health authority.
+## Stack
 
-## Scope of the first slice
+TypeScript end to end:
 
-`M1` — ingestion and data contract. Everything else depends on this being correct.
-
-- Robust reading of `.csv` / `.xlsx` (encoding, delimiter, header variants).
-- Column mapping via a declarative per-source config plus fuzzy fallback.
-- Canonical normalization, deduplication and a per-upload quality report.
-- Idempotent by file hash.
-- Personal-data columns are rejected before storage.
-
-Out of scope: other diseases, district-level series, nominal patient records,
-clinical recommendations, multi-tenant billing, real-time ingest.
+- **Web:** Next.js 16 App Router, React 19, Tailwind 4, Recharts.
+- **API:** NestJS 12, TypeORM, PostgreSQL 16.
+- **Domain:** `packages/contracts` (zod schemas) and `packages/epidemiology`
+  (canonical contract, ingestion kernel, analysis, forecast, explanation).
+- **Persistence:** PostgreSQL is the system of record and the analytical engine.
+  Parquet is an export format only.
 
 ## Layout
 
 ```
-config/mappings/     Per-source column mapping and PII rules (YAML)
-contract/            Golden Python snapshots and migration parity notes
-docs/roadmap.md      Durable state: decisions, milestones, resume steps
-src/vigia/           Python package
-  ingest/            Readers, mapping, normalization, quality, pipeline
-  analysis/          DuckDB series, comparison, heatmap/ranking, anomalies
-  forecast/          Seasonal-drift forecast, backtest, scorecard, registry
-  explain/           SHAP drivers, action table, narrative
-  api/               FastAPI app, metadata (SQLite/PostgreSQL), token auth
-apps/api/            NestJS API (M10): TypeORM, PostgreSQL, token guard
-packages/            Shared TypeScript contracts and epidemiology kernel
-tools/               Contract snapshot generator
-web/                 React (Vite) dashboard (Next.js in M10 phase 5)
-tests/               Contract tests, synthetic fixtures
+apps/api/            NestJS API: ingestion, analysis, forecast, explain, export
+apps/api/config/     Per-source column mapping and PII rules (YAML)
+apps/web/            Next.js App Router + Tailwind dashboard
+packages/contracts/  Shared zod request/response contracts
+packages/epidemiology/ Canonical contract and numerical kernels
+docker/              PostgreSQL bootstrap for local development and tests
+DEPLOYMENT.md        Railway, backfill, cutover and rollback
 ```
 
-Persistence target for the full product: PostgreSQL as the system of record and
-analytical engine, object storage for raw uploads. The M10 migration retires
-DuckDB/Parquet from the runtime (see
-`docs/adr/0001-postgres-system-of-record.md`); Parquet remains an export format.
-The current Python slice still writes normalized Parquet plus a quality report
-while the TypeScript implementation reaches parity.
+Golden request/response fixtures used by the PostgreSQL e2e suite live in
+`apps/api/test/snapshots`; upload fixtures live in `apps/api/test/fixtures`.
 
-## Development
-
-```bash
-uv sync
-uv run pytest
-```
-
-## TypeScript stack (M10)
-
-The target stack is TypeScript, NestJS, TypeORM, PostgreSQL and (in phase 5)
-Next.js + Tailwind. The Python service remains the oracle until each module
-matches `contract/snapshots`.
+## Quick start
 
 ```bash
 pnpm install
-docker compose up -d                 # PostgreSQL on :55432
-pnpm migration:run                   # creates the target schema
-pnpm --filter @vigia/api dev         # http://localhost:3001/api
-pnpm lint && pnpm typecheck
-pnpm test                            # unit tests; DB tests are gated
-pnpm --filter @vigia/api test:db     # needs vigia_test
+docker compose up -d
+pnpm migration:run
+pnpm dev
 ```
 
-During the strangler period the Python service uses `VIGIA_DATABASE_URL`
-(`vigia`) and the TypeScript API uses `VIGIA_TS_DATABASE_URL` (`vigia_ts`), so
-both schemas can coexist. Cutover backfills `vigia_ts` and retires the Python
-service; see `docs/adr/0001-postgres-system-of-record.md`.
+- Dashboard: http://localhost:3000
+- API: http://localhost:3001/api
+- Next rewrites `/api/*` to `VIGIA_API_URL` (default `http://localhost:3001`).
 
-`VIGIA_DB_TESTS=1` enables the PostgreSQL integration suite. The Docker
-entrypoint creates `vigia_test` on a fresh volume; for an existing volume run
-`docker compose exec db createdb -U vigia vigia_test` and
-`docker compose exec db createdb -U vigia vigia_ts` once.
+Copy `.env.example` to `.env` to set the access token, database URLs and the
+Next.js API origin. Access is token-gated: pass `X-Access-Token` or the token
+field in the UI (default `vigia-dev`).
 
-The NestJS API already serves `/api/health`, the uploads read endpoints and the
-ingestion endpoints `POST /api/upload` and `POST /api/upload/preview`. Ingestion
-keeps the Python status codes, `{detail}` errors, SHA-256 idempotency, PII
-rejection and quality report shape; its unit and PostgreSQL suites compare
-against the snapshots in `contract/snapshots`.
-
-The analysis endpoints (`/api/analysis/series`, `interannual`, `heatmap`,
-`ranking`, `anomalies`) aggregate `surveillance_cases` in parameterized SQL and
-keep the legacy `level`, `geography`, `year` and `upload_id` filters, response
-shapes and Spanish no-data errors.
-
-## Run
+## Commands
 
 ```bash
-# API plus the built dashboard on http://localhost:8000
-uv run uvicorn vigia.api.main:app --reload
-
-# Build the dashboard first (or run it in dev mode with hot reload)
-cd web && npm install && npm run build      # FastAPI then serves web/dist
-cd web && npm run dev                       # dev server on :5173, proxies /api
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+pnpm test                    # unit tests
+pnpm --filter @vigia/api test:db   # PostgreSQL e2e (needs vigia_test)
+pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
 ```
 
-Access is token-gated: set `VIGIA_ACCESS_TOKEN` (default `vigia-dev`) and pass
-it as the `X-Access-Token` header or in the UI token field.
+## API
 
-Uploads go through a mapping review step: before ingestion, the dashboard shows
-how source columns map to canonical columns and you can confirm or correct the
-assignment. Once several files are uploaded, the file selector in the header
-scopes every chart, scorecard and forecast to the file you pick (`upload_id`
-on the API), or to all of them at once.
+- `POST /api/upload` and `POST /api/upload/preview` — ingest or preview a file
+  with the mapping review step.
+- `GET /api/uploads`, `GET /api/uploads/:id/quality`, `DELETE /api/uploads` —
+  upload catalog and quality report.
+- `GET /api/analysis/{series,interannual,heatmap,ranking,anomalies}` —
+  parameterized SQL aggregates over `surveillance_cases`.
+- `GET /api/forecast` — seasonal drift, rolling backtest, MASE/WIS and the
+  publication gate; versioned in `model_registry`.
+- `GET /api/explain` — ridge + linear SHAP drivers, deterministic actions and a
+  template narrative (DeepSeek is optional).
+- `GET /api/export?format=csv|parquet` — canonical rows from PostgreSQL.
 
-Metadata storage defaults to SQLite for the legacy Python service. Set
-`VIGIA_DATABASE_URL` to a `postgresql+psycopg://user:pass@host:port/db` URL to
-run it on PostgreSQL. The NestJS API requires PostgreSQL and reads
-`VIGIA_TS_DATABASE_URL` first.
+Every read accepts `upload_id` to scope the response to one upload; omitted, it
+aggregates all uploads.
 
-Copy `.env.example` to `.env` to set the token and database URL without typing
-them on every launch (`.env` is gitignored).
+## Invariants
+
+- `rows_in == rows_valid + rows_dropped + duplicates_collapsed`.
+- Only `CANONICAL_COLUMNS` are persisted; personal-data columns are rejected.
+- The same bytes produce the same upload identity (SHA-256 idempotency).
+- The epidemiological week is the time unit.
+- A forecast is published only when it beats the seasonal baseline (`MASE < 1`).
+- The LLM writes prose, never decisions.
+- The disclaimer is present on every surface.
+
+## Deployment
+
+Railway services, environment variables, backfill, dual-run, rollback and the
+2M-row performance gate: `DEPLOYMENT.md`.
 
 ## Data sources
 
@@ -128,5 +103,5 @@ them on every launch (`.env` is gitignored).
 - INS / SIEN: nutritional status and anemia records.
 - SENAMHI and ENFEN/IMARPE: climate and El Nino context.
 
-Uploads are expected to be aggregated counts by geography, epidemiological week
-and case classification. Nominal patient records are out of contract.
+Uploads are aggregated counts by geography, epidemiological week and case
+classification. Nominal patient records are out of contract.

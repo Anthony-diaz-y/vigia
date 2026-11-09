@@ -1,4 +1,4 @@
-# Development PostgreSQL for vigia (M10): metadata, canonical rows and analytics.
+# Development PostgreSQL for vigia: metadata, canonical rows and analytics.
 #
 # Usage:
 #   docker compose up -d      # start Postgres in the background
@@ -27,7 +27,7 @@ services:
       - '55432:5432'
     volumes:
       - vigia-pg-data:/var/lib/postgresql/data
-      - ./docker/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-test-database.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U vigia -d vigia']
       interval: 5s

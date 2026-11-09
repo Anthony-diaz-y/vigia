@@ -53,3 +53,18 @@ export const ClearUploadsResponseSchema = z.object({
 })
 
 export type ClearUploadsResponse = z.infer<typeof ClearUploadsResponseSchema>
+
+export const UploadPreviewSchema = z
+  .object({
+    source: z.string().min(1),
+    columns: z.array(z.string()),
+    mapping: z.record(z.string(), z.string()),
+    unmapped_columns: z.array(z.string()),
+    missing_required: z.array(z.string()),
+    pii_detected: z.array(z.string()),
+    canonical_columns: z.array(z.string()),
+    required: z.array(z.string()),
+  })
+  .strict()
+
+export type UploadPreview = z.infer<typeof UploadPreviewSchema>

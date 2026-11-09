@@ -1,10 +1,8 @@
 # Default: let Git normalize text files.
 * text=auto
 
-# Keep contract artifacts byte-identical across checkouts. The snapshot test
-# compares raw bytes, so line-ending conversion would create false drift.
-# Specific rules must come after the catch-all: later matches win.
-contract/snapshots/** -text
-
-# Fixtures are ingested as bytes; keep their line endings stable too.
-tests/fixtures/** -text
+# Keep contract artifacts byte-identical across checkouts. The snapshot and
+# fixture tests compare raw bytes, so line-ending conversion would create
+# false drift.
+apps/api/test/snapshots/** -text
+apps/api/test/fixtures/** -text

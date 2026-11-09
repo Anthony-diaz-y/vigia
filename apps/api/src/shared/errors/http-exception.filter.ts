@@ -26,8 +26,8 @@ function extractDetail(exception: HttpException): string {
 }
 
 /**
- * Keep the FastAPI error envelope (`{ "detail": "..." }`) so the current web
- * client and the Python contract snapshots stay valid.
+ * Keep the FastAPI error envelope (`{ "detail": "..." }`) so the dashboard and
+ * the frozen golden fixtures stay valid.
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

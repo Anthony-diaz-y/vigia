@@ -9,5 +9,6 @@ import { AnalysisController } from './interface/analysis.controller'
   imports: [IdentityModule],
   controllers: [AnalysisController],
   providers: [AnalysisRepository, AnalysisService],
+  exports: [AnalysisRepository],
 })
 export class AnalysisModule {}

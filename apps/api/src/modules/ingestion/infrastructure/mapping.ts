@@ -73,7 +73,7 @@ export function configDir(): string {
       current = parent
     }
   }
-  throw new SourceConfigError('config/mappings directory not found')
+  throw new SourceConfigError('apps/api/config/mappings directory not found')
 }
 
 export function loadSourceConfig(source: string): SourceConfig {

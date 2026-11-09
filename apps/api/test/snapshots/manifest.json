@@ -1,0 +1,5 @@
+{
+  "description": "Frozen golden fixtures from the TypeScript parity baseline. Tests must match them; regenerate only with an intentional contract change.",
+  "oracle": "frozen",
+  "schema_version": 1
+}

@@ -13,7 +13,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "dev": "pnpm -r --parallel --filter @vigia/api --filter @vigia/web dev",
     "dev:api": "pnpm --filter @vigia/api dev",
+    "dev:web": "pnpm --filter @vigia/web dev",
     "migration:run": "pnpm --filter @vigia/api migration:run"
   },
   "devDependencies": {

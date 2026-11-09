@@ -20,8 +20,8 @@ export class ModelRegistryEntity {
   @Column({ type: 'jsonb' })
   scorecard!: unknown[]
 
-  @Column({ name: 'forecasts_storage_key', type: 'text', nullable: true })
-  forecastsStorageKey!: string | null
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  forecasts!: unknown[]
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date

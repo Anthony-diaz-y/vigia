@@ -1,6 +1,4 @@
-import { readFileSync } from 'node:fs'
 import type { Server } from 'node:http'
-import { resolve } from 'node:path'
 
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
@@ -14,37 +12,10 @@ import { UploadEntity } from '../src/modules/datasets/infrastructure/persistence
 import { loadConfig } from '../src/shared/config/app-config'
 import { createDataSource } from '../src/shared/database/data-source'
 import { HttpExceptionFilter } from '../src/shared/errors/http-exception.filter'
+import { fixture, snapshot } from './support'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
 const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
-
-function repoRoot(): string {
-  let current = process.cwd()
-  for (let depth = 0; depth < 8; depth += 1) {
-    try {
-      readFileSync(resolve(current, 'pnpm-workspace.yaml'))
-      return current
-    } catch {
-      const parent = resolve(current, '..')
-      if (parent === current) {
-        break
-      }
-      current = parent
-    }
-  }
-  throw new Error('repository root not found')
-}
-
-function snapshot(name: string): unknown {
-  return JSON.parse(
-    readFileSync(resolve(repoRoot(), 'contract', 'snapshots', name), 'utf8'),
-  ) as unknown
-}
-
-function fixture(name: string): Buffer {
-  const raw = readFileSync(resolve(repoRoot(), 'tests', 'fixtures', name))
-  return Buffer.from(raw.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n'))
-}
 
 describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
   let app: INestApplication

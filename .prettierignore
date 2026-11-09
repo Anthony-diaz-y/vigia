@@ -1,19 +1,13 @@
 node_modules
 dist
 coverage
-contract/snapshots
-web
 data
-.pytest_cache
-.venv
+apps/api/config
+.commandcode
+apps/web/.next
+apps/web/next-env.d.ts
+apps/api/test/snapshots
+apps/api/test/fixtures
 pnpm-lock.yaml
-uv.lock
-
-# Legacy Python, design and documentation files are not part of the TypeScript
-# formatting gate yet.
-.atl
-design
-docs
-odd
-config
 README.md
+DEPLOYMENT.md

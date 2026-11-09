@@ -22,7 +22,7 @@ const ADVANCE_TEST_CASES: Array<[number, number, number, [number, number]]> = [
 ]
 
 describe('canonical contract', () => {
-  it('keeps the column order frozen by the Python oracle', () => {
+  it('keeps the frozen canonical column order', () => {
     expect(CANONICAL_COLUMNS).toEqual([
       'disease',
       'ubigeo',
@@ -92,7 +92,7 @@ describe('canonical contract', () => {
 })
 
 describe('advanceEpiWeek', () => {
-  it('matches the Python 52-week arithmetic', () => {
+  it('matches the 52-week arithmetic', () => {
     expect(advanceEpiWeek(2024, 52, 1)).toEqual([2025, 1])
     expect(advanceEpiWeek(2024, 1, 0)).toEqual([2024, 1])
     expect(advanceEpiWeek(2024, 1, -1)).toEqual([2023, 52])

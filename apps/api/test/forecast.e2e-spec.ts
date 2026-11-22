@@ -3,6 +3,7 @@ import type { Server } from 'node:http'
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import request, { type Test as SupertestTest } from 'supertest'
+import type { ExplainResponse } from '@vigia/contracts'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
@@ -179,7 +180,7 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
     await upload('demo_624.csv')
     const expected = snapshot('api_explain.json') as ExplainSnapshot
     const response = await get('/api/explain').expect(200)
-    const body = response.body as ExplainSnapshot
+    const body = response.body as ExplainResponse
 
     expect(body.drivers).toHaveLength(expected.drivers.length)
     expected.drivers.forEach((row, index) => {
@@ -200,6 +201,7 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
     expected.narratives.forEach((row, index) => {
       const actual = body.narratives[index]!
       expect(actual.source).toBe(row.source)
+      expect(row.text).toContain(`Para ${actual.department},`)
       expect(normalizeDirection(actual.text)).toBe(normalizeDirection(row.text))
     })
   })

@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.108.2",
     "@vigia/contracts": "workspace:*",
+    "axios": "^1.21.1",
     "next": "16.4.5",
     "react": "19.3.1",
     "react-dom": "19.3.1",

@@ -1,0 +1,9 @@
+[     415ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/explicacion:1
+[     415ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/explicacion:1
+[     610ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[     691ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[   74612ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=Oa-8-B4QciS60QD_7RUvG' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/16xv_next_dist_client_13gcjawwjxnu1._.js:16257
+[   75625ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=Oa-8-B4QciS60QD_7RUvG' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/16xv_next_dist_client_13gcjawwjxnu1._.js:16257
+[   76641ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=Oa-8-B4QciS60QD_7RUvG' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/16xv_next_dist_client_13gcjawwjxnu1._.js:16257
+[   77652ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=Oa-8-B4QciS60QD_7RUvG' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/16xv_next_dist_client_13gcjawwjxnu1._.js:16257
+[   78660ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=Oa-8-B4QciS60QD_7RUvG' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/16xv_next_dist_client_13gcjawwjxnu1._.js:16257

@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { Public_Sans } from 'next/font/google'
 
+import { THEME_INIT_SCRIPT } from '@/modules/shared/constants'
+
+import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -15,16 +18,16 @@ const publicSans = Public_Sans({
   display: 'swap',
 })
 
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('vigia-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(error){}})();`
-
 // Estructura HTML raíz con fuente, tema inicial y contenido de la app
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" data-theme="light" className={publicSans.variable} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

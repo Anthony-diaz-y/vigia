@@ -55,7 +55,12 @@ export interface ExplainOptions {
   provisionalWeeks?: number
 }
 
-export interface Narrative {
+export interface NarrativeGeo {
+  department: string
+  province?: string
+}
+
+export interface Narrative extends NarrativeGeo {
   source: 'template' | 'deepseek'
   text: string
 }
@@ -76,6 +81,11 @@ export interface NarrativePayloadDriver {
 export interface NarrativePayload {
   unit: string
   drivers: NarrativePayloadDriver[]
+}
+
+export interface NarrativeUnit {
+  geo: NarrativeGeo
+  payload: NarrativePayload
 }
 
 const DIRECTIONS: Readonly<Record<string, string>> = {
@@ -224,36 +234,42 @@ export function renderTemplate(payload: NarrativePayload): string {
   )
 }
 
-// Arma un payload agregado por geografía a partir de los factores ordenados
-export function narrativePayloads(drivers: readonly RecommendedDriverRow[]): NarrativePayload[] {
-  const groups = new Map<string, { unit: string; rows: RecommendedDriverRow[] }>()
+// Agrupa los factores por geografía y arma el payload de cada una junto a su ubicación
+export function narrativeUnits(drivers: readonly RecommendedDriverRow[]): NarrativeUnit[] {
+  const groups = new Map<string, { geo: NarrativeGeo; rows: RecommendedDriverRow[] }>()
   for (const driver of drivers) {
-    const geo =
-      driver.province === undefined ? [driver.department] : [driver.department, driver.province]
+    const geo: NarrativeGeo =
+      driver.province === undefined
+        ? { department: driver.department }
+        : { department: driver.department, province: driver.province }
     const key = JSON.stringify(geo)
     const group = groups.get(key)
     if (group) {
       group.rows.push(driver)
     } else {
-      groups.set(key, { unit: geo.join(' / '), rows: [driver] })
+      groups.set(key, { geo, rows: [driver] })
     }
   }
 
-  return [...groups.values()].map((group) => ({
-    unit: group.unit,
-    drivers: group.rows.map((driver) => ({
-      driver: driver.driver,
-      feature: driver.feature,
-      direction: driver.direction,
-      mean_shap: driver.mean_shap,
-      action: driver.action,
-    })),
+  return [...groups.values()].map(({ geo, rows }) => ({
+    geo,
+    payload: {
+      unit: geo.province === undefined ? geo.department : `${geo.department} / ${geo.province}`,
+      drivers: rows.map((driver) => ({
+        driver: driver.driver,
+        feature: driver.feature,
+        direction: driver.direction,
+        mean_shap: driver.mean_shap,
+        action: driver.action,
+      })),
+    },
   }))
 }
 
 // Arma una narrativa determinista por geografía a partir de los factores ordenados
 export function narrativesFromDrivers(drivers: readonly RecommendedDriverRow[]): Narrative[] {
-  return narrativePayloads(drivers).map((payload) => ({
+  return narrativeUnits(drivers).map(({ geo, payload }) => ({
+    ...geo,
     source: 'template' as const,
     text: renderTemplate(payload),
   }))

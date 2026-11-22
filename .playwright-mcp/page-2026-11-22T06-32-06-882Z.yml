@@ -1,0 +1,46 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary "Navegación" [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - img "vigia" [ref=f7e5]
+        - generic [ref=f7e6]:
+          - text: vigia
+          - generic [ref=f7e7]: vigilancia de dengue
+      - navigation "Módulos" [ref=f7e8]:
+        - link "Resumen" [ref=f7e9] [cursor=pointer]:
+          - /url: /
+        - link "Recomendaciones" [ref=f7e16] [cursor=pointer]:
+          - /url: /recomendaciones
+        - link "Análisis" [ref=f7e22] [cursor=pointer]:
+          - /url: /analisis
+        - link "Pronóstico" [ref=f7e26] [cursor=pointer]:
+          - /url: /pronostico
+        - link "Explicación" [ref=f7e31] [cursor=pointer]:
+          - /url: /explicacion
+        - link "Archivos" [ref=f7e35] [cursor=pointer]:
+          - /url: /archivos
+      - generic [ref=f7e40]:
+        - generic [ref=f7e41]:
+          - generic [ref=f7e42]: Datos cargados
+          - text: Sin datos
+        - generic [ref=f7e43]:
+          - generic [ref=f7e44]: Token de acceso
+          - textbox "Token de acceso" [ref=f7e45]: vigia-dev
+        - button "Borrar todos los datos" [disabled] [ref=f7e46] [cursor=pointer]
+    - generic [ref=f7e47]:
+      - banner [ref=f7e48]:
+        - generic [ref=f7e49]:
+          - heading "Análisis" [level=1] [ref=f7e50]
+          - paragraph [ref=f7e51]: Dónde y cuándo se concentran los casos.
+        - generic [ref=f7e52]:
+          - 'button "Archivo a analizar: Todos los archivos" [disabled] [ref=f7e54]':
+            - generic [ref=f7e59]:
+              - generic [ref=f7e60]: Archivo
+              - generic [ref=f7e61]: Todos los archivos
+          - generic [ref=f7e64]:
+            - button "Actualizar datos" [ref=f7e65] [cursor=pointer]: Actualizar
+            - button "Cambiar a modo oscuro" [ref=f7e68] [cursor=pointer]: Modo oscuro
+          - button "Subir archivo" [ref=f7e72] [cursor=pointer]
+      - main [ref=f7e75]
+      - contentinfo [ref=f7e76]: Herramienta de apoyo a la decisión, no un dispositivo médico. No reemplaza a la autoridad sanitaria.
+  - button "Open Next.js Dev Tools" [ref=f7e82] [cursor=pointer]

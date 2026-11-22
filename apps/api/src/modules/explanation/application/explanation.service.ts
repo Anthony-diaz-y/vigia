@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common'
 import type { ExplainResponse, GeoLevel, NarrativeDto } from '@vigia/contracts'
 import {
-  narrativePayloads,
+  narrativeUnits,
   recommend,
   renderTemplate,
   topDrivers,
-  type NarrativePayload,
+  type NarrativeUnit,
 } from '@vigia/epidemiology'
 
 import { DeepSeekClient } from '../../../shared/llm/deepseek.client'
@@ -32,16 +32,16 @@ export class ExplanationService {
     const rows = await this.analysis.weeklyCases(level, uploadId)
     const drivers = recommend(topDrivers(rows, level))
     const narratives = await Promise.all(
-      narrativePayloads(drivers).map((payload) => this.narrative(payload)),
+      narrativeUnits(drivers).map((unit) => this.narrative(unit)),
     )
     return { drivers, narratives }
   }
 
-  // Redacta la narrativa con la IA o usa la plantilla si la IA no responde
-  private async narrative(payload: NarrativePayload): Promise<NarrativeDto> {
+  // Redacta la narrativa de una geografía con la IA o usa la plantilla si la IA no responde
+  private async narrative({ geo, payload }: NarrativeUnit): Promise<NarrativeDto> {
     const text = await this.llm.complete({ system: SYSTEM_PROMPT, user: JSON.stringify(payload) })
     return text === null
-      ? { source: 'template', text: renderTemplate(payload) }
-      : { source: 'deepseek', text }
+      ? { ...geo, source: 'template', text: renderTemplate(payload) }
+      : { ...geo, source: 'deepseek', text }
   }
 }

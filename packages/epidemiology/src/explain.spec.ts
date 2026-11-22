@@ -181,6 +181,19 @@ describe('narratives', () => {
     expect(first).toEqual(second)
   })
 
+  it('tags each narrative with the geography it describes', () => {
+    const result = explainSeries(buildSeries(), 'department')
+    for (const narrative of result.narratives) {
+      expect(narrative.province).toBeUndefined()
+      expect(narrative.text).toContain(`Para ${narrative.department},`)
+    }
+    expect(result.narratives.map((item) => item.department).sort()).toEqual([
+      'FLAT',
+      'NOISY',
+      'TREND',
+    ])
+  })
+
   it('does not emit narratives without drivers', () => {
     expect(narrativesFromDrivers([])).toEqual([])
   })

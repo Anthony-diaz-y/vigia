@@ -1,0 +1,46 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e2]:
+    - complementary "Navegación" [ref=f8e3]:
+      - generic [ref=f8e4]:
+        - img "vigia" [ref=f8e5]
+        - generic [ref=f8e6]:
+          - text: vigia
+          - generic [ref=f8e7]: vigilancia de dengue
+      - navigation "Módulos" [ref=f8e8]:
+        - link "Resumen" [ref=f8e9] [cursor=pointer]:
+          - /url: /
+        - link "Recomendaciones" [ref=f8e16] [cursor=pointer]:
+          - /url: /recomendaciones
+        - link "Análisis" [ref=f8e22] [cursor=pointer]:
+          - /url: /analisis
+        - link "Pronóstico" [ref=f8e26] [cursor=pointer]:
+          - /url: /pronostico
+        - link "Explicación" [ref=f8e31] [cursor=pointer]:
+          - /url: /explicacion
+        - link "Archivos" [ref=f8e35] [cursor=pointer]:
+          - /url: /archivos
+      - generic [ref=f8e40]:
+        - generic [ref=f8e41]:
+          - generic [ref=f8e42]: Datos cargados
+          - text: Sin datos
+        - generic [ref=f8e43]:
+          - generic [ref=f8e44]: Token de acceso
+          - textbox "Token de acceso" [ref=f8e45]: vigia-dev
+        - button "Borrar todos los datos" [disabled] [ref=f8e46] [cursor=pointer]
+    - generic [ref=f8e47]:
+      - banner [ref=f8e48]:
+        - generic [ref=f8e49]:
+          - heading "Explicación" [level=1] [ref=f8e50]
+          - paragraph [ref=f8e51]: Qué factores mueven el pronóstico en cada departamento.
+        - generic [ref=f8e52]:
+          - 'button "Archivo a analizar: Todos los archivos" [disabled] [ref=f8e54]':
+            - generic [ref=f8e59]:
+              - generic [ref=f8e60]: Archivo
+              - generic [ref=f8e61]: Todos los archivos
+          - generic [ref=f8e64]:
+            - button "Actualizar datos" [ref=f8e65] [cursor=pointer]: Actualizar
+            - button "Cambiar a modo oscuro" [ref=f8e68] [cursor=pointer]: Modo oscuro
+          - button "Subir archivo" [ref=f8e72] [cursor=pointer]
+      - main [ref=f8e75]
+      - contentinfo [ref=f8e76]: Herramienta de apoyo a la decisión, no un dispositivo médico. No reemplaza a la autoridad sanitaria.
+  - button "Open Next.js Dev Tools" [ref=f8e82] [cursor=pointer]

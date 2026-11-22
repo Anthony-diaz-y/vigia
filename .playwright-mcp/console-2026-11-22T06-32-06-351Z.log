@@ -1,0 +1,37 @@
+[     349ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/analisis:1
+[     349ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) @ http://localhost:3000/analisis:1
+[     384ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[     408ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[   22495ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[   22560ms] [LOG] [Fast Refresh] done in 173ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  446503ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  446553ms] [LOG] [Fast Refresh] done in 153ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  447211ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  447213ms] [LOG] [Fast Refresh] done in 106ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  448932ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  448996ms] [LOG] [Fast Refresh] done in 20ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  449077ms] [LOG] [Fast Refresh] done in 20ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  449166ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/uploads:1
+[  449182ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/analysis/series:1
+[  449210ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/health:1
+[  449320ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  449361ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  449623ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  449660ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  450183ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/uploads:1
+[  450217ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/analysis/series:1
+[  450278ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/health:1
+[  450302ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  450356ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  450971ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  451081ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  451121ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  451179ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  451448ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  452466ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  452497ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  457699ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  459301ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  460012ms] [LOG] [Fast Refresh] done in 7ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  460255ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761
+[  460601ms] [LOG] [Fast Refresh] done in 453ms @ http://localhost:3000/_next/static/chunks/16xv_next_dist_0ln5iim0b4ykw._.js:761

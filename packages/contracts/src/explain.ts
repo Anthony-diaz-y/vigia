@@ -20,6 +20,8 @@ export type DriverRowDto = z.infer<typeof DriverRowSchema>
 
 export const NarrativeSchema = z
   .object({
+    department: z.string(),
+    province: z.string().optional(),
     source: z.enum(['template', 'deepseek']),
     text: z.string(),
   })

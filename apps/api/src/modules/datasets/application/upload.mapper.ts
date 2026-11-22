@@ -3,6 +3,7 @@ import type { UploadStatus } from '@vigia/epidemiology'
 
 import type { UploadEntity } from '../infrastructure/persistence/upload.entity'
 
+// Convierte la entidad de carga en el DTO que devuelve la API
 export function toUploadDto(entity: UploadEntity): UploadDto {
   return {
     id: entity.id,

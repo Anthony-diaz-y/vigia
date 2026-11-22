@@ -13,12 +13,14 @@ import { describe, expect, it } from 'vitest'
 
 import { buildAnomalies, buildHeatmap, buildInterannual, buildRanking, median } from './analysis'
 
+// Lee y parsea un snapshot JSON de test/snapshots
 function snapshot(name: string): unknown {
   return JSON.parse(
     readFileSync(resolve(process.cwd(), 'test', 'snapshots', name), 'utf8'),
   ) as unknown
 }
 
+// Carga un snapshot como serie semanal validada
 function weekly(name: string): WeeklySeriesRow[] {
   return WeeklySeriesRowSchema.array().parse(snapshot(name)) as WeeklySeriesRow[]
 }

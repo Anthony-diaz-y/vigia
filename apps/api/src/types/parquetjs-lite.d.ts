@@ -12,13 +12,17 @@ declare module 'parquetjs-lite' {
   }
 
   export class ParquetWriter {
+    // Abre un escritor Parquet que vuelca en un stream
     static openStream(
       schema: ParquetSchema,
       outputStream: Writable,
       opts?: Record<string, unknown>,
     ): Promise<ParquetWriter>
+    // Agrega una fila al archivo
     appendRow(row: Record<string, unknown>): Promise<void>
+    // Cierra el escritor y termina el archivo
     close(callback?: () => void): Promise<void>
+    // Define cuántas filas van en cada grupo
     setRowGroupSize(count: number): void
   }
 
@@ -27,9 +31,13 @@ declare module 'parquetjs-lite' {
   }
 
   export class ParquetReader {
+    // Abre un archivo Parquet desde disco
     static openFile(path: string): Promise<ParquetReader>
+    // Abre un archivo Parquet desde memoria
     static openBuffer(buffer: Buffer): Promise<ParquetReader>
+    // Devuelve un cursor para recorrer las filas
     getCursor(): ParquetCursor
+    // Cierra el lector
     close(): Promise<void>
   }
 }

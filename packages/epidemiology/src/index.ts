@@ -1,3 +1,5 @@
 export * from './contract'
 export * from './explain'
 export * from './forecast'
+export * from './recommendations'
+export * from './outlook'

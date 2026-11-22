@@ -46,7 +46,7 @@ export interface PreviewResult {
   required: string[]
 }
 
-/** Validate one upload and materialize the canonical rows in memory. */
+// Valida un archivo subido y genera en memoria las filas canónicas
 export async function ingestUpload(request: IngestRequest): Promise<IngestResult> {
   const fileHash = fileSha256(request.data)
   const config = loadSourceConfig(request.source)
@@ -79,7 +79,7 @@ export async function ingestUpload(request: IngestRequest): Promise<IngestResult
   }
 }
 
-/** Preview the mapping for a file without ingesting it. */
+// Muestra la vista previa del mapeo de un archivo sin ingerirlo
 export async function previewUpload(
   request: Pick<IngestRequest, 'data' | 'filename' | 'source'>,
 ): Promise<PreviewResult> {

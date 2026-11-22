@@ -10,6 +10,7 @@ import { ExportService } from '../application/export.service'
 export class ExportController {
   constructor(@Inject(ExportService) private readonly exports: ExportService) {}
 
+  // Descarga los casos como archivo CSV o Parquet
   @Get()
   async export(
     @Query('format') format = 'csv',

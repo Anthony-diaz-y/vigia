@@ -7,6 +7,7 @@ import { DISCLAIMER } from './common'
 import { HealthSchema } from './health'
 import { QualityReportSchema, UploadSchema } from './uploads'
 
+// Busca hacia arriba la raíz del repositorio (donde está pnpm-workspace.yaml)
 function repoRoot(): string {
   let current = process.cwd()
   for (let depth = 0; depth < 8; depth += 1) {
@@ -22,6 +23,7 @@ function repoRoot(): string {
   throw new Error('repository root not found')
 }
 
+// Lee y parsea un snapshot JSON de la API por nombre
 function snapshot(name: string): unknown {
   const path = resolve(repoRoot(), 'apps', 'api', 'test', 'snapshots', name)
   return JSON.parse(readFileSync(path, 'utf8')) as unknown

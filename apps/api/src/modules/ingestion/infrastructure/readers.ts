@@ -14,7 +14,6 @@ const MAX_COLUMNS = 200
 
 const CSV_SUFFIXES = new Set(['.csv', '.txt'])
 const XLSX_SUFFIXES = new Set(['.xlsx'])
-/** Legacy binary and macro-enabled formats cannot be parsed safely. */
 const BLOCKED_SUFFIXES = new Set(['.xls', '.xlsb', '.xlsm', '.ods'])
 
 const DELIMITERS = [',', ';', '\t', '|'] as const
@@ -28,11 +27,12 @@ export interface RawTable {
   sizeBytes: number
 }
 
+// Calcula el hash SHA-256 en hexadecimal del contenido del archivo
 export function fileSha256(data: Buffer): string {
   return createHash('sha256').update(data).digest('hex')
 }
 
-/** Read an upload into a text-only table, enforcing size and shape budgets. */
+// Lee un CSV o XLSX subido como tabla de texto, validando tamaño, filas y columnas
 export async function readTable(data: Buffer, filename: string): Promise<RawTable> {
   const suffix = extname(filename).toLowerCase()
 
@@ -91,6 +91,7 @@ export async function readTable(data: Buffer, filename: string): Promise<RawTabl
   }
 }
 
+// Convierte una fila en un objeto indexado por los encabezados
 function rowToRecord(headers: string[], row: string[]): Record<string, string> {
   const record: Record<string, string> = {}
   for (let index = 0; index < headers.length; index += 1) {
@@ -99,9 +100,9 @@ function rowToRecord(headers: string[], row: string[]): Record<string, string> {
   return record
 }
 
+// Decodifica el archivo como UTF-8 o, si falla, con la codificación detectada
 function decodeText(data: Buffer): { text: string; encoding: string } {
   try {
-    // Python's first candidate is utf-8-sig, which also accepts plain UTF-8.
     const decoded = new TextDecoder('utf-8', { fatal: true }).decode(data)
     return { text: stripBom(decoded), encoding: 'utf-8-sig' }
   } catch {
@@ -111,10 +112,12 @@ function decodeText(data: Buffer): { text: string; encoding: string } {
   }
 }
 
+// Quita la marca BOM inicial del texto si existe
 function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
 }
 
+// Unifica los nombres de codificaciones latinas como cp1252
 function normalizeEncoding(encoding: string): string {
   const normalized = encoding.trim().toLowerCase()
   if (
@@ -128,6 +131,7 @@ function normalizeEncoding(encoding: string): string {
   return normalized
 }
 
+// Elige el delimitador más frecuente en una muestra del texto
 function sniffDelimiter(text: string): string {
   const sample = text.slice(0, 8192)
   let best = ','
@@ -143,6 +147,7 @@ function sniffDelimiter(text: string): string {
   return best
 }
 
+// Cuenta las apariciones del delimitador fuera de comillas
 function countOutsideQuotes(text: string, delimiter: string): number {
   let count = 0
   let quoted = false
@@ -161,14 +166,13 @@ function countOutsideQuotes(text: string, delimiter: string): number {
   return count
 }
 
+// Parsea el CSV y rechaza filas con más campos que el encabezado
 function parseCsv(text: string, delimiter: string): string[][] {
   try {
     const records = parse(text, {
       delimiter,
       columns: false,
       skip_empty_lines: true,
-      // pandas fills missing trailing fields with NaN; validate extra fields
-      // explicitly so a shifted row cannot corrupt the canonical contract.
       relax_column_count: true,
       cast: false,
       trim: false,
@@ -187,6 +191,7 @@ function parseCsv(text: string, delimiter: string): string[][] {
   }
 }
 
+// Limpia los encabezados, nombra los vacíos y numera los duplicados
 function cleanHeaders(header: string[]): string[] {
   const seen = new Map<string, number>()
   return header.map((value, index) => {
@@ -202,6 +207,7 @@ function cleanHeaders(header: string[]): string[] {
   })
 }
 
+// Lee las filas no vacías de la primera hoja de un XLSX sin macros
 async function readXlsxRows(data: Buffer): Promise<string[][]> {
   if (data.includes(Buffer.from('vbaProject.bin'))) {
     throw new UnsupportedFile('macro-enabled workbook rejected')
@@ -243,6 +249,7 @@ async function readXlsxRows(data: Buffer): Promise<string[][]> {
   return rows
 }
 
+// Convierte el valor de una celda de Excel a texto
 function cellToString(value: ExcelJS.CellValue): string {
   if (value === null || value === undefined) {
     return ''

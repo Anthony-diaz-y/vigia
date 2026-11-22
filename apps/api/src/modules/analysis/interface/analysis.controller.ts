@@ -16,6 +16,7 @@ import { AnalysisService } from '../application/analysis.service'
 export class AnalysisController {
   constructor(@Inject(AnalysisService) private readonly analysis: AnalysisService) {}
 
+  // Devuelve la serie semanal de casos por geografía
   @Get('series')
   series(
     @Query('level') level = 'department',
@@ -24,6 +25,7 @@ export class AnalysisController {
     return this.analysis.series(parseLevel(level), parseUploadId(uploadId))
   }
 
+  // Devuelve la comparación interanual de casos por semana
   @Get('interannual')
   interannual(
     @Query('level') level = 'department',
@@ -33,6 +35,7 @@ export class AnalysisController {
     return this.analysis.interannual(parseLevel(level), geography, parseUploadId(uploadId))
   }
 
+  // Devuelve el mapa de calor de casos por geografía y semana de un año
   @Get('heatmap')
   heatmap(
     @Query('year') year: string | undefined,
@@ -46,6 +49,7 @@ export class AnalysisController {
     )
   }
 
+  // Devuelve el ranking de geografías por total de casos
   @Get('ranking')
   ranking(
     @Query('level') level = 'department',
@@ -59,6 +63,7 @@ export class AnalysisController {
     )
   }
 
+  // Devuelve las semanas con su z-score robusto y marca de anomalía
   @Get('anomalies')
   anomalies(
     @Query('level') level = 'department',
@@ -68,6 +73,7 @@ export class AnalysisController {
   }
 }
 
+// Parsea el parámetro opcional upload_id como entero
 function parseUploadId(value: string | undefined): number | undefined {
   return parseOptionalInteger(value, 'upload_id')
 }

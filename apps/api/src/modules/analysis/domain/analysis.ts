@@ -7,15 +7,15 @@ import type {
   WeeklySeriesRow,
 } from '@vigia/contracts'
 
-/** Modified z-score cutoff from Iglewicz & Hoaglin. */
 export const DEFAULT_ANOMALY_THRESHOLD = 3.5
-/** Converts a median absolute deviation into a standard-deviation equivalent. */
 export const MAD_SCALE = 0.6745
 
+// Devuelve las columnas geográficas que agrupan según el nivel
 export function geographyColumns(level: GeoLevel): readonly string[] {
   return level === 'department' ? ['department'] : ['department', 'province']
 }
 
+// Pivotea los casos por semana epidemiológica con una columna por año
 export function buildInterannual(
   rows: readonly WeeklySeriesRow[],
   level: GeoLevel,
@@ -51,6 +51,7 @@ export function buildInterannual(
     })
 }
 
+// Arma la matriz de casos por geografía y semana para un año
 export function buildHeatmap(
   rows: readonly WeeklySeriesRow[],
   year: number,
@@ -88,6 +89,7 @@ export function buildHeatmap(
   }
 }
 
+// Ordena las geografías por total de casos, opcionalmente filtrando por año
 export function buildRanking(
   rows: readonly WeeklySeriesRow[],
   level: GeoLevel,
@@ -127,6 +129,7 @@ export function buildRanking(
     })
 }
 
+// Marca anomalías con z-score robusto sobre residuos de la línea base estacional
 export function buildAnomalies(
   rows: readonly WeeklySeriesRow[],
   level: GeoLevel,
@@ -185,7 +188,6 @@ export function buildAnomalies(
       cases: row.cases,
       seasonal_baseline: baselines.get(JSON.stringify([...geo, row.epi_week])) ?? 0,
       residual,
-      // pandas' JSON writer uses double_precision=10, the legacy API contract.
       robust_z: Number(robustZ.toFixed(10)),
       is_anomaly: Math.abs(robustZ) > threshold,
     }
@@ -196,7 +198,7 @@ export function buildAnomalies(
   })
 }
 
-/** Median with pandas semantics: even-sized samples average the two middles. */
+// Calcula la mediana como pandas: con tamaño par promedia los dos centrales
 export function median(values: readonly number[]): number {
   if (values.length === 0) {
     return Number.NaN
@@ -209,14 +211,17 @@ export function median(values: readonly number[]): number {
   return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
 }
 
+// Devuelve el nombre de la geografía de la fila según el nivel
 function geographyValue(row: WeeklySeriesRow, level: GeoLevel): string {
   return level === 'department' ? row.department : (row.province ?? '')
 }
 
+// Devuelve los valores geográficos de la fila que forman su clave
 function geoValues(row: WeeklySeriesRow, level: GeoLevel): string[] {
   return level === 'department' ? [row.department] : [row.department, row.province ?? '']
 }
 
+// Compara dos claves geográficas elemento por elemento
 function compareGeoValues(left: readonly string[], right: readonly string[]): number {
   const length = Math.max(left.length, right.length)
   for (let index = 0; index < length; index += 1) {
@@ -228,6 +233,7 @@ function compareGeoValues(left: readonly string[], right: readonly string[]): nu
   return 0
 }
 
+// Compara dos textos por orden binario
 function compareText(left: string, right: string): number {
   if (left < right) {
     return -1
@@ -238,14 +244,12 @@ function compareText(left: string, right: string): number {
   return 0
 }
 
-/**
- * Python renders a province MultiIndex as ``str(tuple)`` in the legacy API.
- * Keep that shape until the web client stops relying on department-only rows.
- */
+// Formatea los valores como una tupla de Python, igual que la API heredada
 function pythonTuple(values: readonly string[]): string {
   return `(${values.map(pythonString).join(', ')}${values.length === 1 ? ',' : ''})`
 }
 
+// Formatea un texto como lo haría repr() de Python
 function pythonString(value: string): string {
   if (!value.includes("'") && !value.includes('\\')) {
     return `'${value}'`

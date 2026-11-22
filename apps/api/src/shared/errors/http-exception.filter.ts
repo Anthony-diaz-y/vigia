@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common'
 import type { Response } from 'express'
 
+// Obtiene el mensaje de error legible de una excepción HTTP
 function extractDetail(exception: HttpException): string {
   const body = exception.getResponse()
   if (typeof body === 'string') {
@@ -25,14 +26,11 @@ function extractDetail(exception: HttpException): string {
   return exception.message
 }
 
-/**
- * Keep the FastAPI error envelope (`{ "detail": "..." }`) so the dashboard and
- * the frozen golden fixtures stay valid.
- */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name)
 
+  // Responde cualquier error con el formato { detail } y registra los no controlados
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>()
 

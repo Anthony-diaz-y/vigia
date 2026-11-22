@@ -43,6 +43,7 @@ describe.skipIf(!dbEnabled)('analysis API against PostgreSQL', () => {
     await dataSource?.destroy()
   })
 
+  // Sube un CSV de fixtures al API y espera respuesta 200
   async function upload(name: string): Promise<Response> {
     return request(server)
       .post('/api/upload')
@@ -54,6 +55,7 @@ describe.skipIf(!dbEnabled)('analysis API against PostgreSQL', () => {
       .expect(200)
   }
 
+  // Arma una petición GET autenticada con el token de acceso
   function get(path: string): SupertestTest {
     return request(server).get(path).set('X-Access-Token', token)
   }

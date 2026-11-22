@@ -33,7 +33,7 @@ interface RawSourceConfig {
   pii_aliases?: unknown
 }
 
-/** Fold a header to a comparable key: no case, accents or punctuation. */
+// Normaliza un encabezado a una clave comparable sin mayúsculas, tildes ni signos
 export function normalizeHeader(name: string): string {
   const decomposed = String(name).normalize('NFKD')
   const stripped = decomposed.replace(/\p{M}/gu, '')
@@ -48,6 +48,7 @@ export function normalizeHeader(name: string): string {
     .join('_')
 }
 
+// Busca el directorio config/mappings desde la variable de entorno o el directorio actual
 export function configDir(): string {
   const starts = [
     process.env.VIGIA_CONFIG_DIR,
@@ -76,6 +77,7 @@ export function configDir(): string {
   throw new SourceConfigError('apps/api/config/mappings directory not found')
 }
 
+// Carga y valida el YAML de mapeo de una fuente con sus alias normalizados
 export function loadSourceConfig(source: string): SourceConfig {
   if (!/^[a-z0-9_-]+$/i.test(source)) {
     throw new SourceConfigError(`unknown source mapping: ${source}`)
@@ -119,11 +121,13 @@ export function loadSourceConfig(source: string): SourceConfig {
   }
 }
 
+// Devuelve las columnas que coinciden con alias de datos personales
 export function findPii(columns: readonly string[], config: SourceConfig): string[] {
   const blocked = new Set(config.piiAliases)
   return columns.filter((name) => blocked.has(normalizeHeader(name)))
 }
 
+// Lanza un error si el archivo contiene columnas con datos personales
 export function detectPii(columns: readonly string[], config: SourceConfig): void {
   const hits = findPii(columns, config)
   if (hits.length > 0) {
@@ -131,11 +135,10 @@ export function detectPii(columns: readonly string[], config: SourceConfig): voi
   }
 }
 
-/** Map canonical columns to source headers using aliases, then fuzzy matching. */
+// Asocia columnas canónicas a encabezados por alias y luego por coincidencia difusa
 export function resolveMapping(columns: readonly string[], config: SourceConfig): MappingResult {
   const byKey = new Map<string, string>()
   for (const name of columns) {
-    // A later duplicate header wins, matching Python's dict comprehension.
     byKey.set(normalizeHeader(name), name)
   }
 
@@ -197,7 +200,7 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
   }
 }
 
-/** Apply an explicit canonical -> source mapping, dropping unsafe entries. */
+// Aplica un mapeo explícito canónico a origen descartando entradas no válidas
 export function resolveMappingOverride(
   columns: readonly string[],
   config: SourceConfig,
@@ -218,6 +221,7 @@ export function resolveMappingOverride(
   }
 }
 
+// Indica si el valor es un objeto plano (no nulo ni arreglo)
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

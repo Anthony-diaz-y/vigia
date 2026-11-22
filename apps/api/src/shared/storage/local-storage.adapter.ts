@@ -8,7 +8,6 @@ import { Inject, Injectable } from '@nestjs/common'
 import { APP_CONFIG, type AppConfig } from '../config/app-config'
 import type { StoragePort } from './storage.port'
 
-/** Local filesystem adapter; the only adapter until object storage is wired. */
 @Injectable()
 export class LocalStorageAdapter implements StoragePort {
   private readonly root: string
@@ -20,6 +19,7 @@ export class LocalStorageAdapter implements StoragePort {
     mkdirSync(this.root, { recursive: true })
   }
 
+  // Guarda los datos en disco de forma atómica usando un archivo temporal
   async put(key: string, data: Buffer): Promise<void> {
     const path = this.pathFor(key)
     await mkdir(dirname(path), { recursive: true })
@@ -28,10 +28,12 @@ export class LocalStorageAdapter implements StoragePort {
     await rename(temporary, path)
   }
 
+  // Lee el contenido guardado bajo una clave
   async get(key: string): Promise<Buffer> {
     return readFile(this.pathFor(key))
   }
 
+  // Indica si existe un archivo para la clave
   async exists(key: string): Promise<boolean> {
     try {
       await access(this.pathFor(key))
@@ -41,10 +43,12 @@ export class LocalStorageAdapter implements StoragePort {
     }
   }
 
+  // Borra el archivo de una clave si existe
   async delete(key: string): Promise<void> {
     await rm(this.pathFor(key), { force: true })
   }
 
+  // Borra todo lo que esté bajo un prefijo no vacío
   async deletePrefix(prefix: string): Promise<void> {
     if (prefix.trim() === '') {
       throw new Error('storage prefix must not be empty')
@@ -52,6 +56,7 @@ export class LocalStorageAdapter implements StoragePort {
     await rm(this.pathFor(prefix), { recursive: true, force: true })
   }
 
+  // Valida la clave y la convierte en una ruta segura dentro del directorio de datos
   private pathFor(key: string): string {
     if (key.trim() === '' || key.includes('\0')) {
       throw new Error('invalid storage key')

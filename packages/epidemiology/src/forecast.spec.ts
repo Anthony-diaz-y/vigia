@@ -19,6 +19,7 @@ import {
   type WeeklyPoint,
 } from './forecast'
 
+// Genera series semanales sintéticas con tendencia, plana, corta y ruidosa
 function buildSeries(): WeeklyPoint[] {
   const seasonal = Array.from({ length: 52 }, (_, index) => 20 + ((index * 3) % 10))
   const rows: WeeklyPoint[] = []
@@ -50,6 +51,7 @@ function buildSeries(): WeeklyPoint[] {
   return rows
 }
 
+// Crea un backtest falso con errores y errores base constantes
 function backtest(errors: number, windows: number, baseline: number): BacktestResult {
   const rows = Array.from({ length: windows }, () => [errors, errors])
   const baselineRows = Array.from({ length: windows }, () => [baseline, baseline])

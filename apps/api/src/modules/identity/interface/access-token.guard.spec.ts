@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { AppConfig } from '../../../shared/config/app-config'
 import { AccessTokenGuard } from './access-token.guard'
 
+// Crea un contexto de ejecución falso con las cabeceras dadas
 function context(headers: Record<string, string>): ExecutionContext {
   return {
     switchToHttp: () => ({
@@ -12,6 +13,7 @@ function context(headers: Record<string, string>): ExecutionContext {
   } as unknown as ExecutionContext
 }
 
+// Crea el guard con un token de prueba
 function guard(): AccessTokenGuard {
   return new AccessTokenGuard({ accessToken: 'test-token' } as AppConfig)
 }

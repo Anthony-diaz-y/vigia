@@ -44,6 +44,7 @@ describe.skipIf(!dbEnabled)('export API against PostgreSQL', () => {
     await dataSource?.destroy()
   })
 
+  // Sube un CSV de fixtures y devuelve el id de la carga
   async function upload(name: string): Promise<number> {
     const response = await request(server)
       .post('/api/upload')
@@ -53,6 +54,7 @@ describe.skipIf(!dbEnabled)('export API against PostgreSQL', () => {
     return (response.body as { id: number }).id
   }
 
+  // Arma una petición GET autenticada con el token de acceso
   function get(path: string): SupertestTest {
     return request(server).get(path).set('X-Access-Token', token)
   }

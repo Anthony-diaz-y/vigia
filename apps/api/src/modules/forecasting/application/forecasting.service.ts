@@ -21,11 +21,7 @@ export class ForecastingService {
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * Seasonal-drift forecast over the canonical rows. The response keeps the
-   * legacy shape (`model_id`, `scorecard`, `forecasts`) and the registry row is
-   * idempotent by model id.
-   */
+  // Genera el pronóstico estacional, lo registra por id de modelo y devuelve el formato legado
   async forecast(level: GeoLevel, uploadId?: number): Promise<ForecastResponse> {
     await this.analysis.assertScope(uploadId)
     const rows = await this.analysis.weeklyCases(level, uploadId)
@@ -58,6 +54,7 @@ export class ForecastingService {
     }
   }
 
+  // Obtiene los hashes ordenados de los archivos cargados (o de una sola carga)
   private async fileHashes(uploadId?: number): Promise<string[]> {
     const rows =
       uploadId === undefined

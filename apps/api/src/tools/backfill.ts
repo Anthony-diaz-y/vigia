@@ -1,25 +1,3 @@
-/**
- * Backfill the legacy Python schema into the TypeScript PostgreSQL schema.
- *
- * The legacy service stores one `uploads` row plus a normalized Parquet file and
- * a `quality.json` per upload. This tool copies the metadata, canonical rows and
- * quality issues into the target schema, preserving upload ids so existing
- * `upload_id` links and the model registry data cuts stay stable.
- *
- * Usage:
- *   pnpm migration:run
- *   pnpm --filter @vigia/api backfill -- --dry-run
- *   pnpm --filter @vigia/api backfill
- *
- * Environment:
- *   VIGIA_DATABASE_URL      legacy Python PostgreSQL URL
- *   VIGIA_TS_DATABASE_URL   target TypeScript PostgreSQL URL
- *
- * The tool is idempotent by file hash: an upload already present in the target
- * is skipped. Raw upload bytes are not copied; their audit copy stays in the
- * legacy object store and the target keeps a `legacy/<hash>` storage key.
- */
-
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 
@@ -85,6 +63,7 @@ interface CanonicalRow {
 const CASE_COLUMNS = ['upload_id', ...CANONICAL_COLUMNS, 'natural_key'] as const
 const CHUNK_SIZE = 500
 
+// Copia las cargas del esquema Python heredado al esquema TypeScript, omitiendo las ya copiadas
 async function main(): Promise<void> {
   loadEnvFiles()
   const dryRun = process.argv.includes('--dry-run')
@@ -177,11 +156,13 @@ async function main(): Promise<void> {
   }
 }
 
+// Lee y parsea el quality.json heredado de una carga
 async function readQuality(path: string): Promise<LegacyQualityReport> {
   const text = await readFile(path, 'utf8')
   return JSON.parse(text) as LegacyQualityReport
 }
 
+// Lee el Parquet normalizado y lo convierte en filas canónicas
 async function readParquet(path: string): Promise<CanonicalRow[]> {
   const buffer = await readFile(path)
   const file: AsyncBuffer = {
@@ -195,6 +176,7 @@ async function readParquet(path: string): Promise<CanonicalRow[]> {
   return rows.map((row) => canonicalRow(row as Record<string, unknown>))
 }
 
+// Inserta la carga en el destino conservando su id si está libre y devuelve el id final
 async function insertUpload(
   target: Client,
   upload: LegacyUpload,
@@ -266,6 +248,7 @@ async function insertUpload(
   return id
 }
 
+// Inserta los casos de la carga en lotes de CHUNK_SIZE filas
 async function insertCases(
   target: Client,
   uploadId: number,
@@ -290,6 +273,7 @@ async function insertCases(
   }
 }
 
+// Inserta los problemas de calidad de la carga en orden
 async function insertIssues(
   target: Client,
   uploadId: number,
@@ -305,6 +289,7 @@ async function insertIssues(
   }
 }
 
+// Ajusta la secuencia de ids de uploads al máximo id existente
 async function resetUploadSequence(target: Client): Promise<void> {
   await target.query(
     `SELECT setval(
@@ -315,6 +300,7 @@ async function resetUploadSequence(target: Client): Promise<void> {
   )
 }
 
+// Convierte un registro del Parquet en una fila canónica tipada
 function canonicalRow(row: Record<string, unknown>): CanonicalRow {
   return {
     disease: textValue(row.disease),
@@ -334,16 +320,19 @@ function canonicalRow(row: Record<string, unknown>): CanonicalRow {
   }
 }
 
+// Calcula el hash SHA-256 de las columnas clave de la fila
 function naturalKey(row: CanonicalRow): string {
   return createHash('sha256')
     .update(JSON.stringify(KEY_COLUMNS.map((column) => row[column])))
     .digest('hex')
 }
 
+// Convierte un valor a texto, usando cadena vacía para nulos
 function textValue(value: unknown): string {
   return value === null || value === undefined ? '' : String(value)
 }
 
+// Convierte un valor a número y falla si no es finito
 function numberValue(value: unknown): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {

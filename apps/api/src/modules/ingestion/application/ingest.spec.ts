@@ -24,17 +24,19 @@ interface IngestSnapshot {
   rows: unknown[]
 }
 
+// Lee un archivo de fixtures normalizando los saltos de línea a LF
 function fixture(name: string): Buffer {
   const raw = readFileSync(resolve(process.cwd(), 'test', 'fixtures', name))
-  // Fixtures are stored with LF line endings before hashing and ingesting.
   return Buffer.from(raw.toString('utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n'))
 }
 
+// Carga el snapshot JSON esperado de una ingesta
 function snapshot(name: string): IngestSnapshot {
   const path = resolve(process.cwd(), 'test', 'snapshots', name)
   return JSON.parse(readFileSync(path, 'utf8')) as IngestSnapshot
 }
 
+// Ingiere un fixture con la fuente minsa_dengue
 function upload(name: string) {
   return ingestUpload({
     data: fixture(name),

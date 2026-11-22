@@ -15,10 +15,7 @@ export interface RegistryEntry {
 export class ModelRegistryRepository {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  /**
-   * Idempotent by `model_id`: the same config and data cut always resolve to the
-   * same versioned row, matching the Python registry directory semantics.
-   */
+  // Inserta o actualiza el registro del modelo de forma idempotente por model_id
   async save(entry: RegistryEntry): Promise<void> {
     await this.dataSource.query(
       `

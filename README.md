@@ -24,7 +24,8 @@ TypeScript end to end:
 ## Layout
 
 ```
-apps/api/            NestJS API: ingestion, analysis, forecast, explain, export
+apps/api/            NestJS API: ingestion, analysis, forecast, explain,
+                     recommendations, export
 apps/api/config/     Per-source column mapping and PII rules (YAML)
 apps/web/            Next.js App Router + Tailwind dashboard
 packages/contracts/  Shared zod request/response contracts
@@ -77,6 +78,11 @@ pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
   publication gate; versioned in `model_registry`.
 - `GET /api/explain` — ridge + linear SHAP drivers, deterministic actions and a
   template narrative (DeepSeek is optional).
+- `GET /api/recommendations` — department traffic light (alto / medio / bajo),
+  plain-language reasons and fixed actions built from the series, anomalies,
+  forecast and drivers, a five-year outlook of annual cases (damped trend with
+  an 80 % range; incomplete years are estimated from the seasonal shape), and a
+  short summary written by DeepSeek (template fallback without a key).
 - `GET /api/export?format=csv|parquet` — canonical rows from PostgreSQL.
 
 Every read accepts `upload_id` to scope the response to one upload; omitted, it
@@ -89,7 +95,8 @@ aggregates all uploads.
 - The same bytes produce the same upload identity (SHA-256 idempotency).
 - The epidemiological week is the time unit.
 - A forecast is published only when it beats the seasonal baseline (`MASE < 1`).
-- The LLM writes prose, never decisions.
+- The LLM writes prose, never decisions: alert levels and actions come from
+  fixed rules and the action table; DeepSeek only rewords the summary.
 - The disclaimer is present on every surface.
 
 ## Deployment

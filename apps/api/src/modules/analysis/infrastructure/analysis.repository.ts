@@ -19,7 +19,7 @@ interface ExistsRow {
 export class AnalysisRepository {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  /** Fail with the legacy 404 envelope when the requested data cut is empty. */
+  // Lanza 404 si la carga pedida no existe o si no hay ninguna carga
   async assertScope(uploadId?: number): Promise<void> {
     if (uploadId !== undefined) {
       const rows = await this.dataSource.query<ExistsRow[]>(
@@ -40,7 +40,7 @@ export class AnalysisRepository {
     }
   }
 
-  /** Aggregate the canonical surveillance rows in PostgreSQL. */
+  // Agrega en PostgreSQL los casos por geografía, año y semana
   async weeklyCases(level: GeoLevel, uploadId?: number): Promise<WeeklySeriesRow[]> {
     const geo = level === 'department' ? ['department'] : ['department', 'province']
     const selected = geo.map((column) => `"${column}"`).join(', ')

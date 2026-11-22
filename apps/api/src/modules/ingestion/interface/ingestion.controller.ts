@@ -27,6 +27,7 @@ const UPLOAD_LIMIT = 55 * 1024 * 1024
 export class IngestionController {
   constructor(@Inject(IngestionService) private readonly ingestion: IngestionService) {}
 
+  // Recibe un archivo y lo ingiere con la fuente y el mapeo opcional indicados
   @Post('upload')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: UPLOAD_LIMIT } }))
@@ -50,6 +51,7 @@ export class IngestionController {
     }
   }
 
+  // Devuelve la vista previa del mapeo de columnas de un archivo
   @Post('upload/preview')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: UPLOAD_LIMIT } }))
@@ -68,6 +70,7 @@ export class IngestionController {
   }
 }
 
+// Parsea el JSON del mapeo manual y conserva solo columnas canónicas
 function parseMapping(mapping: string | undefined): Record<string, string> | undefined {
   if (!mapping) {
     return undefined
@@ -95,6 +98,7 @@ function parseMapping(mapping: string | undefined): Record<string, string> | und
   return result
 }
 
+// Convierte errores de ingesta en respuestas HTTP 422
 function asUnprocessable(error: unknown): unknown {
   return error instanceof IngestError ? new UnprocessableEntityException(error.message) : error
 }

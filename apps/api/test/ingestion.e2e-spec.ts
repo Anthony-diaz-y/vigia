@@ -45,6 +45,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
     await dataSource?.destroy()
   })
 
+  // Sube el dataset demo al API y espera respuesta 200
   async function uploadDemo(): Promise<Response> {
     return request(server)
       .post('/api/upload')

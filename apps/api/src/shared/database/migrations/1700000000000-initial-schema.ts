@@ -3,6 +3,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 export class InitialSchema1700000000000 implements MigrationInterface {
   name = 'InitialSchema1700000000000'
 
+  // Crea las tablas uploads, upload_quality_issues, surveillance_cases y model_registry
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE "uploads" (
@@ -109,6 +110,7 @@ export class InitialSchema1700000000000 implements MigrationInterface {
     `)
   }
 
+  // Elimina todas las tablas creadas por el esquema inicial
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('DROP TABLE IF EXISTS "model_registry"')
     await queryRunner.query('DROP TABLE IF EXISTS "surveillance_cases"')

@@ -18,11 +18,13 @@ import { DatasetsService } from '../application/datasets.service'
 export class UploadsController {
   constructor(@Inject(DatasetsService) private readonly datasets: DatasetsService) {}
 
+  // Lista las cargas registradas
   @Get()
   list(): Promise<UploadDto[]> {
     return this.datasets.list()
   }
 
+  // Devuelve el reporte de calidad de una carga
   @Get(':id/quality')
   quality(
     @Param('id', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
@@ -31,6 +33,7 @@ export class UploadsController {
     return this.datasets.quality(id)
   }
 
+  // Elimina todas las cargas y sus archivos
   @Delete()
   clear(): Promise<ClearUploadsResponse> {
     return this.datasets.clear()

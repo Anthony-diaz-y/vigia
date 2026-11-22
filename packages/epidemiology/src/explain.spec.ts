@@ -16,6 +16,7 @@ import {
 } from './explain'
 import type { WeeklyPoint } from './forecast'
 
+// Genera series semanales sintéticas con tendencia, plana, ruidosa y corta
 function buildSeries(): WeeklyPoint[] {
   const seasonal = Array.from({ length: 52 }, (_, index) => 20 + ((index * 3) % 10))
   const rows: WeeklyPoint[] = []

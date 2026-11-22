@@ -1,12 +1,3 @@
-/**
- * SHAP top-k drivers per geographic unit via exact linear SHAP.
- *
- * Port of `src/vigia/explain/drivers.py` and `narrative.py`. The explanation
- * model is a ridge regression over six engineered features, fit per geography.
- * Linear SHAP is closed form (`phi_j = w_j * (x_j - mean_j)`), so no external
- * library is needed.
- */
-
 import { WEEKS_PER_YEAR } from './contract'
 import { groupByGeography, yearOverYearDrift, type GeoLevel, type WeeklyPoint } from './forecast'
 
@@ -30,7 +21,6 @@ export const DRIVER_LABELS: Readonly<Record<Feature, string>> = {
   seasonal_phase_cos: 'Estacionalidad (fase)',
 }
 
-/** Deterministic driver -> preventive action table. The LLM never writes these. */
 export const ACTION_TABLE: Readonly<Record<Feature, string>> = {
   recent_level: 'Intensificar la investigación de casos en las unidades notificadoras.',
   recent_level_2w: 'Sostener la vigilancia activa en los distritos con transmisión reciente.',
@@ -93,6 +83,7 @@ const DIRECTIONS: Readonly<Record<string, string>> = {
   down: 'a la baja',
 }
 
+// Estandariza cada columna a media cero y desviación uno (desviación 0 se toma como 1)
 export function standardize(matrix: readonly number[][]): {
   standardized: number[][]
   mean: number[]
@@ -112,7 +103,7 @@ export function standardize(matrix: readonly number[][]): {
   return { standardized, mean, std: safeStd }
 }
 
-/** Ridge regression weights `(X^T X + lambda I)^-1 X^T y`. */
+// Calcula los pesos de regresión ridge (X^T X + lambda I)^-1 X^T y
 export function ridgeWeights(
   standardized: readonly number[][],
   targets: readonly number[],
@@ -143,7 +134,7 @@ export function ridgeWeights(
   return solveLinearSystem(gram, rhs)
 }
 
-/** Per-row linear SHAP values for standardized (zero-mean) features. */
+// Calcula los valores SHAP lineales por fila para variables estandarizadas
 export function linearShap(
   standardized: readonly number[][],
   weights: readonly number[],
@@ -151,7 +142,7 @@ export function linearShap(
   return standardized.map((row) => row.map((value, index) => value * valueAt(weights, index)))
 }
 
-/** Rank the top-k drivers per geographic unit by mean absolute SHAP. */
+// Ordena los top-k factores por unidad geográfica según el SHAP absoluto medio
 export function topDrivers(
   rows: readonly WeeklyPoint[],
   level: GeoLevel,
@@ -213,12 +204,12 @@ export function topDrivers(
   return drivers
 }
 
-/** Attach the deterministic preventive action for each driver row. */
+// Agrega a cada factor su acción preventiva determinista
 export function recommend(drivers: readonly DriverRow[]): RecommendedDriverRow[] {
   return drivers.map((driver) => ({ ...driver, action: ACTION_TABLE[driver.feature] }))
 }
 
-/** Deterministic prose from the aggregated payload. */
+// Genera el texto determinista de la narrativa a partir del payload agregado
 export function renderTemplate(payload: NarrativePayload): string {
   const top = payload.drivers
     .map((driver) => `${driverName(driver)} (${DIRECTIONS[driver.direction] ?? driver.direction})`)
@@ -233,7 +224,7 @@ export function renderTemplate(payload: NarrativePayload): string {
   )
 }
 
-/** Build one aggregated payload per geography from ranked drivers. */
+// Arma un payload agregado por geografía a partir de los factores ordenados
 export function narrativePayloads(drivers: readonly RecommendedDriverRow[]): NarrativePayload[] {
   const groups = new Map<string, { unit: string; rows: RecommendedDriverRow[] }>()
   for (const driver of drivers) {
@@ -260,7 +251,7 @@ export function narrativePayloads(drivers: readonly RecommendedDriverRow[]): Nar
   }))
 }
 
-/** Build one deterministic narrative per geography from ranked drivers. */
+// Arma una narrativa determinista por geografía a partir de los factores ordenados
 export function narrativesFromDrivers(drivers: readonly RecommendedDriverRow[]): Narrative[] {
   return narrativePayloads(drivers).map((payload) => ({
     source: 'template' as const,
@@ -268,6 +259,7 @@ export function narrativesFromDrivers(drivers: readonly RecommendedDriverRow[]):
   }))
 }
 
+// Calcula factores con acciones y narrativas para una serie semanal
 export function explainSeries(
   rows: readonly WeeklyPoint[],
   level: GeoLevel,
@@ -277,6 +269,7 @@ export function explainSeries(
   return { drivers, narratives: narrativesFromDrivers(drivers) }
 }
 
+// Construye la matriz de las seis variables y los objetivos desde la segunda temporada
 function featureMatrix(
   cases: readonly number[],
   weeks: readonly [number, number][],
@@ -300,7 +293,7 @@ function featureMatrix(
   return { features, targets }
 }
 
-/** Gaussian elimination with partial pivoting for a small dense system. */
+// Resuelve un sistema lineal pequeño por eliminación gaussiana con pivoteo parcial
 function solveLinearSystem(matrix: readonly number[][], vector: readonly number[]): number[] {
   const size = vector.length
   const augmented = matrix.map((row, index) => [...row, valueAt(vector, index)])
@@ -351,6 +344,7 @@ function solveLinearSystem(matrix: readonly number[][], vector: readonly number[
   return augmented.map((row) => valueAt(row, size))
 }
 
+// Convierte la clave geográfica en campos department y province opcional
 function geoFields(geo: readonly string[]): { department: string; province?: string } {
   if (geo.length === 1) {
     return { department: geo[0] ?? '' }
@@ -358,10 +352,12 @@ function geoFields(geo: readonly string[]): { department: string; province?: str
   return { department: geo[0] ?? '', province: geo[1] ?? '' }
 }
 
+// Devuelve la etiqueta del factor o su nombre técnico si no tiene etiqueta
 function driverName(driver: NarrativePayloadDriver): string {
   return driver.driver || driver.feature || ''
 }
 
+// Calcula el promedio o NaN si la lista está vacía
 function average(values: readonly number[]): number {
   let total = 0
   for (const value of values) {
@@ -370,14 +366,12 @@ function average(values: readonly number[]): number {
   return values.length === 0 ? Number.NaN : total / values.length
 }
 
-/**
- * Match the Python JSON writer for meaningful magnitudes while leaving the
- * near-zero SHAP noise untouched (its sign is not part of the contract).
- */
+// Redondea a 10 decimales como Python, salvo valores casi cero que se dejan intactos
 function precision(value: number): number {
   return Math.abs(value) >= 1e-12 ? Number(value.toFixed(10)) : value
 }
 
+// Devuelve el elemento del índice o lanza error si está fuera de rango
 function valueAt<T>(values: readonly T[], index: number): T {
   const value = values[index]
   if (value === undefined) {

@@ -58,10 +58,7 @@ export const appConfigSchema = rawSchema.transform((raw) => ({
 
 export type AppConfig = z.output<typeof appConfigSchema>
 
-/**
- * Load the first existing `.env` file. `Nest`'s ConfigModule does this for the
- * server, but standalone scripts (migrations) do not boot Nest.
- */
+// Carga el primer archivo .env que exista, para scripts que no arrancan Nest
 export function loadEnvFiles(paths: readonly string[] = ['.env', '../../.env']): void {
   for (const path of paths) {
     const candidate = resolve(path)
@@ -72,13 +69,14 @@ export function loadEnvFiles(paths: readonly string[] = ['.env', '../../.env']):
   }
 }
 
-/** Translate the SQLAlchemy-style URL used by legacy exports to a `pg` URL. */
+// Convierte una URL de base de datos estilo SQLAlchemy en una URL válida para pg
 export function normalizeDatabaseUrl(url: string): string {
   return url
     .replace(/^postgresql\+psycopg:\/\//, 'postgresql://')
     .replace(/^postgres\+psycopg:\/\//, 'postgres://')
 }
 
+// Valida las variables de entorno y devuelve la configuración de la app
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const result = appConfigSchema.safeParse(env)
   if (!result.success) {

@@ -64,7 +64,7 @@ interface CasesResult {
 
 const NUMERIC_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/
 
-/** Coerce a raw upload into the canonical contract. */
+// Convierte las filas crudas al contrato canónico, registra problemas y deduplica
 export function normalize(
   raw: Record<string, string>[],
   mapping: MappingResult,
@@ -155,6 +155,7 @@ export function normalize(
   }
 }
 
+// Devuelve los valores crudos de la columna mapeada a un campo canónico, o null si no existe
 function columnValues(
   raw: Record<string, string>[],
   mapping: MappingResult,
@@ -167,6 +168,7 @@ function columnValues(
   return raw.map((row) => row[source] ?? '')
 }
 
+// Recorta los valores de texto o devuelve vacíos si la columna no existe
 function textValues(values: string[] | null, count: number): string[] {
   if (values === null) {
     return Array.from({ length: count }, () => '')
@@ -174,6 +176,7 @@ function textValues(values: string[] | null, count: number): string[] {
   return values.map((value) => value.trim())
 }
 
+// Interpreta un texto como número finito o devuelve null
 function numeric(text: string): number | null {
   const cleaned = text.replace(/\.0+$/, '')
   if (cleaned === '' || !NUMERIC_PATTERN.test(cleaned)) {
@@ -183,6 +186,7 @@ function numeric(text: string): number | null {
   return Number.isFinite(value) ? value : null
 }
 
+// Normaliza los UBIGEO a 6 dígitos y marca los faltantes o inválidos
 function ubigeoValues(values: string[] | null, count: number): UbigeoResult {
   const texts = textValues(values, count)
   const result: UbigeoResult = { values: [], missing: [], invalid: [] }
@@ -197,6 +201,7 @@ function ubigeoValues(values: string[] | null, count: number): UbigeoResult {
   return result
 }
 
+// Convierte a enteros y marca los ilegibles o fuera del rango permitido
 function boundedIntValues(
   values: string[] | null,
   count: number,
@@ -215,6 +220,7 @@ function boundedIntValues(
   return result
 }
 
+// Lee el conteo de casos (o 1 por fila) y marca faltantes, inválidos y negativos
 function casesValues(values: string[] | null, count: number, countRows: boolean): CasesResult {
   if (countRows || values === null) {
     return {
@@ -237,6 +243,7 @@ function casesValues(values: string[] | null, count: number, countRows: boolean)
   return result
 }
 
+// Extrae los valores crudos de las filas marcadas en la máscara como muestras
 function rawSamples(
   raw: Record<string, string>[],
   mapping: MappingResult,
@@ -256,6 +263,7 @@ function rawSamples(
   return samples
 }
 
+// Arma las filas internas con texto normalizado, sexo, grupo de edad y enfermedad
 function assemble(
   raw: Record<string, string>[],
   mapping: MappingResult,
@@ -318,6 +326,7 @@ function assemble(
   })
 }
 
+// Asigna la banda de edad según la edad y su unidad (meses cuentan como <1)
 function ageGroupValue(age: string, ageType: string): string {
   const years = numeric(age)
   let band = UNKNOWN
@@ -335,6 +344,7 @@ function ageGroupValue(age: string, ageType: string): string {
   return band
 }
 
+// Agrupa filas por clave sumando casos y cuenta cuántos duplicados se colapsaron
 function deduplicate(rows: InternalRow[]): {
   rows: CanonicalRow[]
   duplicatesCollapsed: number

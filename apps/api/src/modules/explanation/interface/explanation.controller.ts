@@ -10,6 +10,7 @@ import { ExplanationService } from '../application/explanation.service'
 export class ExplanationController {
   constructor(@Inject(ExplanationService) private readonly explanation: ExplanationService) {}
 
+  // Devuelve los factores del pronóstico y su explicación en lenguaje simple
   @Get()
   explain(
     @Query('level') level = 'department',

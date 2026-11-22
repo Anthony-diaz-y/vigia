@@ -8,6 +8,7 @@ import { AppModule } from './app.module'
 import { APP_CONFIG, type AppConfig } from './shared/config/app-config'
 import { HttpExceptionFilter } from './shared/errors/http-exception.filter'
 
+// Arranca la API Nest con prefijo, filtros, seguridad y CORS configurados
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule)
   const config = app.get<AppConfig>(APP_CONFIG)

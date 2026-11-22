@@ -1,13 +1,3 @@
-/**
- * Seasonal-naive-plus-drift forecasting with a rolling-origin backtest.
- *
- * This is a dependency-free port of `src/vigia/forecast/model.py` and
- * `metrics.py`. The point forecast (p50) is the seasonal naive value plus the
- * mean year-over-year drift; p10/p90 come from the empirical quantiles of the
- * backtest residuals. The publication gate is MASE < 1 against the seasonal
- * naive baseline.
- */
-
 import { advanceEpiWeek, WEEKS_PER_YEAR, type ForecastStatus } from './contract'
 
 export const PUBLISH = 'publish' as const
@@ -29,7 +19,6 @@ export const DEFAULT_FORECAST_CONFIG: ForecastConfig = {
   intervalAlpha: 0.2,
 }
 
-/** The canonical (snake_case) config used by the Python model registry. */
 export interface ForecastConfigDict {
   horizon: number
   min_windows: number
@@ -92,6 +81,7 @@ export interface BacktestResult {
   nWindows: number
 }
 
+// Convierte la configuración al formato snake_case del registro de modelos de Python
 export function configToDict(config: ForecastConfig): ForecastConfigDict {
   return {
     horizon: config.horizon,
@@ -102,6 +92,7 @@ export function configToDict(config: ForecastConfig): ForecastConfigDict {
   }
 }
 
+// Calcula la deriva interanual media usando la última temporada completa disponible
 export function yearOverYearDrift(
   values: readonly number[],
   season: number = WEEKS_PER_YEAR,
@@ -127,10 +118,7 @@ export function yearOverYearDrift(
   return 0
 }
 
-/**
- * Point forecast: seasonal naive plus the mean year-over-year drift.
- * `values` is a chronological weekly series with at least one full season.
- */
+// Pronostica con naive estacional más deriva interanual (requiere una temporada completa)
 export function seasonalDriftForecast(
   values: readonly number[],
   horizon: number,
@@ -148,7 +136,7 @@ export function seasonalDriftForecast(
   return forecast
 }
 
-/** Rolling-origin backtest with a seasonal naive baseline. */
+// Ejecuta un backtest de origen móvil comparado contra el naive estacional
 export function rollingBacktest(values: readonly number[], config: ForecastConfig): BacktestResult {
   const n = values.length
   const horizon = config.horizon
@@ -186,10 +174,7 @@ export function rollingBacktest(values: readonly number[], config: ForecastConfi
   }
 }
 
-/**
- * Mean absolute scaled error against a baseline. Values below 1 mean the model
- * beats the baseline; a perfect baseline returns NaN.
- */
+// Calcula el MASE contra la línea base (<1 supera a la base; base perfecta da NaN)
 export function mase(modelErrors: readonly number[], baselineErrors: readonly number[]): number {
   if (modelErrors.length === 0 || baselineErrors.length === 0) {
     return Number.NaN
@@ -201,6 +186,7 @@ export function mase(modelErrors: readonly number[], baselineErrors: readonly nu
   return meanAbsolute(modelErrors) / baselineMae
 }
 
+// Calcula el interval score: ancho del intervalo más penalización si el valor queda fuera
 export function intervalScore(actual: number, lower: number, upper: number, alpha: number): number {
   let width = upper - lower
   if (actual < lower) {
@@ -211,7 +197,7 @@ export function intervalScore(actual: number, lower: number, upper: number, alph
   return width
 }
 
-/** WIS for a median plus one central `(1 - alpha)` interval. */
+// Calcula el WIS para una mediana y un intervalo central (1 - alpha)
 export function weightedIntervalScore(
   actual: number,
   median: number,
@@ -224,7 +210,7 @@ export function weightedIntervalScore(
   return numerator / 1.5
 }
 
-/** NumPy-compatible linear-interpolation percentile (`np.percentile` default). */
+// Calcula el percentil con interpolación lineal, igual que np.percentile
 export function percentile(values: readonly number[], percent: number): number {
   if (values.length === 0) {
     return Number.NaN
@@ -238,11 +224,12 @@ export function percentile(values: readonly number[], percent: number): number {
   return low + (high - low) * (position - lower)
 }
 
+// Extrae una columna de una matriz
 export function column(matrix: readonly number[][], index: number): number[] {
   return matrix.map((row) => valueAt(row, index))
 }
 
-/** MASE, WIS and publication status for one geography's backtest. */
+// Calcula MASE, WIS y estado de publicación (publica solo si MASE < 1) de una geografía
 export function scorecardRow(bt: BacktestResult, config: ForecastConfig): ForecastScore {
   if (bt.nWindows < config.minWindows) {
     return {
@@ -263,7 +250,7 @@ export function scorecardRow(bt: BacktestResult, config: ForecastConfig): Foreca
   }
 }
 
-/** Group rows by geography and order them like pandas `groupby(sort=True)`. */
+// Agrupa filas por geografía y las ordena como groupby(sort=True) de pandas
 export function groupByGeography(rows: readonly WeeklyPoint[], level: GeoLevel): GeoGroup[] {
   const groups = new Map<string, GeoGroup>()
   for (const row of rows) {
@@ -284,10 +271,7 @@ export function groupByGeography(rows: readonly WeeklyPoint[], level: GeoLevel):
   return ordered
 }
 
-/**
- * Run the forecast for a weekly series. Mirrors `forecast()` in Python minus
- * file I/O and the registry artifact.
- */
+// Ejecuta el pronóstico de una serie semanal y devuelve scorecard y cuantiles publicados
 export function forecastSeries(
   rows: readonly WeeklyPoint[],
   level: GeoLevel,
@@ -334,6 +318,7 @@ export function forecastSeries(
   }
 }
 
+// Genera las filas p10/p50/p90 por horizonte usando cuantiles de los residuos del backtest
 function productionRows(
   geo: { department: string; province?: string },
   values: readonly number[],
@@ -366,6 +351,7 @@ function productionRows(
   return rows
 }
 
+// Promedia el WIS sobre todas las ventanas y horizontes del backtest
 function weightedIntervalScoreOver(bt: BacktestResult, config: ForecastConfig): number {
   const lowQuantiles = Array.from({ length: config.horizon }, (_, step) =>
     percentile(column(bt.errors, step), 10),
@@ -392,10 +378,12 @@ function weightedIntervalScoreOver(bt: BacktestResult, config: ForecastConfig): 
   return scores.length === 0 ? Number.NaN : average(scores)
 }
 
+// Crea una matriz de ceros con las dimensiones indicadas
 function emptyMatrix(rows: number, columns: number): number[][] {
   return Array.from({ length: rows }, () => Array.from({ length: columns }, () => 0))
 }
 
+// Asigna un valor a una celda de la matriz si la fila existe
 function setCell(matrix: number[][], row: number, column: number, value: number): void {
   const target = matrix[row]
   if (target) {
@@ -403,10 +391,12 @@ function setCell(matrix: number[][], row: number, column: number, value: number)
   }
 }
 
+// Calcula el promedio de los valores absolutos
 function meanAbsolute(values: readonly number[]): number {
   return average(values.map((value) => Math.abs(value)))
 }
 
+// Calcula el promedio de una lista de números
 function average(values: readonly number[]): number {
   let total = 0
   for (const value of values) {
@@ -415,6 +405,7 @@ function average(values: readonly number[]): number {
   return total / values.length
 }
 
+// Convierte la clave geográfica en campos department y province opcional
 function geoFields(geo: readonly string[]): { department: string; province?: string } {
   if (geo.length === 1) {
     return { department: geo[0] ?? '' }
@@ -422,6 +413,7 @@ function geoFields(geo: readonly string[]): { department: string; province?: str
   return { department: geo[0] ?? '', province: geo[1] ?? '' }
 }
 
+// Compara dos claves geográficas nivel por nivel
 function compareGeo(left: readonly string[], right: readonly string[]): number {
   const length = Math.max(left.length, right.length)
   for (let index = 0; index < length; index += 1) {
@@ -433,6 +425,7 @@ function compareGeo(left: readonly string[], right: readonly string[]): number {
   return 0
 }
 
+// Compara dos textos por orden de código (-1, 0 o 1)
 function compareText(left: string, right: string): number {
   if (left < right) {
     return -1
@@ -443,6 +436,7 @@ function compareText(left: string, right: string): number {
   return 0
 }
 
+// Devuelve el elemento del índice o lanza error si está fuera de rango
 function valueAt<T>(values: readonly T[], index: number): T {
   const value = values[index]
   if (value === undefined) {
@@ -451,10 +445,12 @@ function valueAt<T>(values: readonly T[], index: number): T {
   return value
 }
 
+// Redondea a 10 decimales si el valor es finito
 function round10(value: number): number {
   return Number.isFinite(value) ? Number(value.toFixed(10)) : value
 }
 
+// Devuelve el valor si es finito o null en caso contrario
 function finiteOrNull(value: number): number | null {
   return Number.isFinite(value) ? value : null
 }

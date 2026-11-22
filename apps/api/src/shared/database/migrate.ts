@@ -1,6 +1,7 @@
 import { loadConfig, loadEnvFiles } from '../config/app-config'
 import { createDataSource } from './data-source'
 
+// Ejecuta las migraciones pendientes y muestra cuáles se aplicaron
 async function main(): Promise<void> {
   loadEnvFiles()
   const dataSource = createDataSource(loadConfig())

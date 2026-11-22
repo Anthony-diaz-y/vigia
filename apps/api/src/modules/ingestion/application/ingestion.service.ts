@@ -28,6 +28,7 @@ export class IngestionService {
     private readonly storage: StoragePort,
   ) {}
 
+  // Ingiere un archivo, guarda el crudo y el reporte, y persiste la carga con sus casos
   async ingest(
     data: Buffer,
     filename: string,
@@ -132,21 +133,25 @@ export class IngestionService {
     }
   }
 
+  // Devuelve la vista previa del mapeo de columnas sin persistir nada
   preview(data: Buffer, filename: string, source: string): Promise<PreviewResult> {
     return previewUpload({ data, filename, source })
   }
 }
 
+// Devuelve la extensión segura del archivo o .csv por defecto
 function rawSuffix(filename: string): string {
   const suffix = extname(filename).toLowerCase()
   return /^\.[a-z0-9]{1,10}$/.test(suffix) ? suffix : '.csv'
 }
 
+// Calcula el hash SHA-256 de las columnas clave de una fila
 function naturalKey(row: CanonicalRow): string {
   const payload = JSON.stringify(KEY_COLUMNS.map((column) => row[column]))
   return createHash('sha256').update(payload).digest('hex')
 }
 
+// Construye el reporte de calidad que se guarda como JSON
 function qualityPayload(result: IngestResult): QualityReportDto {
   return {
     rows_in: result.rowsIn,
@@ -163,6 +168,7 @@ function qualityPayload(result: IngestResult): QualityReportDto {
   }
 }
 
+// Indica si el error es una violación de unicidad de PostgreSQL (23505)
 function isUniqueViolation(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) {
     return false

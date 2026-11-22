@@ -1,12 +1,9 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm'
 
-/**
- * Forecast quantiles leave Parquet behind: the model registry keeps the
- * published rows as JSONB next to the config, data cut and scorecard.
- */
 export class ModelRegistryForecasts1700000001000 implements MigrationInterface {
   name = 'ModelRegistryForecasts1700000001000'
 
+  // Reemplaza la clave de almacenamiento de pronósticos por una columna JSONB forecasts
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       'ALTER TABLE "model_registry" DROP COLUMN IF EXISTS "forecasts_storage_key"',
@@ -17,6 +14,7 @@ export class ModelRegistryForecasts1700000001000 implements MigrationInterface {
     )
   }
 
+  // Restaura la columna forecasts_storage_key y elimina forecasts
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('ALTER TABLE "model_registry" DROP COLUMN IF EXISTS "forecasts"')
     await queryRunner.query(

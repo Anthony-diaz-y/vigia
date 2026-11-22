@@ -7,15 +7,12 @@ export interface QualityIssue {
   sample: string[]
 }
 
-/**
- * Accumulates issues by code, keeping a bounded sample of offending values.
- * Insertion order is the order shown to the user.
- */
 export class IssueCollector {
   private readonly messages = new Map<string, string>()
   private readonly counts = new Map<string, number>()
   private readonly samples = new Map<string, string[]>()
 
+  // Acumula valores problemáticos bajo un código, guardando una muestra acotada
   addMany(code: string, message: string, values: readonly string[]): void {
     if (values.length === 0) {
       return
@@ -34,6 +31,7 @@ export class IssueCollector {
     this.samples.set(code, sample)
   }
 
+  // Devuelve la lista de problemas en orden de inserción con conteo y muestra
   build(): QualityIssue[] {
     return [...this.messages.entries()].map(([code, message]) => ({
       code,

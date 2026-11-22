@@ -45,6 +45,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
     await dataSource?.destroy()
   })
 
+  // Inserta directamente una carga de prueba en la base de datos
   async function seedUpload(suffix = 'a'): Promise<UploadEntity> {
     const repository = dataSource.getRepository(UploadEntity)
     return repository.save(

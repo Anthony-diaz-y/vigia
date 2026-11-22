@@ -12,5 +12,6 @@ import { ForecastingController } from './interface/forecasting.controller'
   imports: [TypeOrmModule.forFeature([ModelRegistryEntity]), AnalysisModule, IdentityModule],
   controllers: [ForecastingController],
   providers: [ModelRegistryRepository, ForecastingService],
+  exports: [ForecastingService],
 })
 export class ForecastingModule {}

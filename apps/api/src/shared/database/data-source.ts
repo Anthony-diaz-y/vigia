@@ -14,6 +14,7 @@ export const entities = [
   ModelRegistryEntity,
 ]
 
+// Crea el DataSource de TypeORM para PostgreSQL con entidades y migraciones
 export function createDataSource(config: AppConfig): DataSource {
   return new DataSource({
     type: 'postgres',

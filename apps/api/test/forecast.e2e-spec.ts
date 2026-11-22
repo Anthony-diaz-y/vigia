@@ -58,6 +58,7 @@ interface ExplainSnapshot {
   narratives: Array<{ source: string; text: string }>
 }
 
+// Verifica que el valor sea nulo o un número cercano al esperado
 function expectClose(actual: unknown, expected: number | null): void {
   if (expected === null) {
     expect(actual).toBeNull()
@@ -67,6 +68,7 @@ function expectClose(actual: unknown, expected: number | null): void {
   expect(actual as number).toBeCloseTo(expected, 8)
 }
 
+// Reemplaza la dirección de la tendencia en el texto por un marcador neutro
 function normalizeDirection(text: string): string {
   return text.replace(/\((?:al alza|a la baja)\)/g, '(dir)')
 }
@@ -100,6 +102,7 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
     await dataSource?.destroy()
   })
 
+  // Sube un CSV de fixtures y devuelve el id de la carga
   async function upload(name: string): Promise<number> {
     const response = await request(server)
       .post('/api/upload')
@@ -112,6 +115,7 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
     return (response.body as { id: number }).id
   }
 
+  // Arma una petición GET autenticada con el token de acceso
   function get(path: string): SupertestTest {
     return request(server).get(path).set('X-Access-Token', token)
   }
@@ -164,7 +168,6 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
     await upload('analysis_synthetic.csv')
     const expected = snapshot('forecast_synthetic.json') as ForecastSnapshot
     const response = await get('/api/forecast').expect(200)
-    // The module snapshot also records the data cut; the API does not expose it.
     expect(response.body).toEqual({
       model_id: expected.model_id,
       scorecard: expected.scorecard,
@@ -188,7 +191,6 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
       expect(actual.action).toBe(row.action)
       expectClose(actual.mean_shap, row.mean_shap)
       expectClose(actual.abs_mean_shap, row.abs_mean_shap)
-      // The sign of a ~1e-16 SHAP value is numerical noise, not a contract.
       if (Math.abs(row.mean_shap) >= 1e-9 || Math.abs(actual.mean_shap) >= 1e-9) {
         expect(actual.direction).toBe(row.direction)
       }

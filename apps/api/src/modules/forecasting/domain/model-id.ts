@@ -1,13 +1,6 @@
 import { createHash } from 'node:crypto'
 
-/**
- * Deterministic model identifier from the canonical config and data cut.
- *
- * Mirrors `model_id` in `src/vigia/forecast/registry.py`: SHA-256 over
- * `json.dumps({"config": ..., "data_cut": ...}, sort_keys=True, default=str)`,
- * truncated to 16 hex characters. The Python writer uses `", "` and `": "`
- * separators, so the canonicalizer below reproduces that spacing.
- */
+// Calcula el id del modelo: SHA-256 de config y corte de datos, truncado a 16 hex como en Python
 export function modelId(config: object, dataCut: object): string {
   return createHash('sha256')
     .update(canonicalJson({ config, data_cut: dataCut }), 'utf8')
@@ -15,6 +8,7 @@ export function modelId(config: object, dataCut: object): string {
     .slice(0, 16)
 }
 
+// Serializa a JSON con claves ordenadas y separadores iguales a json.dumps de Python
 export function canonicalJson(value: unknown): string {
   if (value === null) {
     return 'null'
@@ -44,7 +38,7 @@ export function canonicalJson(value: unknown): string {
   throw new Error(`cannot canonicalize ${typeof value}`)
 }
 
-/** `json.dumps` defaults to `ensure_ascii=True`, unlike `JSON.stringify`. */
+// Serializa un string escapando caracteres no ASCII como hace json.dumps
 function pythonJsonString(value: string): string {
   return JSON.stringify(value).replace(
     /[\u007f-\uffff]/g,

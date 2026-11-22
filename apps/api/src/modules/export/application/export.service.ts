@@ -46,6 +46,7 @@ export class ExportService {
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
+  // Exporta los casos en CSV o Parquet, opcionalmente filtrados por carga
   async export(format: string, uploadId?: number): Promise<ExportFile> {
     await this.analysis.assertScope(uploadId)
     const rows = await this.rows(uploadId)
@@ -63,6 +64,7 @@ export class ExportService {
     }
   }
 
+  // Lee de la base de datos los casos con las columnas canónicas
   private async rows(uploadId?: number): Promise<CaseRow[]> {
     const selected = CANONICAL_COLUMNS.map((column) => `"${column}"`).join(', ')
     const where = uploadId === undefined ? '' : 'WHERE "upload_id" = $1'
@@ -74,6 +76,7 @@ export class ExportService {
   }
 }
 
+// Convierte las filas en texto CSV con encabezado
 function toCsv(rows: readonly CaseRow[]): string {
   const lines = [CANONICAL_COLUMNS.join(',')]
   for (const row of rows) {
@@ -82,7 +85,7 @@ function toCsv(rows: readonly CaseRow[]): string {
   return `${lines.join('\n')}\n`
 }
 
-/** pandas `QUOTE_MINIMAL`: quote only when the value would break the CSV. */
+// Pone comillas a un valor solo si rompería el CSV (como QUOTE_MINIMAL de pandas)
 function csvField(value: string | number): string {
   const text = String(value)
   if (/[",\r\n]/.test(text)) {
@@ -91,6 +94,7 @@ function csvField(value: string | number): string {
   return text
 }
 
+// Escribe las filas en un archivo Parquet en memoria y devuelve sus bytes
 async function toParquet(rows: readonly CaseRow[]): Promise<Buffer> {
   const stream = new PassThrough()
   const chunks: Buffer[] = []

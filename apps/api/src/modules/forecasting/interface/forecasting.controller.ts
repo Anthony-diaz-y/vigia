@@ -10,6 +10,7 @@ import { ForecastingService } from '../application/forecasting.service'
 export class ForecastingController {
   constructor(@Inject(ForecastingService) private readonly forecasting: ForecastingService) {}
 
+  // Devuelve el pronóstico para el nivel geográfico y la carga indicados
   @Get()
   forecast(
     @Query('level') level = 'department',

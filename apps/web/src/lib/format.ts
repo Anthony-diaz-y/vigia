@@ -1,3 +1,4 @@
+// Formatea un número en español peruano o devuelve un guion si no es válido
 export function formatNumber(value: number | null | undefined, decimals = 0): string {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return '—'
@@ -8,6 +9,7 @@ export function formatNumber(value: number | null | undefined, decimals = 0): st
   })
 }
 
+// Clasifica la severidad de una anomalía según su puntaje z
 export function severityOf(z: number): { label: string; className: string } {
   const value = Number(z)
   if (!Number.isFinite(value)) {
@@ -19,10 +21,10 @@ export function severityOf(z: number): { label: string; className: string } {
   if (value >= 2.5) {
     return { label: 'Media', className: 'badge-warn' }
   }
-  return { label: 'Baja', className: 'badge-ok' }
+  return { label: 'Por debajo', className: 'badge-ok' }
 }
 
-/** MASE is better when lower: below 1 beats the seasonal baseline. */
+// Califica el MASE del modelo: menor es mejor y bajo 1 supera la línea base estacional
 export function maseQuality(mase: number | null): {
   label: string
   className: string

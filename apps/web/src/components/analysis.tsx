@@ -9,7 +9,9 @@ import { formatNumber, severityOf } from '@/lib/format'
 import { Badge, Section } from './ui'
 
 const RANKING_PREVIEW = 8
+const ANOMALY_PREVIEW = 10
 
+// Mapa de calor de casos por departamento y semana del año elegido
 export function HeatmapCard({ heatmap, year }: { heatmap: HeatmapResponse | null; year: number }) {
   const heatMax = heatmap ? Math.max(1, ...heatmap.values.flat()) : 1
   const rows = heatmap
@@ -20,10 +22,9 @@ export function HeatmapCard({ heatmap, year }: { heatmap: HeatmapResponse | null
   const hidden = heatmap ? heatmap.geographies.length - rows.length : 0
 
   return (
-    <Section title="Mapa de calor · departamento × semana">
+    <Section title={`Casos por semana en ${year}`}>
       <div className="card-sub">
-        Intensidad de casos notificados en {year}. Cada columna es una semana epidemiológica, cada
-        fila un departamento.
+        Cada fila es un departamento y cada cuadro una semana. Más oscuro, más casos.
       </div>
       {heatmap ? (
         <>
@@ -67,12 +68,11 @@ export function HeatmapCard({ heatmap, year }: { heatmap: HeatmapResponse | null
             <span className="hm-legend-bar" />
             <span className="text-muted">{heatMax} casos</span>
           </div>
-          <div className="card-note">
-            Escala relativa al máximo del período y en raíz cuadrada para que los valores bajos
-            sigan siendo visibles. Las semanas sin notificación aparecen en blanco.
-            {hidden > 0 &&
-              ` Se omiten ${hidden} departamento${hidden > 1 ? 's' : ''} sin casos notificados.`}
-          </div>
+          {hidden > 0 && (
+            <div className="card-note">
+              Se omiten {hidden} departamento{hidden > 1 ? 's' : ''} sin casos notificados.
+            </div>
+          )}
         </>
       ) : (
         <p className="text-sm text-muted">Sin datos para el año seleccionado.</p>
@@ -81,6 +81,7 @@ export function HeatmapCard({ heatmap, year }: { heatmap: HeatmapResponse | null
   )
 }
 
+// Ranking de departamentos con más casos con barras y opción de ver todos
 export function RankingCard({
   ranking,
   year,
@@ -94,26 +95,28 @@ export function RankingCard({
   const visible = showAll ? ranking : ranking.slice(0, RANKING_PREVIEW)
 
   return (
-    <Section title={`Ranking por casos · ${year}`}>
+    <Section title={`Departamentos con más casos en ${year}`}>
       {ranking.length > 0 ? (
         <>
           <div
-            className={`flex flex-col gap-3${showAll ? ' max-h-[420px] overflow-y-auto pr-1' : ''}`}
+            className={`mt-3 flex flex-col gap-3.5${showAll ? ' max-h-[420px] overflow-y-auto pr-1' : ''}`}
           >
             {visible.map((row) => {
               const name = row.province || row.department
               const share = total ? (row.cases / total) * 100 : 0
               const width = max ? (row.cases / max) * 100 : 0
               return (
-                <div key={`${row.department}-${row.province ?? ''}`}>
-                  <div className="rank-head">
-                    <span className="rank-name">{name}</span>
-                    <span className="rank-value">{row.cases.toLocaleString('es-PE')}</span>
-                  </div>
+                <div key={`${row.department}-${row.province ?? ''}`} className="rank-row">
+                  <span className="rank-name" title={name}>
+                    {name}
+                  </span>
                   <div className="rank-track">
-                    <div className="rank-fill" style={{ width: `${width}%` }} />
+                    <div className="rank-fill" style={{ width: `${Math.max(width, 1)}%` }} />
                   </div>
-                  <div className="rank-share">{share.toFixed(1)}% del total</div>
+                  <span className="rank-value">
+                    {row.cases.toLocaleString('es-PE')}
+                    <span className="rank-share">{share.toFixed(1)} %</span>
+                  </span>
                 </div>
               )
             })}
@@ -121,16 +124,13 @@ export function RankingCard({
           {ranking.length > RANKING_PREVIEW && (
             <button
               type="button"
-              className="btn btn-ghost mt-3"
+              className="link-btn mt-4"
               onClick={() => setShowAll((value) => !value)}
               aria-expanded={showAll}
             >
               {showAll ? 'Ver menos' : `Ver los ${ranking.length} departamentos`}
             </button>
           )}
-          <div className="card-note">
-            Ordenado por casos acumulados del año. Porcentaje sobre el total notificado.
-          </div>
         </>
       ) : (
         <p className="text-sm text-muted">Sin datos de ranking para el año seleccionado.</p>
@@ -139,6 +139,7 @@ export function RankingCard({
   )
 }
 
+// Tabla de semanas anómalas ordenadas por desvío, con su severidad
 export function AnomaliesCard({
   anomalies,
   flagged,
@@ -146,13 +147,17 @@ export function AnomaliesCard({
   anomalies: ReadonlyArray<AnomalyRow>
   flagged: ReadonlyArray<AnomalyRow>
 }) {
-  const sorted = [...flagged].sort((left, right) => Number(right.robust_z) - Number(left.robust_z))
+  const [showAll, setShowAll] = useState(false)
+  const sorted = [...flagged].sort(
+    (left, right) => Math.abs(Number(right.robust_z)) - Math.abs(Number(left.robust_z)),
+  )
+  const visible = showAll ? sorted : sorted.slice(0, ANOMALY_PREVIEW)
 
   return (
-    <Section title={`Anomalías detectadas · ${flagged.length} señaladas`}>
+    <Section title="Semanas fuera de lo esperado">
       <div className="card-sub">
-        Semanas cuyo volumen se aparta del patrón estacional esperado, sobre todo el período
-        disponible y ordenadas por severidad.
+        {flagged.length} semana{flagged.length === 1 ? '' : 's'} con casos muy por encima o por
+        debajo de lo habitual para esa época del año, de la más a la menos marcada.
       </div>
       {anomalies.length === 0 ? (
         <p className="text-sm text-muted">Sin datos de anomalías para el período.</p>
@@ -166,18 +171,16 @@ export function AnomaliesCard({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Severidad</th>
+                  <th>Señal</th>
                   <th>Departamento</th>
-                  <th>Año</th>
                   <th>Semana</th>
                   <th className="num">Casos</th>
-                  <th className="num">Base estacional</th>
-                  <th className="num">Residual</th>
-                  <th className="num">z robusto</th>
+                  <th className="num">Esperado</th>
+                  <th className="num">Desvío</th>
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((row) => {
+                {visible.map((row) => {
                   const severity = severityOf(row.robust_z)
                   return (
                     <tr key={`${row.department}-${row.year}-${row.epi_week}`}>
@@ -195,24 +198,32 @@ export function AnomaliesCard({
                         </Badge>
                       </td>
                       <td>{row.department}</td>
-                      <td>{row.year}</td>
-                      <td>{row.epi_week}</td>
-                      <td className="num">{row.cases}</td>
-                      <td className="num">{formatNumber(row.seasonal_baseline, 1)}</td>
-                      <td className="num">{formatNumber(row.residual, 1)}</td>
-                      <td className="num strong">{formatNumber(row.robust_z, 2)}</td>
+                      <td>
+                        S{row.epi_week} de {row.year}
+                      </td>
+                      <td className="num strong">{formatNumber(row.cases, 0)}</td>
+                      <td className="num">{formatNumber(row.seasonal_baseline, 0)}</td>
+                      <td className="num">{formatNumber(row.robust_z, 1)}</td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
           </div>
+          {sorted.length > ANOMALY_PREVIEW && (
+            <button
+              type="button"
+              className="link-btn mt-3"
+              onClick={() => setShowAll((value) => !value)}
+              aria-expanded={showAll}
+            >
+              {showAll ? 'Ver menos' : `Ver las ${sorted.length} semanas`}
+            </button>
+          )}
           <div className="card-note">
-            <strong className="font-semibold text-title">Cómo leerlo.</strong> El <em>z robusto</em>{' '}
-            mide cuánto se aparta una semana de su base estacional, en desviaciones robustas (MAD).
-            Valores sobre 2,5 se consideran señal; sobre 3, señal alta. El <em>residual</em> es la
-            diferencia cruda entre los casos observados y la base. Una señal puede deberse a un
-            brote real o a notificación tardía: verificar antes de escalar.
+            El desvío indica cuántas veces se aleja la semana de lo habitual: desde 2,5 es señal,
+            desde 3 es señal alta. Puede ser un brote real o un retraso de notificación; verificá
+            antes de escalar.
           </div>
         </>
       )}

@@ -8,6 +8,7 @@ import { formatNumber } from '@/lib/format'
 
 import { Badge, Kpi, Section } from './ui'
 
+// Vista de explicación: factores que mueven el pronóstico y acciones por departamento
 export function ExplanationView({ explain }: { explain: ExplainResponse }) {
   const departments = useMemo(
     () => [...new Set(explain.drivers.map((row) => row.department))],
@@ -48,19 +49,16 @@ export function ExplanationView({ explain }: { explain: ExplainResponse }) {
     return best
   }, [explain])
 
-  const sources = [...new Set(explain.narratives.map((item) => item.source))]
-
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi label="Departamentos" value={departments.length} delta="con explicación disponible" />
-        <Kpi label="Impulsores" value={perDepartment} delta="por departamento" />
-        <Kpi label="Driver dominante" value={dominant || '—'} small delta="señal más frecuente" />
+        <Kpi label="Factores analizados" value={perDepartment} delta="por departamento" />
         <Kpi
-          label="Narrativa"
-          value={sources.length === 0 ? '—' : sources.join(' / ')}
+          label="Factor que más pesa"
+          value={dominant || '—'}
           small
-          delta="texto generado sobre datos agregados"
+          delta="el más frecuente en primer lugar"
         />
       </div>
 
@@ -80,10 +78,9 @@ export function ExplanationView({ explain }: { explain: ExplainResponse }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title={`Impulsores · ${activeDepartment ?? '—'}`}>
+        <Section title={`Qué mueve el pronóstico en ${activeDepartment ?? '—'}`}>
           <div className="card-sub">
-            Contribución media de cada factor al pronóstico, en valor absoluto (escala SHAP sobre el
-            modelo lineal). Una barra más larga implica mayor peso en la explicación.
+            Barra más larga, más peso. En ámbar, los factores que empujan los casos hacia arriba.
           </div>
           <div className="flex flex-col gap-4">
             {drivers.map((row) => {
@@ -104,21 +101,16 @@ export function ExplanationView({ explain }: { explain: ExplainResponse }) {
                       style={{ width: `${width}%` }}
                     />
                   </div>
-                  <div className="driver-value">
-                    contribución {formatNumber(row.abs_mean_shap, 2)}
-                  </div>
+                  <div className="driver-value">peso {formatNumber(row.abs_mean_shap, 2)}</div>
                 </div>
               )
             })}
           </div>
         </Section>
 
-        <Section title="Acciones recomendadas">
-          <div className="card-sub">
-            Tabla determinista que traduce cada impulsor en una acción preventiva. El modelo no
-            decide: solo ordena y explica.
-          </div>
-          <ul className="flex flex-col gap-3">
+        <Section title="Qué hacer con cada factor">
+          <div className="card-sub">Acciones preventivas de una tabla fija revisada.</div>
+          <ul className="flex flex-col">
             {drivers.map((row) => (
               <li className="action-item" key={`action-${row.feature}`}>
                 <div className="action-head">
@@ -133,14 +125,14 @@ export function ExplanationView({ explain }: { explain: ExplainResponse }) {
       </div>
 
       {narrative && (
-        <Section title={`Lectura · ${activeDepartment}`}>
-          <div className="narrative">
-            <span className="text-muted">[{narrative.source}]</span> {narrative.text}
-          </div>
-          <div className="card-note">
-            El texto se redacta sobre un resumen agregado; no aporta cifras nuevas ni reemplaza la
-            revisión del equipo de epidemiología.
-          </div>
+        <Section title={`En palabras simples: ${activeDepartment}`}>
+          <div className="narrative mt-2 whitespace-pre-line">{narrative.text}</div>
+          <p className="mt-3 text-xs text-muted">
+            {narrative.source === 'deepseek'
+              ? 'Redactado por IA (DeepSeek) sobre datos agregados.'
+              : 'Texto automático sobre datos agregados.'}{' '}
+            No reemplaza la revisión del equipo de epidemiología.
+          </p>
         </Section>
       )}
     </>

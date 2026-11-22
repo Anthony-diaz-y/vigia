@@ -18,7 +18,17 @@ import type { InterannualRow } from '@vigia/contracts'
 
 import { formatNumber } from '@/lib/format'
 
-export const COLORS = ['#0f766e', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#059669']
+const ACCENT = 'var(--accent)'
+
+const PAST_YEARS = ['var(--series-muted-1)', 'var(--series-muted-2)', 'var(--series-muted-3)']
+
+// Color de cada año: acento para el más reciente y grises para los anteriores
+function yearColor(index: number, total: number): string {
+  if (index === total - 1) {
+    return ACCENT
+  }
+  return PAST_YEARS[Math.min(total - 2 - index, PAST_YEARS.length - 1)] ?? PAST_YEARS[0]!
+}
 
 const TOOLTIP_STYLE: CSSProperties = {
   background: 'var(--surface)',
@@ -37,12 +47,19 @@ export interface WeeklyPoint {
   total: number
 }
 
+// Gráfico de área con el total de casos por semana epidemiológica
 export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
   return (
     <div className="chart">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={[...data]} margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+        <ComposedChart data={[...data]} margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
+          <defs>
+            <linearGradient id="weekly-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 10, fill: 'var(--muted)' }}
@@ -68,21 +85,23 @@ export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
             itemStyle={{ color: 'var(--text)' }}
             labelStyle={{ color: 'var(--muted)' }}
           />
-          <Line
+          <Area
             type="monotone"
             dataKey="total"
             name="Casos"
-            stroke={COLORS[0]}
+            stroke={ACCENT}
             strokeWidth={2}
+            fill="url(#weekly-fill)"
             dot={false}
             isAnimationActive={false}
           />
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
+// Gráfico de líneas que compara los casos semanales de cada año
 export function InterannualChart({
   data,
   years,
@@ -94,7 +113,7 @@ export function InterannualChart({
     <div className="chart chart-tall">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={[...data]} margin={{ top: 8, right: 24, bottom: 36, left: 16 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
           <XAxis
             dataKey="epi_week"
             tick={AXIS_TICK}
@@ -133,8 +152,8 @@ export function InterannualChart({
               key={year}
               type="monotone"
               dataKey={year}
-              stroke={COLORS[index % COLORS.length]}
-              strokeWidth={2}
+              stroke={yearColor(index, years.length)}
+              strokeWidth={index === years.length - 1 ? 2.75 : 1.75}
               dot={false}
               isAnimationActive={false}
             />
@@ -155,6 +174,7 @@ export interface ForecastPoint {
   target: number
 }
 
+// Tooltip del pronóstico con los percentiles p10, p50 y p90 del horizonte
 function ForecastTooltip({
   active,
   payload,
@@ -190,12 +210,13 @@ function ForecastTooltip({
   )
 }
 
+// Gráfico del pronóstico con la mediana y la banda entre p10 y p90
 export function ForecastChart({ data }: { data: ReadonlyArray<ForecastPoint> }) {
   return (
     <div className="chart chart-forecast">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={[...data]} margin={{ top: 8, right: 16, bottom: 30, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
           <XAxis
             dataKey="horizon"
             tick={AXIS_TICK}
@@ -230,15 +251,15 @@ export function ForecastChart({ data }: { data: ReadonlyArray<ForecastPoint> }) 
             dataKey="band"
             stackId="band"
             stroke="none"
-            fill={COLORS[0]}
-            fillOpacity={0.2}
+            fill={ACCENT}
+            fillOpacity={0.18}
             isAnimationActive={false}
           />
           <Line
             type="monotone"
             dataKey="p50"
             name="p50"
-            stroke={COLORS[0]}
+            stroke={ACCENT}
             strokeWidth={2.5}
             dot={{ r: 3 }}
             isAnimationActive={false}

@@ -4,36 +4,40 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { UploadDto, UploadPreview } from '@vigia/contracts'
 
+import { Select, type SelectOption } from './select'
 import { Badge, Section, UPLOAD_STATUS_LABELS } from './ui'
 
+// Tabla de archivos cargados con su estado y conteo de filas
 export function IngestionTable({ uploads }: { uploads: ReadonlyArray<UploadDto> }) {
   return (
-    <Section title={`Archivos ingeridos (${uploads.length})`}>
+    <Section
+      title={`${uploads.length} archivo${uploads.length === 1 ? '' : 's'} cargado${uploads.length === 1 ? '' : 's'}`}
+    >
       <div className="table-wrap">
         <table className="data-table">
           <thead>
             <tr>
               <th>Archivo</th>
               <th>Estado</th>
-              <th>Filas leídas</th>
-              <th>Válidas</th>
-              <th>Descartadas</th>
-              <th>Duplicadas</th>
+              <th className="num">Filas leídas</th>
+              <th className="num">Válidas</th>
+              <th className="num">Descartadas</th>
+              <th className="num">Duplicadas</th>
             </tr>
           </thead>
           <tbody>
             {uploads.map((row) => (
               <tr key={row.id}>
-                <td>{row.filename}</td>
+                <td className="strong">{row.filename}</td>
                 <td>
                   <Badge tone={row.status === 'ok' ? 'ok' : 'warn'}>
                     {UPLOAD_STATUS_LABELS[row.status] ?? row.status}
                   </Badge>
                 </td>
-                <td>{row.rows_in}</td>
-                <td>{row.rows_valid}</td>
-                <td>{row.rows_dropped}</td>
-                <td>{row.duplicates_collapsed}</td>
+                <td className="num">{row.rows_in.toLocaleString('es-PE')}</td>
+                <td className="num strong">{row.rows_valid.toLocaleString('es-PE')}</td>
+                <td className="num">{row.rows_dropped.toLocaleString('es-PE')}</td>
+                <td className="num">{row.duplicates_collapsed.toLocaleString('es-PE')}</td>
               </tr>
             ))}
           </tbody>
@@ -43,6 +47,7 @@ export function IngestionTable({ uploads }: { uploads: ReadonlyArray<UploadDto> 
   )
 }
 
+// Diálogo para revisar y ajustar el mapeo de columnas antes de ingerir el archivo
 export function MappingDialog({
   preview,
   busy,
@@ -74,11 +79,20 @@ export function MappingDialog({
     return () => dialog.close()
   }, [])
 
+  const columnOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: '(sin mapear)' },
+      ...preview.columns.map((column) => ({ value: column, label: column })),
+    ],
+    [preview.columns],
+  )
+
   const missingRequired = useMemo(
     () => preview.required.filter((required) => !mapping[required]),
     [preview.required, mapping],
   )
 
+  // Envía solo las columnas mapeadas al confirmar
   const confirm = () => {
     const payload: Record<string, string> = {}
     for (const [canonical, source] of Object.entries(mapping)) {
@@ -141,24 +155,18 @@ export function MappingDialog({
                   {preview.required.includes(canonical) && <span className="text-muted"> *</span>}
                 </td>
                 <td>
-                  <select
-                    className="file-select w-full"
+                  <Select
+                    className="is-boxed"
+                    label={`Columna del archivo para ${canonical}`}
                     value={mapping[canonical] ?? ''}
-                    aria-label={`Columna del archivo para ${canonical}`}
-                    onChange={(event) =>
+                    options={columnOptions}
+                    onChange={(value) =>
                       setMapping((previous) => ({
                         ...previous,
-                        [canonical]: event.target.value,
+                        [canonical]: value,
                       }))
                     }
-                  >
-                    <option value="">(sin mapear)</option>
-                    {preview.columns.map((column) => (
-                      <option key={column} value={column}>
-                        {column}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </td>
               </tr>
             ))}

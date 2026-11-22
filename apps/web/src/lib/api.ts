@@ -8,6 +8,7 @@ import type {
   InterannualRow,
   QualityReportDto,
   RankingRow,
+  RecommendationsResponse,
   UploadDto,
   UploadPreview,
   WeeklySeriesRow,
@@ -15,6 +16,7 @@ import type {
 
 const TOKEN_KEY = 'vigia-token'
 
+// Obtiene el token de acceso guardado o el de desarrollo por defecto
 export function getToken(): string {
   if (typeof window === 'undefined') {
     return 'vigia-dev'
@@ -22,10 +24,12 @@ export function getToken(): string {
   return window.localStorage.getItem(TOKEN_KEY) || 'vigia-dev'
 }
 
+// Guarda el token de acceso en el almacenamiento local
 export function setToken(token: string): void {
   window.localStorage.setItem(TOKEN_KEY, token)
 }
 
+// Hace una petición a la API con el token y devuelve el JSON o lanza error
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...options,
@@ -41,6 +45,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return (await response.json()) as T
 }
 
+// Construye la query string omitiendo parámetros vacíos
 function query(params: Record<string, string | number | null | undefined>): string {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -84,4 +89,6 @@ export const endpoints = {
     request<ForecastResponse>(`/api/forecast${query({ upload_id: uploadId })}`),
   explain: (uploadId?: number | null) =>
     request<ExplainResponse>(`/api/explain${query({ upload_id: uploadId })}`),
+  recommendations: (uploadId?: number | null) =>
+    request<RecommendationsResponse>(`/api/recommendations${query({ upload_id: uploadId })}`),
 }

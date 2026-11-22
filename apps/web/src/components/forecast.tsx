@@ -7,6 +7,7 @@ import { formatNumber, maseQuality } from '@/lib/format'
 import { ForecastChart, type ForecastPoint } from './charts'
 import { Badge, FORECAST_STATUS_LABELS, Kpi, Section } from './ui'
 
+// Vista de pronóstico: indicadores, calidad del modelo y gráficos por departamento confiable
 export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
   const published = forecast.scorecard.filter((row) => row.status === 'publish')
   const evaluated = forecast.scorecard.filter((row) => row.windows > 0)
@@ -25,40 +26,40 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Kpi
-          label="Publicados"
-          value={`${published.length} / ${forecast.scorecard.length}`}
-          delta="superan el baseline estacional"
+          label="Pronósticos confiables"
+          value={`${published.length} de ${forecast.scorecard.length}`}
+          delta="le ganan a repetir el año anterior"
         />
-        <Kpi label="Evaluados" value={evaluated.length} delta="con ventanas de backtest" />
         <Kpi
-          label="MASE promedio"
+          label="Departamentos evaluados"
+          value={evaluated.length}
+          delta="con historia suficiente para probar"
+        />
+        <Kpi
+          label="Error relativo (MASE)"
           value={meanMase === null ? '—' : formatNumber(meanMase, 2)}
           delta={
             meanMase === null
-              ? 'sin datos'
+              ? 'sin pronósticos confiables'
               : meanMase < 1
-                ? 'mejor que el baseline'
-                : 'no supera el baseline'
+                ? 'menor a 1: mejor que la referencia'
+                : 'no mejora la referencia'
           }
-          warn={meanMase === null || meanMase >= 1}
+          warn={meanMase !== null && meanMase >= 1}
         />
         <Kpi
-          label="Horizonte"
-          value={
-            <span>
-              {maxHorizon} <span className="text-[15px] font-medium">sem.</span>
-            </span>
-          }
-          delta="cuantiles p10 · p50 · p90"
+          label="Mira hacia adelante"
+          value={maxHorizon > 0 ? `${maxHorizon} semanas` : '—'}
+          delta={maxHorizon > 0 ? 'con rango probable' : 'sin pronósticos publicados'}
         />
       </div>
 
-      <Section title="Scorecard de pronóstico">
+      <Section title="Calidad del modelo por departamento">
         <div className="card-sub">
-          Evaluación por departamento con backtest de origen rodante. Un MASE menor a 1 indica mejor
-          desempeño que el baseline estacional (SeasonalNaive de 52 semanas).
+          Probamos el modelo contra semanas pasadas. Solo se publica donde comete menos error que
+          repetir lo ocurrido el año anterior (MASE menor a 1).
         </div>
         {evaluated.length === 0 ? (
           <p className="text-sm text-muted">
@@ -70,9 +71,8 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
               <thead>
                 <tr>
                   <th>Departamento</th>
-                  <th className="num">Ventanas</th>
+                  <th className="num">Pruebas</th>
                   <th className="num">MASE</th>
-                  <th className="num">WIS</th>
                   <th>Desempeño</th>
                   <th>Estado</th>
                 </tr>
@@ -85,17 +85,16 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
                       <td>{row.department}</td>
                       <td className="num">{row.windows}</td>
                       <td className="num strong">{formatNumber(row.mase, 3)}</td>
-                      <td className="num">{formatNumber(row.wis, 3)}</td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <div className="h-[7px] min-w-[64px] flex-1 overflow-hidden rounded-full bg-surface-2">
+                          <div className="meter">
                             <div
-                              className={`h-full rounded-full ${
+                              className={`meter-fill ${
                                 quality.className === 'badge-danger'
-                                  ? 'bg-danger'
+                                  ? 'tone-danger'
                                   : quality.className === 'badge-warn'
-                                    ? 'bg-warning'
-                                    : 'bg-accent'
+                                    ? 'tone-warn'
+                                    : ''
                               }`}
                               style={{ width: `${quality.width}%` }}
                             />
@@ -127,17 +126,16 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
         )}
         {notEvaluated > 0 && (
           <div className="card-note">
-            {notEvaluated} departamento{notEvaluated > 1 ? 's' : ''} sin evidencia suficiente: no
-            alcanzan el mínimo de ventanas de backtest, por lo que no se publica pronóstico.
+            {notEvaluated} departamento{notEvaluated > 1 ? 's' : ''} más no tiene
+            {notEvaluated > 1 ? 'n' : ''} historia suficiente para probar el modelo.
           </div>
         )}
       </Section>
 
       {published.length > 0 && (
-        <Section title="Pronóstico publicado por departamento">
+        <Section title="Casos esperados en las próximas semanas">
           <div className="card-sub">
-            La banda sombreada cubre el intervalo p10–p90; la línea central es la mediana (p50). A
-            menor amplitud, mayor certeza.
+            La línea es el valor más probable; la banda, el rango donde caería 8 de cada 10 veces.
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {published.map((department) => {
@@ -156,28 +154,28 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
               return (
                 <article
                   key={department.department}
-                  className="rounded-[var(--radius-sm)] border border-border bg-surface p-4"
+                  className="rounded-[var(--radius-sm)] border border-border bg-surface-2 p-4"
                 >
                   <header className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-title">{department.department}</h3>
+                    <h3 className="text-sm font-bold text-text">{department.department}</h3>
                     <Badge tone="ok">MASE {formatNumber(department.mase, 2)}</Badge>
                   </header>
                   <ForecastChart data={chartData} />
                   <table className="data-table mt-2">
                     <thead>
                       <tr>
-                        <th>Horizonte</th>
-                        <th className="num">Semana</th>
-                        <th className="num">p10</th>
-                        <th className="num">p50</th>
-                        <th className="num">p90</th>
+                        <th>Semana</th>
+                        <th className="num">Mínimo</th>
+                        <th className="num">Probable</th>
+                        <th className="num">Máximo</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row) => (
                         <tr key={row.horizon}>
-                          <td>S+{row.horizon}</td>
-                          <td className="num">{row.target_epi_week}</td>
+                          <td>
+                            S{row.target_epi_week} de {row.target_year}
+                          </td>
                           <td className="num">{formatNumber(row.p10, 0)}</td>
                           <td className="num strong">{formatNumber(row.p50, 0)}</td>
                           <td className="num">{formatNumber(row.p90, 0)}</td>
@@ -188,13 +186,6 @@ export function ForecastView({ forecast }: { forecast: ForecastResponse }) {
                 </article>
               )
             })}
-          </div>
-          <div className="card-note">
-            <strong className="font-semibold text-title">Por qué se publica o no.</strong> Solo se
-            publica el pronóstico de los departamentos cuyo MASE en backtest supera al baseline
-            estacional. El resto se marca como <em>evidencia insuficiente</em> para no presentar
-            cifras sin respaldo. El WIS resume el error de la distribución (menor es mejor). Un
-            pronóstico es apoyo a la decisión, no una predicción exacta.
           </div>
         </Section>
       )}

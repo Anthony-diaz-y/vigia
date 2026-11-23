@@ -1,5 +1,4 @@
 {
-  "created_at": "<timestamp>",
   "duplicates_collapsed": 0,
   "file_hash": "29d1f8d6a821d4425b931221ba48ece46c06b025228906e42a2dead1238deaac",
   "filename": "historico.csv",
@@ -8,5 +7,130 @@
   "rows_in": 624,
   "rows_valid": 624,
   "source": "minsa_dengue",
-  "status": "ok"
+  "status": "ok",
+  "title": "historico",
+  "topic": "dengue",
+  "columns": [
+    {
+      "name": "departamento",
+      "label": "",
+      "role": "place",
+      "level": "department",
+      "field": null,
+      "kind": "text"
+    },
+    {
+      "name": "provincia",
+      "label": "",
+      "role": "place",
+      "level": "province",
+      "field": null,
+      "kind": "text"
+    },
+    {
+      "name": "distrito",
+      "label": "",
+      "role": "place",
+      "level": "district",
+      "field": null,
+      "kind": "text"
+    },
+    {
+      "name": "enfermedad",
+      "label": "",
+      "role": "category",
+      "level": null,
+      "field": "disease",
+      "kind": "text"
+    },
+    {
+      "name": "ano",
+      "label": "",
+      "role": "year",
+      "level": null,
+      "field": null,
+      "kind": "number"
+    },
+    {
+      "name": "semana",
+      "label": "",
+      "role": "week",
+      "level": null,
+      "field": null,
+      "kind": "number"
+    },
+    {
+      "name": "diagnostico",
+      "label": "",
+      "role": "category",
+      "level": null,
+      "field": "diagnosis",
+      "kind": "text"
+    },
+    {
+      "name": "tipo_diagnostico",
+      "label": "",
+      "role": "category",
+      "level": null,
+      "field": "diagnosis_type",
+      "kind": "text"
+    },
+    {
+      "name": "ubigeo",
+      "label": "",
+      "role": "place",
+      "level": "ubigeo",
+      "field": null,
+      "kind": "number"
+    },
+    {
+      "name": "edad",
+      "label": "",
+      "role": "measure",
+      "level": null,
+      "field": "age_group",
+      "kind": "number"
+    },
+    {
+      "name": "tipo_edad",
+      "label": "",
+      "role": "category",
+      "level": null,
+      "field": "age_type",
+      "kind": "text"
+    },
+    {
+      "name": "sexo",
+      "label": "",
+      "role": "category",
+      "level": null,
+      "field": "sex",
+      "kind": "text"
+    },
+    {
+      "name": "casos",
+      "label": "",
+      "role": "count",
+      "level": null,
+      "field": null,
+      "kind": "number"
+    }
+  ],
+  "time": "week",
+  "epi": true,
+  "indicators": [
+    {
+      "id": "records",
+      "label": "Registros"
+    },
+    {
+      "id": "sum:casos",
+      "label": "Total de casos"
+    },
+    {
+      "id": "mean:edad",
+      "label": "edad promedio"
+    }
+  ],
+  "created_at": "<timestamp>"
 }

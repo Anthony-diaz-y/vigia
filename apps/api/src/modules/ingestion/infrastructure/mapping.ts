@@ -1,20 +1,18 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 
-import { CANONICAL_COLUMNS } from '@vigia/epidemiology'
+import { MAPPING_TARGETS, isMappingTarget, missingRequirements } from '@vigia/epidemiology'
 import { WRatio } from 'fuzzball'
 import { parse as parseYaml } from 'yaml'
 
-import { PiiDetected, SourceConfigError } from '../domain/errors'
+import { SourceConfigError } from '../domain/errors'
 
 export const FUZZY_THRESHOLD = 85
 
 export interface SourceConfig {
   source: string
   disease: string
-  countRows: boolean
   columns: Record<string, string[]>
-  required: string[]
   piiAliases: string[]
 }
 
@@ -27,9 +25,7 @@ export interface MappingResult {
 interface RawSourceConfig {
   source?: unknown
   disease?: unknown
-  count_rows?: unknown
   columns?: unknown
-  required?: unknown
   pii_aliases?: unknown
 }
 
@@ -110,11 +106,7 @@ export function loadSourceConfig(source: string): SourceConfig {
   return {
     source: payload.source,
     disease: payload.disease.toUpperCase(),
-    countRows: Boolean(payload.count_rows ?? false),
     columns: normalizedColumns,
-    required: Array.isArray(payload.required)
-      ? payload.required.map(String)
-      : ['ubigeo', 'year', 'epi_week'],
     piiAliases: Array.isArray(payload.pii_aliases)
       ? payload.pii_aliases.map((alias) => normalizeHeader(String(alias)))
       : [],
@@ -127,15 +119,7 @@ export function findPii(columns: readonly string[], config: SourceConfig): strin
   return columns.filter((name) => blocked.has(normalizeHeader(name)))
 }
 
-// Lanza un error si el archivo contiene columnas con datos personales
-export function detectPii(columns: readonly string[], config: SourceConfig): void {
-  const hits = findPii(columns, config)
-  if (hits.length > 0) {
-    throw new PiiDetected(hits)
-  }
-}
-
-// Asocia columnas canónicas a encabezados por alias y luego por coincidencia difusa
+// Asocia campos a encabezados por alias y luego por similitud (nunca fechas: se confunden entre sí)
 export function resolveMapping(columns: readonly string[], config: SourceConfig): MappingResult {
   const byKey = new Map<string, string>()
   for (const name of columns) {
@@ -145,7 +129,7 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
   const mapping: Record<string, string> = {}
   const used = new Set<string>()
 
-  for (const canonical of CANONICAL_COLUMNS) {
+  for (const canonical of MAPPING_TARGETS) {
     const aliases = config.columns[canonical] ?? []
     if (aliases.length === 0) {
       continue
@@ -160,8 +144,8 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
     }
   }
 
-  for (const canonical of CANONICAL_COLUMNS) {
-    if (mapping[canonical] !== undefined) {
+  for (const canonical of MAPPING_TARGETS) {
+    if (mapping[canonical] !== undefined || canonical === 'event_date') {
       continue
     }
     const aliases = config.columns[canonical] ?? []
@@ -193,31 +177,34 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
     }
   }
 
-  return {
-    mapping,
-    unmappedColumns: columns.filter((name) => !used.has(name)),
-    missingRequired: config.required.filter((column) => mapping[column] === undefined),
-  }
+  return mappingResult(columns, mapping)
 }
 
 // Aplica un mapeo explícito canónico a origen descartando entradas no válidas
 export function resolveMappingOverride(
   columns: readonly string[],
-  config: SourceConfig,
   override: Record<string, string>,
 ): MappingResult {
   const available = new Set(columns)
   const mapping: Record<string, string> = {}
-  for (const [canonical, source] of Object.entries(override)) {
-    if ((CANONICAL_COLUMNS as readonly string[]).includes(canonical) && available.has(source)) {
-      mapping[canonical] = source
+  for (const [target, source] of Object.entries(override)) {
+    if (isMappingTarget(target) && available.has(source)) {
+      mapping[target] = source
     }
   }
+  return mappingResult(columns, mapping)
+}
+
+// Completa el resultado con las columnas sin usar y los requisitos que faltan cubrir
+export function mappingResult(
+  columns: readonly string[],
+  mapping: Record<string, string>,
+): MappingResult {
   const used = new Set(Object.values(mapping))
   return {
     mapping,
     unmappedColumns: columns.filter((name) => !used.has(name)),
-    missingRequired: config.required.filter((column) => mapping[column] === undefined),
+    missingRequired: missingRequirements(Object.keys(mapping)).map((group) => group.id),
   }
 }
 

@@ -10,7 +10,8 @@
     "test:db": "cross-env VIGIA_DB_TESTS=1 vitest run test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "migration:run": "tsx src/shared/database/migrate.ts",
-    "backfill": "tsx src/tools/backfill.ts"
+    "backfill": "tsx src/tools/backfill.ts",
+    "backfill:generic": "tsx src/tools/backfill-generic.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.4.0",

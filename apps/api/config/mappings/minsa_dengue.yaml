@@ -6,9 +6,7 @@
 source: minsa_dengue
 disease: DENGUE
 
-# The published file exposes one aggregated row with a case count.
-# Set to true for sources that publish one row per notified case.
-count_rows: false
+# Without a mapped case-count column, every row counts as one record.
 
 columns:
   disease: [enfermedad, disease, evento, enfermedad_sujeta_vigilancia]
@@ -25,8 +23,9 @@ columns:
   age_type: [tipo_edad, tipoedad, age_type]
   diagnosis: [diagnostico, diagnosis, diagnostico_final]
   diagnosis_type: [tipo_diagnostico, tipodiagnostico, tipo_dx]
-
-required: [ubigeo, year, epi_week]
+  # Derived fields: a date becomes year + epi week; a combined place becomes department/province/district.
+  event_date: [fecha_inicio_sintomas, fecha_inicio, fecha_notificacion, fecha_ingreso, fecing, fec_ing, fecha]
+  location: [procedencia, ubicacion, lugar_procedencia, residencia]
 
 # Columns that make an upload a personal-data problem. Any match rejects the file.
 pii_aliases:

@@ -10,6 +10,8 @@ import type {
 export const DEFAULT_ANOMALY_THRESHOLD = 3.5
 export const MAD_SCALE = 0.6745
 
+export type Aggregate = 'sum' | 'mean'
+
 // Devuelve las columnas geográficas que agrupan según el nivel
 export function geographyColumns(level: GeoLevel): readonly string[] {
   return level === 'department' ? ['department'] : ['department', 'province']
@@ -20,6 +22,7 @@ export function buildInterannual(
   rows: readonly WeeklySeriesRow[],
   level: GeoLevel,
   geography?: string,
+  aggregate: Aggregate = 'sum',
 ): InterannualRow[] {
   const filtered =
     geography === undefined
@@ -27,6 +30,7 @@ export function buildInterannual(
       : rows.filter((row) => geographyValue(row, level) === geography.trim().toUpperCase())
 
   const totals = new Map<number, Map<number, number>>()
+  const counts = new Map<string, number>()
   const years = new Set<number>()
   for (const row of filtered) {
     years.add(row.year)
@@ -36,6 +40,15 @@ export function buildInterannual(
       totals.set(row.epi_week, byYear)
     }
     byYear.set(row.year, (byYear.get(row.year) ?? 0) + row.cases)
+    const key = `${row.epi_week}-${row.year}`
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  if (aggregate === 'mean') {
+    for (const [week, byYear] of totals) {
+      for (const [year, total] of byYear) {
+        byYear.set(year, roundValue(total / (counts.get(`${week}-${year}`) ?? 1)))
+      }
+    }
   }
 
   const orderedYears = [...years].sort((left, right) => left - right)
@@ -89,13 +102,19 @@ export function buildHeatmap(
   }
 }
 
-// Ordena las geografías por total de casos, opcionalmente filtrando por año
+// Redondea a 3 decimales los promedios calculados
+function roundValue(value: number): number {
+  return Math.round(value * 1000) / 1000
+}
+
+// Ordena las geografías por total (o promedio semanal) de casos, opcionalmente filtrando por año
 export function buildRanking(
   rows: readonly WeeklySeriesRow[],
   level: GeoLevel,
   year?: number,
+  aggregate: Aggregate = 'sum',
 ): RankingRow[] {
-  const totals = new Map<string, { geo: string[]; cases: number }>()
+  const totals = new Map<string, { geo: string[]; cases: number; weeks: number }>()
   for (const row of rows) {
     if (year !== undefined && row.year !== year) {
       continue
@@ -105,8 +124,14 @@ export function buildRanking(
     const current = totals.get(key)
     if (current) {
       current.cases += row.cases
+      current.weeks += 1
     } else {
-      totals.set(key, { geo, cases: row.cases })
+      totals.set(key, { geo, cases: row.cases, weeks: 1 })
+    }
+  }
+  if (aggregate === 'mean') {
+    for (const entry of totals.values()) {
+      entry.cases = roundValue(entry.cases / entry.weeks)
     }
   }
 

@@ -1,7 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import type { ForecastResponse, GeoLevel } from '@vigia/contracts'
-import { configToDict, DEFAULT_FORECAST_CONFIG, forecastSeries } from '@vigia/epidemiology'
+import type { ForecastResponse, GeoLevel, WeeklySeriesRow } from '@vigia/contracts'
+import {
+  configToDict,
+  DEFAULT_FORECAST_CONFIG,
+  forecastSeries,
+  indicatorId,
+} from '@vigia/epidemiology'
 import { DataSource } from 'typeorm'
 
 import { AnalysisRepository } from '../../analysis/infrastructure/analysis.repository'
@@ -21,10 +26,16 @@ export class ForecastingService {
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
-  // Genera el pronóstico estacional, lo registra por id de modelo y devuelve el formato legado
-  async forecast(level: GeoLevel, uploadId?: number): Promise<ForecastResponse> {
+  // Genera el pronóstico estacional (reusa la serie si ya se calculó), lo registra y lo devuelve
+  async forecast(
+    level: GeoLevel,
+    uploadId?: number,
+    indicator?: string,
+    series?: WeeklySeriesRow[],
+  ): Promise<ForecastResponse> {
     await this.analysis.assertScope(uploadId)
-    const rows = await this.analysis.weeklyCases(level, uploadId)
+    const context = await this.analysis.seriesContext(uploadId, indicator)
+    const rows = series ?? (await this.analysis.weeklyCases(level, uploadId, indicator))
     const config = DEFAULT_FORECAST_CONFIG
     const result = forecastSeries(rows, level, config)
 
@@ -34,6 +45,7 @@ export class ForecastingService {
       min_year: result.minYear,
       max_year: result.maxYear,
       n_geographies: result.scorecard.length,
+      ...(context.generic ? { indicator: indicatorId(context.indicator) } : {}),
     }
     const configDict = configToDict(config)
     const identifier = modelId(configDict, dataCut)

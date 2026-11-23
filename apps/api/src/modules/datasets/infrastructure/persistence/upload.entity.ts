@@ -8,6 +8,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm'
 
+import type { DatasetColumn } from '@vigia/epidemiology'
+
 import { QualityIssueEntity } from './quality-issue.entity'
 
 @Entity({ name: 'uploads' })
@@ -45,6 +47,18 @@ export class UploadEntity {
 
   @Column({ name: 'unmapped_columns', type: 'jsonb', default: () => "'[]'::jsonb" })
   unmappedColumns!: string[]
+
+  @Column({ type: 'text', default: '' })
+  title!: string
+
+  @Column({ type: 'text', default: '' })
+  topic!: string
+
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  columns!: DatasetColumn[]
+
+  @Column({ type: 'boolean', default: true })
+  epi!: boolean
 
   @Column({ name: 'source_format', type: 'varchar', length: 16, default: 'csv' })
   sourceFormat!: string

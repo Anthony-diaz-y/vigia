@@ -62,7 +62,7 @@ describe.skipIf(!dbEnabled)('export API against PostgreSQL', () => {
   it('returns the legacy no-data envelope', async () => {
     await get('/api/export')
       .expect(404)
-      .expect({ detail: 'sin datos: subí un archivo de vigilancia' })
+      .expect({ detail: 'sin datos: sube un archivo de vigilancia' })
   })
 
   it('exports the canonical CSV bytes', async () => {

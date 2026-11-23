@@ -124,7 +124,7 @@ describe.skipIf(!dbEnabled)('forecast and explanation against PostgreSQL', () =>
   it('returns the legacy no-data envelopes', async () => {
     await get('/api/forecast')
       .expect(404)
-      .expect({ detail: 'sin datos: subí un archivo de vigilancia' })
+      .expect({ detail: 'sin datos: sube un archivo de vigilancia' })
     await get('/api/explain?upload_id=9999').expect(404).expect({ detail: 'carga no encontrada' })
   })
 

@@ -21,8 +21,9 @@ export class AnalysisController {
   series(
     @Query('level') level = 'department',
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<WeeklySeriesRow[]> {
-    return this.analysis.series(parseLevel(level), parseUploadId(uploadId))
+    return this.analysis.series(parseLevel(level), parseUploadId(uploadId), indicator)
   }
 
   // Devuelve la comparación interanual de casos por semana
@@ -31,8 +32,14 @@ export class AnalysisController {
     @Query('level') level = 'department',
     @Query('geography') geography?: string,
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<InterannualRow[]> {
-    return this.analysis.interannual(parseLevel(level), geography, parseUploadId(uploadId))
+    return this.analysis.interannual(
+      parseLevel(level),
+      geography,
+      parseUploadId(uploadId),
+      indicator,
+    )
   }
 
   // Devuelve el mapa de calor de casos por geografía y semana de un año
@@ -41,11 +48,13 @@ export class AnalysisController {
     @Query('year') year: string | undefined,
     @Query('level') level = 'department',
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<HeatmapResponse> {
     return this.analysis.heatmap(
       parseLevel(level),
       parseInteger(year, 'year'),
       parseUploadId(uploadId),
+      indicator,
     )
   }
 
@@ -55,11 +64,13 @@ export class AnalysisController {
     @Query('level') level = 'department',
     @Query('year') year?: string,
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<RankingRow[]> {
     return this.analysis.ranking(
       parseLevel(level),
       parseOptionalInteger(year, 'year'),
       parseUploadId(uploadId),
+      indicator,
     )
   }
 
@@ -68,8 +79,9 @@ export class AnalysisController {
   anomalies(
     @Query('level') level = 'department',
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<AnomalyRow[]> {
-    return this.analysis.anomalies(parseLevel(level), parseUploadId(uploadId))
+    return this.analysis.anomalies(parseLevel(level), parseUploadId(uploadId), indicator)
   }
 }
 

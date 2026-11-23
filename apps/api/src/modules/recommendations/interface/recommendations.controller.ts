@@ -14,7 +14,13 @@ export class RecommendationsController {
 
   // Devuelve las recomendaciones por departamento para una carga opcional
   @Get()
-  list(@Query('upload_id') uploadId?: string): Promise<RecommendationsResponse> {
-    return this.recommendations.recommendations(parseOptionalInteger(uploadId, 'upload_id'))
+  list(
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<RecommendationsResponse> {
+    return this.recommendations.recommendations(
+      parseOptionalInteger(uploadId, 'upload_id'),
+      indicator,
+    )
   }
 }

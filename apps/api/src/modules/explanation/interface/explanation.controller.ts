@@ -15,7 +15,12 @@ export class ExplanationController {
   explain(
     @Query('level') level = 'department',
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<ExplainResponse> {
-    return this.explanation.explain(parseLevel(level), parseOptionalInteger(uploadId, 'upload_id'))
+    return this.explanation.explain(
+      parseLevel(level),
+      parseOptionalInteger(uploadId, 'upload_id'),
+      indicator,
+    )
   }
 }

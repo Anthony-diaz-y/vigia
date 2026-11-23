@@ -2,7 +2,9 @@ import { Inject, Injectable } from '@nestjs/common'
 import type { RecommendationsResponse, RecommendationSummaryDto } from '@vigia/contracts'
 import {
   buildOutlook,
+  DEFAULT_RECOMMENDATION_OPTIONS,
   buildRecommendations,
+  isDengueTopic,
   recommend,
   recommendationPayload,
   renderRecommendationSummary,
@@ -15,16 +17,17 @@ import { DeepSeekClient } from '../../../shared/llm/deepseek.client'
 import { buildAnomalies } from '../../analysis/domain/analysis'
 import { AnalysisRepository } from '../../analysis/infrastructure/analysis.repository'
 import { ForecastingService } from '../../forecasting/application/forecasting.service'
+import { ActionAdvisor, mergeActions } from '../infrastructure/action-advisor'
 
 const SYSTEM_PROMPT = [
-  'Sos un asistente que redacta un resumen para un equipo de vigilancia epidemiológica de dengue en Perú.',
-  'Recibís un JSON con el nivel de alerta de cada departamento, los motivos y las acciones ya decididas.',
+  'Sos un asistente que redacta un resumen para un equipo de salud pública de Perú.',
+  'Recibes un JSON con el tema del dataset, el indicador, el nivel de alerta de cada lugar, los motivos y las acciones ya decididas.',
   'Reglas estrictas:',
-  '- Escribí en español claro, para personas que no son estadísticas.',
-  '- No inventes cifras, departamentos ni acciones: usá solo lo que está en el JSON.',
+  '- Escribe en español claro, para personas que no son estadísticas.',
+  '- No inventes cifras, departamentos ni acciones: usa solo lo que está en el JSON.',
   '- No cambies los niveles de alerta ni agregues recomendaciones clínicas. Nombrá los niveles tal como vienen ("Alerta alta", "Atención", "Estable").',
-  '- Ignorá los departamentos estables con muy pocos casos.',
-  '- Sé muy breve. Respondé solo con un objeto JSON: {"headline": string, "text": string}.',
+  '- Ignorá los lugares estables con muy pocos datos. Hablá del tema del dataset, no asumas que es dengue.',
+  '- Sé muy breve. Responde solo con un objeto JSON: {"headline": string, "text": string}.',
   '- "headline": máximo 8 palabras, dice dónde actuar o que todo está estable.',
   '- "text": una o dos oraciones cortas (máximo 35 palabras): el primer paso y, si viene, la tendencia a 5 años.',
 ].join('\n')
@@ -35,28 +38,57 @@ export class RecommendationsService {
     @Inject(AnalysisRepository) private readonly analysis: AnalysisRepository,
     @Inject(ForecastingService) private readonly forecasting: ForecastingService,
     @Inject(DeepSeekClient) private readonly llm: DeepSeekClient,
+    @Inject(ActionAdvisor) private readonly advisor: ActionAdvisor,
   ) {}
 
-  // Devuelve el semáforo por departamento con motivos, acciones y un resumen redactado
-  async recommendations(uploadId?: number): Promise<RecommendationsResponse> {
-    const forecast = await this.forecasting.forecast('department', uploadId)
-    const series = await this.analysis.weeklyCases('department', uploadId)
+  // Devuelve el semáforo por lugar con motivos, acciones (de reglas o sugeridas por IA) y un resumen
+  async recommendations(uploadId?: number, indicator?: string): Promise<RecommendationsResponse> {
+    const context = await this.analysis.seriesContext(uploadId, indicator)
+    const series = await this.analysis.weeklyCases('department', uploadId, indicator)
+    const forecast = await this.forecasting.forecast('department', uploadId, indicator, series)
+    const mean = context.indicator.kind === 'mean'
+    const wording = isDengueTopic(context.topic) && !context.generic ? 'dengue' : 'general'
 
-    const outlook = buildOutlook(series)
-    const report = buildRecommendations({
-      series,
-      anomalies: buildAnomalies(series, 'department'),
-      scorecard: forecast.scorecard,
-      forecasts: forecast.forecasts,
-      drivers: recommend(topDrivers(series, 'department')),
-    })
+    const outlook = buildOutlook(mean ? [] : series)
+    const report = buildRecommendations(
+      {
+        series,
+        anomalies: buildAnomalies(series, 'department'),
+        scorecard: forecast.scorecard,
+        forecasts: forecast.forecasts,
+        drivers: recommend(topDrivers(series, 'department'), wording),
+      },
+      wording === 'dengue'
+        ? DEFAULT_RECOMMENDATION_OPTIONS
+        : {
+            indicatorLabel: context.label,
+            aggregate: mean ? 'mean' : 'sum',
+            direction: mean ? 'both' : 'up',
+            actions: 'general',
+          },
+    )
+
+    const suggestions =
+      wording === 'general'
+        ? await this.advisor.suggest({
+            topic: context.topic,
+            indicator: context.label,
+            items: report.items.map((item) => ({
+              place: item.department,
+              level: item.level,
+              reasons: item.reasons,
+            })),
+          })
+        : null
+    const items = mergeActions(report.items, suggestions)
 
     return {
       overall_level: report.overall_level,
+      indicator_label: context.label,
       counts: report.counts,
       window: report.window,
-      summary: await this.summary(report, outlook),
-      items: report.items,
+      summary: await this.summary({ ...report, items }, outlook, context.topic, context.label),
+      items,
       outlook,
     }
   }
@@ -65,12 +97,18 @@ export class RecommendationsService {
   private async summary(
     report: RecommendationReport,
     outlook: Outlook,
+    topic: string,
+    indicator: string,
   ): Promise<RecommendationSummaryDto> {
     const trend = outlook.total.annual_change_pct
     const template = renderRecommendationSummary(report, trend)
     const answer = await this.llm.complete({
       system: SYSTEM_PROMPT,
-      user: JSON.stringify(recommendationPayload(report, trend)),
+      user: JSON.stringify({
+        tema: topic || 'sin tema',
+        indicador: indicator,
+        ...recommendationPayload(report, trend),
+      }),
       json: true,
     })
     const parsed = parseSummary(answer)

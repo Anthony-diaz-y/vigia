@@ -11,6 +11,7 @@ import { ForecastingModule } from './modules/forecasting/forecasting.module'
 import { HealthModule } from './modules/health/health.module'
 import { IngestionModule } from './modules/ingestion/ingestion.module'
 import { RecommendationsModule } from './modules/recommendations/recommendations.module'
+import { DashboardModule } from './modules/dashboard/dashboard.module'
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RecommendationsModule } from './modules/recommendations/recommendations
     ExplanationModule,
     ExportModule,
     RecommendationsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

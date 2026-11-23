@@ -158,3 +158,36 @@ describe('analysis rules', () => {
     ])
   })
 })
+
+describe('mean indicators', () => {
+  const rows = [
+    ...Array.from({ length: 40 }, (_, index) => ({
+      department: 'LIMA',
+      year: 2026,
+      epi_week: index + 1,
+      cases: 11,
+    })),
+    ...Array.from({ length: 10 }, (_, index) => ({
+      department: 'PIURA',
+      year: 2026,
+      epi_week: index + 1,
+      cases: 12,
+    })),
+  ]
+
+  it('ordena el ranking por promedio, no por suma de semanas', () => {
+    expect(
+      buildRanking(rows, 'department', 2026, 'mean').map((row) => [row.department, row.cases]),
+    ).toEqual([
+      ['PIURA', 12],
+      ['LIMA', 11],
+    ])
+  })
+
+  it('promedia entre departamentos en la comparación interanual', () => {
+    expect(buildInterannual(rows, 'department', undefined, 'mean')[0]).toEqual({
+      epi_week: 1,
+      '2026': 11.5,
+    })
+  })
+})

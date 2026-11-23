@@ -3,19 +3,23 @@ import { extname } from 'node:path'
 
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import type { QualityReportDto, UploadDto } from '@vigia/contracts'
+import type { QualityReportDto, UploadDto, UploadPreview } from '@vigia/contracts'
 import { KEY_COLUMNS } from '@vigia/epidemiology'
 import { DataSource, Repository } from 'typeorm'
 
 import { STORAGE, type StoragePort } from '../../../shared/storage/storage.port'
+import { DatasetRowEntity } from '../../datasets/infrastructure/persistence/dataset-row.entity'
 import { QualityIssueEntity } from '../../datasets/infrastructure/persistence/quality-issue.entity'
 import { SurveillanceCaseEntity } from '../../datasets/infrastructure/persistence/surveillance-case.entity'
 import { UploadEntity } from '../../datasets/infrastructure/persistence/upload.entity'
 import { toUploadDto } from '../../datasets/application/upload.mapper'
-import { ingestUpload, previewUpload, type IngestResult, type PreviewResult } from './ingest'
+import { ColumnAdvisor } from '../infrastructure/column-advisor'
+import { ingestUpload, previewUpload, type IngestRequest, type IngestResult } from './ingest'
 import type { CanonicalRow } from '../infrastructure/normalize'
 
 const INSERT_CHUNK_SIZE = 500
+
+export type UploadReview = Pick<IngestRequest, 'mappingOverride' | 'columns' | 'title' | 'topic'>
 
 @Injectable()
 export class IngestionService {
@@ -26,16 +30,18 @@ export class IngestionService {
     private readonly dataSource: DataSource,
     @Inject(STORAGE)
     private readonly storage: StoragePort,
+    @Inject(ColumnAdvisor)
+    private readonly advisor: ColumnAdvisor,
   ) {}
 
-  // Ingiere un archivo, guarda el crudo y el reporte, y persiste la carga con sus casos
+  // Ingiere un archivo, guarda el crudo y el reporte, y persiste la carga con sus filas
   async ingest(
     data: Buffer,
     filename: string,
     source: string,
-    mappingOverride?: Record<string, string>,
+    review: UploadReview = {},
   ): Promise<UploadDto> {
-    const result = await ingestUpload({ data, filename, source, mappingOverride })
+    const result = await ingestUpload({ data, filename, source, ...review })
 
     const rawKey = `raw/${result.fileHash}${rawSuffix(filename)}`
     const qualityKey = `uploads/${result.fileHash.slice(0, 16)}/quality.json`
@@ -65,6 +71,10 @@ export class IngestionService {
           duplicatesCollapsed: result.duplicatesCollapsed,
           mapping: result.mapping,
           unmappedColumns: result.unmappedColumns,
+          title: result.title,
+          topic: result.topic,
+          columns: result.columns,
+          epi: result.epi,
           sourceFormat: result.sourceFormat,
           encoding: result.encoding,
           delimiter: result.delimiter,
@@ -107,6 +117,20 @@ export class IngestionService {
           naturalKey: naturalKey(row),
         }))
 
+        const datasetRows = result.genericRows.map((row, index) => ({
+          uploadId: upload.id,
+          rowNumber: index + 1,
+          data: row,
+        }))
+        for (let index = 0; index < datasetRows.length; index += INSERT_CHUNK_SIZE) {
+          await manager
+            .createQueryBuilder()
+            .insert()
+            .into(DatasetRowEntity)
+            .values(datasetRows.slice(index, index + INSERT_CHUNK_SIZE))
+            .execute()
+        }
+
         for (let index = 0; index < caseRows.length; index += INSERT_CHUNK_SIZE) {
           await manager
             .createQueryBuilder()
@@ -133,9 +157,9 @@ export class IngestionService {
     }
   }
 
-  // Devuelve la vista previa del mapeo de columnas sin persistir nada
-  preview(data: Buffer, filename: string, source: string): Promise<PreviewResult> {
-    return previewUpload({ data, filename, source })
+  // Devuelve la vista previa con la sugerencia de la IA para cada columna, sin persistir nada
+  preview(data: Buffer, filename: string, source: string): Promise<UploadPreview> {
+    return previewUpload({ data, filename, source }, (input) => this.advisor.suggest(input))
   }
 }
 

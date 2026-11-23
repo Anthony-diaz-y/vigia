@@ -27,19 +27,10 @@ export class EmptyFile extends IngestError {
   }
 }
 
-export class PiiDetected extends IngestError {
-  constructor(readonly columns: string[]) {
-    super('Upload contains personal-data columns and was rejected: ' + columns.join(', '))
-  }
-}
-
-export class MissingRequiredColumns extends IngestError {
-  constructor(
-    readonly missing: string[],
-    readonly available: string[],
-  ) {
+export class NoUsefulColumns extends IngestError {
+  constructor() {
     super(
-      'Missing required columns: ' + missing.join(', ') + '. Available: ' + available.join(', '),
+      'El archivo no tiene columnas utilizables: todas son identificadores o están marcadas como "No usar".',
     )
   }
 }

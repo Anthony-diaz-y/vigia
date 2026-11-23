@@ -15,7 +15,12 @@ export class ForecastingController {
   forecast(
     @Query('level') level = 'department',
     @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
   ): Promise<ForecastResponse> {
-    return this.forecasting.forecast(parseLevel(level), parseOptionalInteger(uploadId, 'upload_id'))
+    return this.forecasting.forecast(
+      parseLevel(level),
+      parseOptionalInteger(uploadId, 'upload_id'),
+      indicator,
+    )
   }
 }

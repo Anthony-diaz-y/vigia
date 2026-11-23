@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm'
 
 import type { AppConfig } from '../config/app-config'
+import { DatasetRowEntity } from '../../modules/datasets/infrastructure/persistence/dataset-row.entity'
 import { SurveillanceCaseEntity } from '../../modules/datasets/infrastructure/persistence/surveillance-case.entity'
 import { QualityIssueEntity } from '../../modules/datasets/infrastructure/persistence/quality-issue.entity'
 import { UploadEntity } from '../../modules/datasets/infrastructure/persistence/upload.entity'
@@ -11,6 +12,7 @@ export const entities = [
   UploadEntity,
   QualityIssueEntity,
   SurveillanceCaseEntity,
+  DatasetRowEntity,
   ModelRegistryEntity,
 ]
 

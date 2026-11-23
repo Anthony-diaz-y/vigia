@@ -7,6 +7,7 @@ import { QualityIssueEntity } from '../datasets/infrastructure/persistence/quali
 import { SurveillanceCaseEntity } from '../datasets/infrastructure/persistence/surveillance-case.entity'
 import { UploadEntity } from '../datasets/infrastructure/persistence/upload.entity'
 import { IngestionService } from './application/ingestion.service'
+import { ColumnAdvisor } from './infrastructure/column-advisor'
 import { IngestionController } from './interface/ingestion.controller'
 
 @Module({
@@ -16,6 +17,6 @@ import { IngestionController } from './interface/ingestion.controller'
     IdentityModule,
   ],
   controllers: [IngestionController],
-  providers: [IngestionService],
+  providers: [IngestionService, ColumnAdvisor],
 })
 export class IngestionModule {}

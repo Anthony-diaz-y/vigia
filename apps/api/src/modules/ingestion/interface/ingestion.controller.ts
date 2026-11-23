@@ -12,13 +12,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import type { UploadDto } from '@vigia/contracts'
-import { CANONICAL_COLUMNS } from '@vigia/epidemiology'
+import { DatasetColumnSchema, type UploadDto, type UploadPreview } from '@vigia/contracts'
+import { isMappingTarget, type DatasetColumn } from '@vigia/epidemiology'
+import { z } from 'zod'
 
 import { AccessTokenGuard } from '../../identity/interface/access-token.guard'
 import { IngestError } from '../domain/errors'
+import { decodeFilename } from './filename'
 import { IngestionService } from '../application/ingestion.service'
-import type { PreviewResult } from '../application/ingest'
 
 const UPLOAD_LIMIT = 55 * 1024 * 1024
 
@@ -35,17 +36,20 @@ export class IngestionController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @Query('source') source = 'minsa_dengue',
     @Body('mapping') mapping?: string,
+    @Body('columns') columns?: string,
+    @Body('title') title?: string,
+    @Body('topic') topic?: string,
   ): Promise<UploadDto> {
     if (!file) {
       throw new UnprocessableEntityException('file is required')
     }
     try {
-      return await this.ingestion.ingest(
-        file.buffer,
-        file.originalname || 'upload.csv',
-        source,
-        parseMapping(mapping),
-      )
+      return await this.ingestion.ingest(file.buffer, fileName(file), source, {
+        mappingOverride: parseMapping(mapping),
+        columns: parseColumns(columns),
+        title,
+        topic,
+      })
     } catch (error) {
       throw asUnprocessable(error)
     }
@@ -58,19 +62,19 @@ export class IngestionController {
   async preview(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Query('source') source = 'minsa_dengue',
-  ): Promise<PreviewResult> {
+  ): Promise<UploadPreview> {
     if (!file) {
       throw new UnprocessableEntityException('file is required')
     }
     try {
-      return await this.ingestion.preview(file.buffer, file.originalname || 'upload.csv', source)
+      return await this.ingestion.preview(file.buffer, fileName(file), source)
     } catch (error) {
       throw asUnprocessable(error)
     }
   }
 }
 
-// Parsea el JSON del mapeo manual y conserva solo columnas canónicas
+// Parsea el JSON del mapeo manual y conserva solo campos conocidos
 function parseMapping(mapping: string | undefined): Record<string, string> | undefined {
   if (!mapping) {
     return undefined
@@ -85,9 +89,8 @@ function parseMapping(mapping: string | undefined): Record<string, string> | und
     throw new UnprocessableEntityException('invalid mapping JSON')
   }
   const result: Record<string, string> = {}
-  const allowed = new Set<string>(CANONICAL_COLUMNS)
   for (const [canonical, source] of Object.entries(parsed)) {
-    if (!allowed.has(canonical)) {
+    if (!isMappingTarget(canonical)) {
       continue
     }
     if (typeof source !== 'string') {
@@ -96,6 +99,29 @@ function parseMapping(mapping: string | undefined): Record<string, string> | und
     result[canonical] = source
   }
   return result
+}
+
+// Parsea y valida el JSON de columnas confirmadas en el modal de revisión
+function parseColumns(columns: string | undefined): DatasetColumn[] | undefined {
+  if (!columns) {
+    return undefined
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(columns)
+  } catch {
+    throw new UnprocessableEntityException('invalid columns JSON')
+  }
+  const result = z.array(DatasetColumnSchema).safeParse(parsed)
+  if (!result.success) {
+    throw new UnprocessableEntityException('invalid columns JSON')
+  }
+  return result.data
+}
+
+// Nombre legible del archivo subido, con sus tildes y eñes
+function fileName(file: Express.Multer.File): string {
+  return file.originalname ? decodeFilename(file.originalname) : 'upload.csv'
 }
 
 // Convierte errores de ingesta en respuestas HTTP 422

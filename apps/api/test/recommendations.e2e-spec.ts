@@ -54,7 +54,7 @@ describe.skipIf(!dbEnabled)('recommendations against PostgreSQL', () => {
   it('returns the no-data envelopes', async () => {
     await get('/api/recommendations')
       .expect(404)
-      .expect({ detail: 'sin datos: subí un archivo de vigilancia' })
+      .expect({ detail: 'sin datos: sube un archivo de vigilancia' })
     await get('/api/recommendations?upload_id=9999')
       .expect(404)
       .expect({ detail: 'carga no encontrada' })

@@ -8,6 +8,9 @@ import {
   SEX_VALUES,
   UBIGEO_LENGTH,
   UNKNOWN,
+  epiWeekOf,
+  parseDate,
+  splitLocation,
 } from '@vigia/epidemiology'
 
 import { IssueCollector, type QualityIssue } from '../domain/quality'
@@ -55,6 +58,20 @@ interface BoundedIntResult {
   outOfRange: boolean[]
 }
 
+interface TimeResult {
+  year: BoundedIntResult
+  week: BoundedIntResult
+  invalidDate: boolean[]
+  source: string
+}
+
+interface PlaceResult {
+  department: string[]
+  province: string[]
+  district: string[]
+  missing: boolean[]
+}
+
 interface CasesResult {
   values: (number | null)[]
   missing: boolean[]
@@ -74,14 +91,10 @@ export function normalize(
   const count = raw.length
 
   const ubigeo = ubigeoValues(columnValues(raw, mapping, 'ubigeo'), count)
-  const year = boundedIntValues(columnValues(raw, mapping, 'year'), count, MIN_YEAR, MAX_YEAR)
-  const week = boundedIntValues(
-    columnValues(raw, mapping, 'epi_week'),
-    count,
-    MIN_EPI_WEEK,
-    MAX_EPI_WEEK,
-  )
-  const cases = casesValues(columnValues(raw, mapping, 'cases'), count, config.countRows)
+  const time = timeValues(raw, mapping, count)
+  const { year, week } = time
+  const place = placeValues(raw, mapping, count)
+  const cases = casesValues(columnValues(raw, mapping, 'cases'), count)
 
   issues.addMany(
     'missing_ubigeo',
@@ -99,9 +112,14 @@ export function normalize(
     rawSamples(raw, mapping, 'year', year.unparseable),
   )
   issues.addMany(
+    'invalid_event_date',
+    'Event date could not be read as a day/month/year date.',
+    rawSamples(raw, mapping, 'event_date', time.invalidDate),
+  )
+  issues.addMany(
     'year_out_of_range',
     `Year is outside ${MIN_YEAR}-${MAX_YEAR}.`,
-    rawSamples(raw, mapping, 'year', year.outOfRange),
+    rawSamples(raw, mapping, time.source, year.outOfRange),
   )
   issues.addMany(
     'invalid_epi_week',
@@ -128,8 +146,13 @@ export function normalize(
     'Case count is negative.',
     rawSamples(raw, mapping, 'cases', cases.negative),
   )
+  issues.addMany(
+    'missing_location',
+    'Row has no UBIGEO or department.',
+    rawSamples(raw, mapping, mapping.mapping.location ? 'location' : 'department', place.missing),
+  )
 
-  const assembled = assemble(raw, mapping, config, ubigeo, year, week, cases, issues)
+  const assembled = assemble(raw, mapping, config, ubigeo, place, year, week, cases, issues)
 
   const valid = assembled.filter((_, index) => {
     return !(
@@ -137,6 +160,8 @@ export function normalize(
       ubigeo.invalid[index] ||
       year.unparseable[index] ||
       year.outOfRange[index] ||
+      time.invalidDate[index] ||
+      place.missing[index] ||
       week.unparseable[index] ||
       week.outOfRange[index] ||
       cases.missing[index] ||
@@ -186,8 +211,15 @@ function numeric(text: string): number | null {
   return Number.isFinite(value) ? value : null
 }
 
-// Normaliza los UBIGEO a 6 dígitos y marca los faltantes o inválidos
+// Normaliza los UBIGEO a 6 dígitos y marca faltantes o inválidos; sin columna, queda vacío
 function ubigeoValues(values: string[] | null, count: number): UbigeoResult {
+  if (values === null) {
+    return {
+      values: Array.from({ length: count }, () => ''),
+      missing: Array.from({ length: count }, () => false),
+      invalid: Array.from({ length: count }, () => false),
+    }
+  }
   const texts = textValues(values, count)
   const result: UbigeoResult = { values: [], missing: [], invalid: [] }
   for (const text of texts) {
@@ -220,9 +252,79 @@ function boundedIntValues(
   return result
 }
 
+// Obtiene año y semana de sus columnas o, si faltan, los calcula desde la fecha del caso
+function timeValues(
+  raw: Record<string, string>[],
+  mapping: MappingResult,
+  count: number,
+): TimeResult {
+  const explicit = mapping.mapping.year !== undefined && mapping.mapping.epi_week !== undefined
+  const dates = explicit ? null : columnValues(raw, mapping, 'event_date')
+  if (dates === null) {
+    return {
+      year: boundedIntValues(columnValues(raw, mapping, 'year'), count, MIN_YEAR, MAX_YEAR),
+      week: boundedIntValues(
+        columnValues(raw, mapping, 'epi_week'),
+        count,
+        MIN_EPI_WEEK,
+        MAX_EPI_WEEK,
+      ),
+      invalidDate: Array.from({ length: count }, () => false),
+      source: 'year',
+    }
+  }
+
+  const year: BoundedIntResult = { values: [], unparseable: [], outOfRange: [] }
+  const week: BoundedIntResult = { values: [], unparseable: [], outOfRange: [] }
+  const invalidDate: boolean[] = []
+  for (const text of dates) {
+    const date = parseDate(text)
+    const parts = date ? epiWeekOf(date) : null
+    invalidDate.push(parts === null)
+    year.values.push(parts?.year ?? null)
+    year.unparseable.push(false)
+    year.outOfRange.push(parts !== null && (parts.year < MIN_YEAR || parts.year > MAX_YEAR))
+    week.values.push(parts?.epi_week ?? null)
+    week.unparseable.push(false)
+    week.outOfRange.push(false)
+  }
+  return { year, week, invalidDate, source: 'event_date' }
+}
+
+// Arma departamento, provincia y distrito desde sus columnas o desde la ubicación combinada
+function placeValues(
+  raw: Record<string, string>[],
+  mapping: MappingResult,
+  count: number,
+): PlaceResult {
+  const upper = (canonical: string) =>
+    textValues(columnValues(raw, mapping, canonical), count).map((value) => value.toUpperCase())
+  const department = upper('department')
+  const province = upper('province')
+  const district = upper('district')
+
+  const locations = columnValues(raw, mapping, 'location')
+  if (locations !== null) {
+    locations.forEach((text, index) => {
+      const parts = splitLocation(text)
+      department[index] = department[index] || parts.department
+      province[index] = province[index] || parts.province
+      district[index] = district[index] || parts.district
+    })
+  }
+
+  const ubigeoMapped = mapping.mapping.ubigeo !== undefined
+  return {
+    department,
+    province,
+    district,
+    missing: department.map((value) => !ubigeoMapped && value === ''),
+  }
+}
+
 // Lee el conteo de casos (o 1 por fila) y marca faltantes, inválidos y negativos
-function casesValues(values: string[] | null, count: number, countRows: boolean): CasesResult {
-  if (countRows || values === null) {
+function casesValues(values: string[] | null, count: number): CasesResult {
+  if (values === null) {
     return {
       values: Array.from({ length: count }, () => 1),
       missing: Array.from({ length: count }, () => false),
@@ -269,6 +371,7 @@ function assemble(
   mapping: MappingResult,
   config: SourceConfig,
   ubigeo: UbigeoResult,
+  place: PlaceResult,
   year: BoundedIntResult,
   week: BoundedIntResult,
   cases: CasesResult,
@@ -278,9 +381,7 @@ function assemble(
   const upper = (values: string[] | null): string[] =>
     textValues(values, count).map((value) => value.toUpperCase())
 
-  const department = upper(columnValues(raw, mapping, 'department'))
-  const province = upper(columnValues(raw, mapping, 'province'))
-  const district = upper(columnValues(raw, mapping, 'district'))
+  const { department, province, district } = place
   const directorate = upper(columnValues(raw, mapping, 'directorate'))
   const diagnosis = upper(columnValues(raw, mapping, 'diagnosis'))
   const diagnosisType = upper(columnValues(raw, mapping, 'diagnosis_type'))
@@ -326,7 +427,7 @@ function assemble(
   })
 }
 
-// Asigna la banda de edad según la edad y su unidad (meses cuentan como <1)
+// Asigna la banda de edad según la edad y su unidad (meses, días u horas cuentan como <1)
 function ageGroupValue(age: string, ageType: string): string {
   const years = numeric(age)
   let band = UNKNOWN
@@ -338,7 +439,7 @@ function ageGroupValue(age: string, ageType: string): string {
       }
     }
   }
-  if (ageType.includes('MES') || years === 0) {
+  if (/MES|DIA|HORA/.test(ageType) || years === 0) {
     return '<1'
   }
   return band

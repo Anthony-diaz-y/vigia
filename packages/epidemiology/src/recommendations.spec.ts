@@ -4,6 +4,8 @@ import { ACTION_TABLE } from './explain'
 import {
   alertLevel,
   buildRecommendations,
+  GENERAL_LEVEL_ACTIONS,
+  isDengueTopic,
   LEVEL_ACTIONS,
   percentChange,
   recommendationPayload,
@@ -162,5 +164,86 @@ describe('summary and payload', () => {
       'reasons',
       'first_action',
     ])
+  })
+})
+
+describe('recommendations adapted to any indicator', () => {
+  const HEMOGLOBIN = {
+    indicatorLabel: 'Hemoglobina promedio',
+    aggregate: 'mean',
+    direction: 'both',
+    actions: 'general',
+  } as const
+
+  // Serie de promedios: Junín cae de 11.5 a 9.2 en las 4 semanas consolidadas más recientes
+  function averages(): RecommendationInputs {
+    return inputs({
+      series: [
+        ...series('JUNIN', (week) => (week >= 11 && week <= 14 ? 9.2 : 11.5)),
+        ...series('PIURA', () => 11.4),
+      ],
+    })
+  }
+
+  it('con direction both una caída del 20 % es alerta', () => {
+    const report = buildRecommendations(averages(), HEMOGLOBIN)
+    const junin = report.items.find((item) => item.department === 'JUNIN')
+    expect(junin?.level).toBe('medio')
+    expect(junin?.change_pct).toBe(-20)
+    expect(report.items.find((item) => item.department === 'PIURA')?.level).toBe('bajo')
+  })
+
+  it('motivos usan el nombre del indicador y promedios con un decimal', () => {
+    const junin = buildRecommendations(averages(), HEMOGLOBIN).items.find(
+      (item) => item.department === 'JUNIN',
+    )
+    expect(junin?.recent_cases).toBe(9.2)
+    expect(junin?.reasons[0]).toBe('Hemoglobina promedio a la baja: 11.5 → 9.2 (-20 %).')
+  })
+
+  it('tabla general no menciona criaderos ni vectores', () => {
+    const junin = buildRecommendations(averages(), HEMOGLOBIN).items.find(
+      (item) => item.department === 'JUNIN',
+    )
+    expect(junin?.actions.length).toBeGreaterThan(0)
+    for (const action of [...Object.values(GENERAL_LEVEL_ACTIONS).flat(), ...junin!.actions]) {
+      expect(action).not.toMatch(/criadero|larvario|vector|transmisión/i)
+    }
+  })
+
+  it('los valores por defecto conservan los textos del dengue', () => {
+    const report = buildRecommendations(inputs())
+    expect(report.items.find((item) => item.department === 'PIURA')?.reasons[0]).toBe(
+      'Casos en alza: 80 → 160 (+100 %).',
+    )
+  })
+
+  it('isDengueTopic reconoce el tema dengue', () => {
+    expect(isDengueTopic('Dengue 2024')).toBe(true)
+    expect(isDengueTopic('vigilancia del DENGUE')).toBe(true)
+    expect(isDengueTopic('anemia')).toBe(false)
+    expect(isDengueTopic('')).toBe(false)
+  })
+})
+
+describe('mean indicators with a published forecast', () => {
+  it('compara el pronóstico como promedio, no como suma de 4 semanas', () => {
+    const report = buildRecommendations(
+      inputs({
+        series: series('JUNIN', () => 11.2),
+        scorecard: [{ department: 'JUNIN', status: 'publish' }],
+        forecasts: [1, 2, 3, 4].map((horizon) => ({ department: 'JUNIN', horizon, p50: 11.1 })),
+      }),
+      {
+        indicatorLabel: 'Hemoglobina promedio',
+        aggregate: 'mean',
+        direction: 'both',
+        actions: 'general',
+      },
+    )
+    const junin = report.items[0]
+    expect(junin?.forecast_cases).toBe(11.1)
+    expect(junin?.forecast_change_pct).toBe(-1)
+    expect(junin?.level).toBe('bajo')
   })
 })

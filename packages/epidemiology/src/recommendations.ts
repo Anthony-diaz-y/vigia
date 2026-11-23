@@ -1,4 +1,4 @@
-import { ACTION_TABLE, type Feature } from './explain'
+import { ACTION_TABLE, GENERAL_ACTION_TABLE, type Feature } from './explain'
 import { PUBLISH } from './forecast'
 
 export const ALERT_LEVELS = ['alto', 'medio', 'bajo'] as const
@@ -20,6 +20,32 @@ export const LEVEL_ACTIONS: Readonly<Record<AlertLevel, readonly string[]>> = {
     'Preparar insumos y personal ante un posible aumento.',
   ],
   bajo: ['Mantener la vigilancia de rutina.'],
+}
+
+export const GENERAL_LEVEL_ACTIONS: Readonly<Record<AlertLevel, readonly string[]>> = {
+  alto: [
+    'Revisar esta semana la situación de la zona con el equipo responsable.',
+    'Verificar si el cambio es real o se debe a cambios en el registro.',
+  ],
+  medio: [
+    'Seguir la tendencia semana a semana.',
+    'Confirmar que los datos de la zona estén completos y al día.',
+  ],
+  bajo: ['Mantener el seguimiento de rutina.'],
+}
+
+export interface RecommendationOptions {
+  indicatorLabel: string
+  aggregate: 'sum' | 'mean'
+  direction: 'up' | 'both'
+  actions: 'dengue' | 'general'
+}
+
+export const DEFAULT_RECOMMENDATION_OPTIONS: RecommendationOptions = {
+  indicatorLabel: 'Casos',
+  aggregate: 'sum',
+  direction: 'up',
+  actions: 'dengue',
 }
 
 const MAX_ACTIONS = 2
@@ -91,8 +117,16 @@ export interface RecommendationReport {
 
 const LEVEL_ORDER: Readonly<Record<AlertLevel, number>> = { alto: 0, medio: 1, bajo: 2 }
 
-// Genera el reporte de alertas por departamento comparando 4 semanas recientes vs previas
-export function buildRecommendations(inputs: RecommendationInputs): RecommendationReport {
+// Indica si el tema de un dataset es dengue, sin importar mayúsculas ni tildes
+export function isDengueTopic(topic: string): boolean {
+  return topic.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().includes('dengue')
+}
+
+// Genera el reporte de alertas por lugar comparando 4 semanas recientes vs previas
+export function buildRecommendations(
+  inputs: RecommendationInputs,
+  options: RecommendationOptions = DEFAULT_RECOMMENDATION_OPTIONS,
+): RecommendationReport {
   const timeline = uniqueWeeks(inputs.series)
   const consolidated =
     timeline.length > PROVISIONAL_WEEKS + RECENT_WEEKS
@@ -104,7 +138,7 @@ export function buildRecommendations(inputs: RecommendationInputs): Recommendati
 
   const departments = [...new Set(inputs.series.map((row) => row.department))]
   const items = departments.map((department) =>
-    buildItem(department, inputs, recentWeeks, previousWeeks, lookback),
+    buildItem(department, inputs, recentWeeks, previousWeeks, lookback, options),
   )
   items.sort(
     (left, right) =>
@@ -136,6 +170,7 @@ function buildItem(
   recentWeeks: readonly EpiWeek[],
   previousWeeks: readonly EpiWeek[],
   lookback: ReadonlySet<string>,
+  options: RecommendationOptions,
 ): RecommendationItem {
   const byWeek = new Map<string, number>()
   for (const row of inputs.series) {
@@ -143,11 +178,21 @@ function buildItem(
       byWeek.set(weekKey(row), (byWeek.get(weekKey(row)) ?? 0) + row.cases)
     }
   }
-  const sum = (weeks: readonly EpiWeek[]) =>
-    weeks.reduce((total, week) => total + (byWeek.get(weekKey(week)) ?? 0), 0)
-  const recent = sum(recentWeeks)
-  const previous = sum(previousWeeks)
-  const change = percentChange(previous, recent)
+  const total = (weeks: readonly EpiWeek[]) => {
+    if (options.aggregate === 'sum') {
+      return weeks.reduce((sum, week) => sum + (byWeek.get(weekKey(week)) ?? 0), 0)
+    }
+    const values = weeks
+      .map((week) => byWeek.get(weekKey(week)))
+      .filter((value): value is number => value !== undefined)
+    return values.length === 0
+      ? 0
+      : Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 1000) / 1000
+  }
+  const recent = total(recentWeeks)
+  const previous = total(previousWeeks)
+  const minimum = options.aggregate === 'sum' ? MIN_CASES_FOR_CHANGE : 0
+  const change = percentChange(previous, recent, minimum)
 
   const published = inputs.scorecard.some(
     (row) => row.department === department && row.status === PUBLISH,
@@ -155,17 +200,22 @@ function buildItem(
   const horizon = inputs.forecasts.filter(
     (row) => row.department === department && row.horizon <= RECENT_WEEKS,
   )
+  const projected = horizon.reduce((sum, row) => sum + Math.max(0, row.p50), 0)
   const forecast =
-    published && horizon.length > 0
-      ? Math.round(horizon.reduce((total, row) => total + Math.max(0, row.p50), 0))
-      : null
-  const forecastChange = forecast === null ? null : percentChange(recent, forecast)
+    !published || horizon.length === 0
+      ? null
+      : options.aggregate === 'mean'
+        ? Math.round((projected / horizon.length) * 1000) / 1000
+        : Math.round(projected)
+  const forecastChange = forecast === null ? null : percentChange(recent, forecast, minimum)
 
   const recentAnomalies = inputs.anomalies.filter(
     (row) => row.department === department && row.is_anomaly && lookback.has(weekKey(row)),
   ).length
 
-  const level = alertLevel(change, forecastChange, recentAnomalies)
+  const magnitude = (value: number | null) =>
+    value === null || options.direction === 'up' ? value : Math.abs(value)
+  const level = alertLevel(magnitude(change), magnitude(forecastChange), recentAnomalies)
 
   return {
     department,
@@ -176,8 +226,19 @@ function buildItem(
     forecast_cases: forecast,
     forecast_change_pct: forecastChange,
     recent_anomalies: recentAnomalies,
-    reasons: reasons(recent, previous, change, forecast, forecastChange, recentAnomalies),
-    actions: actions(level, department, inputs.drivers),
+    reasons:
+      options.actions === 'dengue'
+        ? reasons(recent, previous, change, forecast, forecastChange, recentAnomalies)
+        : indicatorReasons(
+            recent,
+            previous,
+            change,
+            forecast,
+            forecastChange,
+            recentAnomalies,
+            options,
+          ),
+    actions: actions(level, department, inputs.drivers, options.actions),
   }
 }
 
@@ -199,8 +260,12 @@ export function alertLevel(
 }
 
 // Calcula el cambio porcentual redondeado o null si hay muy pocos casos
-export function percentChange(before: number, after: number): number | null {
-  if (Math.max(before, after) < MIN_CASES_FOR_CHANGE) {
+export function percentChange(
+  before: number,
+  after: number,
+  minimum: number = MIN_CASES_FOR_CHANGE,
+): number | null {
+  if (Math.max(before, after) < minimum || (before === 0 && after === 0)) {
     return null
   }
   if (before === 0) {
@@ -247,19 +312,63 @@ function reasons(
   return lines
 }
 
+// Redacta los motivos con el nombre del indicador, para cualquier tema que no sea dengue
+function indicatorReasons(
+  recent: number,
+  previous: number,
+  change: number | null,
+  forecast: number | null,
+  forecastChange: number | null,
+  recentAnomalies: number,
+  options: RecommendationOptions,
+): string[] {
+  const show = (value: number) =>
+    options.aggregate === 'mean'
+      ? value.toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : fmt(value)
+  const label = options.indicatorLabel
+  const lines: string[] = []
+  if (change === null) {
+    lines.push('Muy pocos datos para medir una tendencia.')
+  } else if (change >= 10) {
+    lines.push(`${label} en alza: ${show(previous)} → ${show(recent)} (+${change} %).`)
+  } else if (change <= -10) {
+    lines.push(`${label} a la baja: ${show(previous)} → ${show(recent)} (${change} %).`)
+  } else {
+    lines.push(`${label} estable: ${show(recent)} en las últimas 4 semanas.`)
+  }
+  if (recentAnomalies > 0) {
+    lines.push(
+      recentAnomalies === 1
+        ? '1 semana fuera de lo esperado.'
+        : `${recentAnomalies} semanas fuera de lo esperado.`,
+    )
+  }
+  if (forecast === null) {
+    lines.push('Sin pronóstico confiable para este lugar.')
+  } else {
+    const rise = forecastChange !== null && forecastChange >= 10 ? ` (+${forecastChange} %)` : ''
+    lines.push(`Se espera ~${show(forecast)} en las próximas 4 semanas${rise}.`)
+  }
+  return lines
+}
+
 // Elige acciones: la principal del nivel, la del factor al alza más fuerte y luego el resto
 function actions(
   level: AlertLevel,
   department: string,
   drivers: readonly RecommendationDriverRow[],
+  table: RecommendationOptions['actions'],
 ): string[] {
-  const [main, ...rest] = LEVEL_ACTIONS[level]
+  const levelActions = table === 'dengue' ? LEVEL_ACTIONS : GENERAL_LEVEL_ACTIONS
+  const driverActions = table === 'dengue' ? ACTION_TABLE : GENERAL_ACTION_TABLE
+  const [main, ...rest] = levelActions[level]
   const chosen = main ? [main] : []
   if (level !== 'bajo') {
     const top = drivers
       .filter((row) => row.department === department && row.direction === 'up')
       .sort((left, right) => left.rank - right.rank)[0]
-    const action = top ? ACTION_TABLE[top.feature as Feature] : undefined
+    const action = top ? driverActions[top.feature as Feature] : undefined
     if (action) {
       chosen.push(action)
     }

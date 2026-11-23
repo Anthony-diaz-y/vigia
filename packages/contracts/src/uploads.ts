@@ -1,8 +1,34 @@
 import { z } from 'zod'
 
-import { UPLOAD_STATUSES } from '@vigia/epidemiology'
+import {
+  COLUMN_ROLES,
+  DESCRIPTIVE_FIELDS,
+  PLACE_LEVELS,
+  UPLOAD_STATUSES,
+} from '@vigia/epidemiology'
 
 export const UploadStatusSchema = z.enum(UPLOAD_STATUSES)
+
+export const ColumnRoleSchema = z.enum(COLUMN_ROLES)
+
+export const PlaceLevelSchema = z.enum(PLACE_LEVELS)
+
+export const ColumnKindSchema = z.enum(['date', 'number', 'text'])
+
+export const TimeKindSchema = z.enum(['date', 'week', 'month', 'year', 'none'])
+
+export const DatasetColumnSchema = z
+  .object({
+    name: z.string(),
+    label: z.string(),
+    role: ColumnRoleSchema,
+    level: PlaceLevelSchema.nullable(),
+    field: z.enum(DESCRIPTIVE_FIELDS).nullable(),
+    kind: ColumnKindSchema,
+  })
+  .strict()
+
+export type DatasetColumnDto = z.infer<typeof DatasetColumnSchema>
 
 export const UploadSchema = z
   .object({
@@ -15,6 +41,12 @@ export const UploadSchema = z
     rows_valid: z.number().int().nonnegative(),
     rows_dropped: z.number().int().nonnegative(),
     duplicates_collapsed: z.number().int().nonnegative(),
+    title: z.string(),
+    topic: z.string(),
+    columns: z.array(DatasetColumnSchema),
+    time: TimeKindSchema,
+    epi: z.boolean(),
+    indicators: z.array(z.object({ id: z.string(), label: z.string() }).strict()),
     created_at: z.string(),
   })
   .strict()
@@ -54,16 +86,32 @@ export const ClearUploadsResponseSchema = z.object({
 
 export type ClearUploadsResponse = z.infer<typeof ClearUploadsResponseSchema>
 
+export const OptionInfoSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    description: z.string().optional(),
+  })
+  .strict()
+
+export const PreviewColumnSchema = DatasetColumnSchema.extend({
+  samples: z.array(z.string()),
+  reason: z.string().nullable(),
+}).strict()
+
+export type PreviewColumnDto = z.infer<typeof PreviewColumnSchema>
+
 export const UploadPreviewSchema = z
   .object({
     source: z.string().min(1),
-    columns: z.array(z.string()),
-    mapping: z.record(z.string(), z.string()),
-    unmapped_columns: z.array(z.string()),
-    missing_required: z.array(z.string()),
+    title: z.string(),
+    topic: z.string(),
+    rows: z.number().int().nonnegative(),
+    suggested_by: z.enum(['deepseek', 'rules']),
+    columns: z.array(PreviewColumnSchema),
+    roles: z.array(OptionInfoSchema),
+    place_levels: z.array(OptionInfoSchema),
     pii_detected: z.array(z.string()),
-    canonical_columns: z.array(z.string()),
-    required: z.array(z.string()),
   })
   .strict()
 

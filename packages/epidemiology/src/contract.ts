@@ -78,6 +78,8 @@ export const QUALITY_ISSUE_CODES = [
   'invalid_cases',
   'negative_cases',
   'disease_mismatch',
+  'invalid_event_date',
+  'missing_location',
 ] as const
 
 export type QualityIssueCode = (typeof QUALITY_ISSUE_CODES)[number]

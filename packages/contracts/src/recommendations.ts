@@ -25,6 +25,7 @@ export const RecommendationItemSchema = z
     recent_anomalies: z.number().int().nonnegative(),
     reasons: z.array(z.string()),
     actions: z.array(z.string().min(1)),
+    actions_source: z.enum(['rules', 'deepseek']),
   })
   .strict()
 
@@ -79,6 +80,7 @@ export type OutlookDto = z.infer<typeof OutlookSchema>
 export const RecommendationsResponseSchema = z
   .object({
     overall_level: AlertLevelSchema,
+    indicator_label: z.string(),
     counts: z.object({ alto: z.number(), medio: z.number(), bajo: z.number() }).strict(),
     window: z.object({ from: EpiWeekSchema, to: EpiWeekSchema }).strict().nullable(),
     summary: RecommendationSummarySchema,

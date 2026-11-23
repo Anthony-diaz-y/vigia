@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 import { FORECAST_STATUSES } from '@vigia/epidemiology'
 
+import { OutlookSchema } from './recommendations'
+
 export const ForecastStatusSchema = z.enum(FORECAST_STATUSES)
 
 export const ForecastScoreRowSchema = z
@@ -41,3 +43,21 @@ export const ForecastResponseSchema = z
   .strict()
 
 export type ForecastResponse = z.infer<typeof ForecastResponseSchema>
+
+export const IndicatorForecastResponseSchema = z
+  .object({
+    indicator: z.object({ id: z.string(), label: z.string() }).strict(),
+    granularity: z.enum(['week', 'month']).nullable(),
+    status: ForecastStatusSchema,
+    mase: z.number().nullable(),
+    windows: z.number().int().nonnegative(),
+    reason: z.string().nullable(),
+    history: z.array(z.object({ period: z.string(), value: z.number().nullable() }).strict()),
+    forecast: z.array(
+      z.object({ period: z.string(), p10: z.number(), p50: z.number(), p90: z.number() }).strict(),
+    ),
+    outlook: OutlookSchema.nullable(),
+  })
+  .strict()
+
+export type IndicatorForecastResponse = z.infer<typeof IndicatorForecastResponseSchema>

@@ -30,6 +30,24 @@ export const ACTION_TABLE: Readonly<Record<Feature, string>> = {
   seasonal_phase_cos: 'Alinear personal e insumos con la temporada de transmisión.',
 }
 
+export const GENERAL_DRIVER_LABELS: Readonly<Record<Feature, string>> = {
+  recent_level: 'Nivel reciente',
+  recent_level_2w: 'Nivel hace 2 semanas',
+  seasonal_baseline: 'Temporada previa',
+  year_over_year_trend: 'Tendencia interanual',
+  seasonal_phase_sin: 'Estacionalidad',
+  seasonal_phase_cos: 'Estacionalidad (fase)',
+}
+
+export const GENERAL_ACTION_TABLE: Readonly<Record<Feature, string>> = {
+  recent_level: 'Revisar los registros recientes de la zona con el equipo responsable.',
+  recent_level_2w: 'Seguir de cerca la zona durante las próximas semanas.',
+  seasonal_baseline: 'Prepararse para el periodo del año en que suele subir el indicador.',
+  year_over_year_trend: 'Analizar con el equipo las causas de la tendencia de varios años.',
+  seasonal_phase_sin: 'Planificar las acciones según la época del año.',
+  seasonal_phase_cos: 'Ajustar personal e insumos a la época del año.',
+}
+
 export const DEFAULT_RIDGE_LAMBDA = 1
 export const DEFAULT_PROVISIONAL_WEEKS = 6
 export const DEFAULT_TOP_K = 5
@@ -215,8 +233,18 @@ export function topDrivers(
 }
 
 // Agrega a cada factor su acción preventiva determinista
-export function recommend(drivers: readonly DriverRow[]): RecommendedDriverRow[] {
-  return drivers.map((driver) => ({ ...driver, action: ACTION_TABLE[driver.feature] }))
+export function recommend(
+  drivers: readonly DriverRow[],
+  wording: 'dengue' | 'general' = 'dengue',
+): RecommendedDriverRow[] {
+  if (wording === 'dengue') {
+    return drivers.map((driver) => ({ ...driver, action: ACTION_TABLE[driver.feature] }))
+  }
+  return drivers.map((driver) => ({
+    ...driver,
+    driver: GENERAL_DRIVER_LABELS[driver.feature],
+    action: GENERAL_ACTION_TABLE[driver.feature],
+  }))
 }
 
 // Genera el texto determinista de la narrativa a partir del payload agregado

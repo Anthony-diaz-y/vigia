@@ -10,7 +10,7 @@ export const WeeklySeriesRowSchema = z
     province: z.string().optional(),
     year: z.number().int(),
     epi_week: z.number().int().min(1).max(53),
-    cases: z.number().int().nonnegative(),
+    cases: z.number().nonnegative(),
   })
   .strict()
 
@@ -39,7 +39,7 @@ export const RankingRowSchema = z
     rank: z.number().int().positive(),
     department: z.string(),
     province: z.string().optional(),
-    cases: z.number().int().nonnegative(),
+    cases: z.number().nonnegative(),
   })
   .strict()
 
@@ -51,7 +51,7 @@ export const AnomalyRowSchema = z
     province: z.string().optional(),
     year: z.number().int(),
     epi_week: z.number().int().min(1).max(53),
-    cases: z.number().int().nonnegative(),
+    cases: z.number().nonnegative(),
     seasonal_baseline: z.number(),
     residual: z.number(),
     robust_z: z.number(),

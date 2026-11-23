@@ -86,7 +86,7 @@ describe('canonical contract', () => {
   })
 
   it('freezes the quality issue codes', () => {
-    expect(QUALITY_ISSUE_CODES).toHaveLength(10)
+    expect(QUALITY_ISSUE_CODES).toHaveLength(12)
     expect(new Set(QUALITY_ISSUE_CODES).size).toBe(QUALITY_ISSUE_CODES.length)
   })
 })

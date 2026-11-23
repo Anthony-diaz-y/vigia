@@ -69,7 +69,22 @@ pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
 ## API
 
 - `POST /api/upload` and `POST /api/upload/preview` — ingest or preview a file
-  with the mapping review step.
+  with the mapping review step. The preview lists the file's real columns with
+  samples; when `DEEPSEEK_API_KEY` is set, DeepSeek names each column in Spanish
+  and suggests its field (validated server-side, confirmed by the user). Only
+  dates and frequently repeated values are sent to the AI, never identifiers.
+  A file needs _when_ (event date, or year + epi week) and _where_ (combined
+  location, department, or UBIGEO); dates become MMWR epi weeks.
+- `GET /api/dashboard?upload_id&indicator&year` — dashboard built from the
+  file's column roles (only the widgets its data supports); `GET
+  /api/uploads/:id/years` for the year filter; `GET /api/forecast/indicator` —
+  seasonal forecast of the chosen indicator (week or month), published only if
+  MASE < 1.
+- Analysis, forecast, recommendations and explanation endpoints accept
+  `indicator`; for non-dengue topics their wording is neutral and, with
+  `DEEPSEEK_API_KEY`, alert actions are AI suggestions marked as such.
+- `pnpm --filter @vigia/api backfill:generic` fills column roles and generic
+  rows for uploads created before flexible datasets.
 - `GET /api/uploads`, `GET /api/uploads/:id/quality`, `DELETE /api/uploads` —
   upload catalog and quality report.
 - `GET /api/analysis/{series,interannual,heatmap,ranking,anomalies}` —

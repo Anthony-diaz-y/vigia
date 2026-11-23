@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common'
 
+import { CommonModule } from '../../common/common.module'
 import { DashboardModule } from '../dashboard/dashboard.module'
-import { IdentityModule } from '../identity/identity.module'
-import { AnalysisService } from './application/analysis.service'
-import { AnalysisRepository } from './infrastructure/analysis.repository'
-import { AnalysisController } from './interface/analysis.controller'
+import { AnalysisController } from './controllers/analysis.controller'
+import { AnalysisRepository } from './repositories/analysis.repository'
+import { AnalysisService } from './services/analysis.service'
 
 @Module({
-  imports: [IdentityModule, DashboardModule],
+  imports: [CommonModule, DashboardModule],
   controllers: [AnalysisController],
   providers: [AnalysisRepository, AnalysisService],
   exports: [AnalysisRepository],

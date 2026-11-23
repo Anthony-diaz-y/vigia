@@ -103,7 +103,7 @@
 ### Task 4: Relleno de cargas existentes
 
 **Files:**
-- Create: `apps/api/src/tools/backfill-generic.ts`; script `backfill:generic` en `apps/api/package.json`
+- Create: `apps/api/src/cli/backfill-generic.ts`; script `backfill:generic` en `apps/api/package.json`
 
 **Interfaces:**
 - Consumes: Task 2 (`ruleSuggestion`), Task 3 (`typedRows`, entidades).

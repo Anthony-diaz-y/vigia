@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common'
 
 import { AnalysisModule } from '../analysis/analysis.module'
+import { CommonModule } from '../../common/common.module'
 import { ForecastingModule } from '../forecasting/forecasting.module'
-import { IdentityModule } from '../identity/identity.module'
-import { RecommendationsService } from './application/recommendations.service'
-import { ActionAdvisor } from './infrastructure/action-advisor'
-import { RecommendationsController } from './interface/recommendations.controller'
+import { RecommendationsController } from './controllers/recommendations.controller'
+import { ActionAdvisor } from './services/action-advisor'
+import { RecommendationsService } from './services/recommendations.service'
 
 @Module({
-  imports: [AnalysisModule, ForecastingModule, IdentityModule],
+  imports: [AnalysisModule, ForecastingModule, CommonModule],
   controllers: [RecommendationsController],
   providers: [RecommendationsService, ActionAdvisor],
 })

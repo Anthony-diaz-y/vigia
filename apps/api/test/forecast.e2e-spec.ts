@@ -8,9 +8,9 @@ import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { AppModule } from '../src/app.module'
-import { loadConfig } from '../src/shared/config/app-config'
-import { createDataSource } from '../src/shared/database/data-source'
-import { HttpExceptionFilter } from '../src/shared/errors/http-exception.filter'
+import { loadConfig } from '../src/common/config/app-config'
+import { createDataSource } from '../src/common/database/data-source'
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter'
 import { fixture, snapshot } from './support'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'

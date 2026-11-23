@@ -1,0 +1,91 @@
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common'
+import type {
+  AnomalyRow,
+  HeatmapResponse,
+  InterannualRow,
+  RankingRow,
+  WeeklySeriesRow,
+} from '@vigia/contracts'
+
+import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { parseInteger, parseLevel, parseOptionalInteger } from '../../../common/utils/query'
+import { AnalysisService } from '../services/analysis.service'
+
+@Controller('analysis')
+@UseGuards(AccessTokenGuard)
+export class AnalysisController {
+  constructor(@Inject(AnalysisService) private readonly analysis: AnalysisService) {}
+
+  // Devuelve la serie semanal de casos por geografía
+  @Get('series')
+  series(
+    @Query('level') level = 'department',
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<WeeklySeriesRow[]> {
+    return this.analysis.series(parseLevel(level), parseUploadId(uploadId), indicator)
+  }
+
+  // Devuelve la comparación interanual de casos por semana
+  @Get('interannual')
+  interannual(
+    @Query('level') level = 'department',
+    @Query('geography') geography?: string,
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<InterannualRow[]> {
+    return this.analysis.interannual(
+      parseLevel(level),
+      geography,
+      parseUploadId(uploadId),
+      indicator,
+    )
+  }
+
+  // Devuelve el mapa de calor de casos por geografía y semana de un año
+  @Get('heatmap')
+  heatmap(
+    @Query('year') year: string | undefined,
+    @Query('level') level = 'department',
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<HeatmapResponse> {
+    return this.analysis.heatmap(
+      parseLevel(level),
+      parseInteger(year, 'year'),
+      parseUploadId(uploadId),
+      indicator,
+    )
+  }
+
+  // Devuelve el ranking de geografías por total de casos
+  @Get('ranking')
+  ranking(
+    @Query('level') level = 'department',
+    @Query('year') year?: string,
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<RankingRow[]> {
+    return this.analysis.ranking(
+      parseLevel(level),
+      parseOptionalInteger(year, 'year'),
+      parseUploadId(uploadId),
+      indicator,
+    )
+  }
+
+  // Devuelve las semanas con su z-score robusto y marca de anomalía
+  @Get('anomalies')
+  anomalies(
+    @Query('level') level = 'department',
+    @Query('upload_id') uploadId?: string,
+    @Query('indicator') indicator?: string,
+  ): Promise<AnomalyRow[]> {
+    return this.analysis.anomalies(parseLevel(level), parseUploadId(uploadId), indicator)
+  }
+}
+
+// Parsea el parámetro opcional upload_id como entero
+function parseUploadId(value: string | undefined): number | undefined {
+  return parseOptionalInteger(value, 'upload_id')
+}

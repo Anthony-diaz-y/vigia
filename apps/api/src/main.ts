@@ -5,8 +5,8 @@ import { NestFactory } from '@nestjs/core'
 import helmet from 'helmet'
 
 import { AppModule } from './app.module'
-import { APP_CONFIG, type AppConfig } from './shared/config/app-config'
-import { HttpExceptionFilter } from './shared/errors/http-exception.filter'
+import { APP_CONFIG, type AppConfig } from './common/config/app-config'
+import { HttpExceptionFilter } from './common/filters/http-exception.filter'
 
 // Arranca la API Nest con prefijo, filtros, seguridad y CORS configurados
 async function bootstrap(): Promise<void> {

@@ -27,6 +27,7 @@ TypeScript end to end:
 apps/api/            NestJS API: ingestion, analysis, forecast, explain,
                      recommendations, export
 apps/api/config/     Per-source column mapping and PII rules (YAML)
+apps/api/src/cli/    Migrations and backfills run with tsx
 apps/web/            Next.js App Router + Tailwind dashboard
 packages/contracts/  Shared zod request/response contracts
 packages/epidemiology/ Canonical contract and numerical kernels
@@ -36,6 +37,7 @@ DEPLOYMENT.md        Railway, backfill, cutover and rollback
 
 Golden request/response fixtures used by the PostgreSQL e2e suite live in
 `apps/api/test/snapshots`; upload fixtures live in `apps/api/test/fixtures`.
+API structure and conventions: `apps/api/README.md`.
 
 ## Quick start
 

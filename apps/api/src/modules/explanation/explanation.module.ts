@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
 
 import { AnalysisModule } from '../analysis/analysis.module'
-import { IdentityModule } from '../identity/identity.module'
-import { ExplanationService } from './application/explanation.service'
-import { ExplanationController } from './interface/explanation.controller'
+import { CommonModule } from '../../common/common.module'
+import { ExplanationController } from './controllers/explanation.controller'
+import { ExplanationService } from './services/explanation.service'
 
 @Module({
-  imports: [AnalysisModule, IdentityModule],
+  imports: [AnalysisModule, CommonModule],
   controllers: [ExplanationController],
   providers: [ExplanationService],
 })

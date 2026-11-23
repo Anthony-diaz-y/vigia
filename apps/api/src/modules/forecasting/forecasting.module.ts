@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 
 import { AnalysisModule } from '../analysis/analysis.module'
-import { IdentityModule } from '../identity/identity.module'
-import { ForecastingService } from './application/forecasting.service'
-import { ModelRegistryRepository } from './infrastructure/model-registry.repository'
-import { ModelRegistryEntity } from './infrastructure/persistence/model-registry.entity'
-import { ForecastingController } from './interface/forecasting.controller'
+import { CommonModule } from '../../common/common.module'
+import { ForecastingController } from './controllers/forecasting.controller'
+import { ModelRegistryEntity } from './entities/model-registry.entity'
+import { ModelRegistryRepository } from './repositories/model-registry.repository'
+import { ForecastingService } from './services/forecasting.service'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ModelRegistryEntity]), AnalysisModule, IdentityModule],
+  imports: [TypeOrmModule.forFeature([ModelRegistryEntity]), AnalysisModule, CommonModule],
   controllers: [ForecastingController],
   providers: [ModelRegistryRepository, ForecastingService],
   exports: [ForecastingService],

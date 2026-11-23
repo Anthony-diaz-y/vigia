@@ -10,18 +10,30 @@ import { useForecast } from '@/modules/shared/hooks'
 import { errorMessage, formatNumber, maseQuality, plural } from '@/modules/shared/utils'
 
 import { averageMase, departmentForecast, toForecastPoints } from '../utils/forecast-points'
+import { IndicatorForecastSection } from './indicator-forecast-section'
 
-// Página de pronóstico: indicadores, calidad del modelo y gráficos por departamento confiable
+// Página de pronóstico: el indicador del archivo y, si hay capa epidemiológica, cada departamento
 export function PronosticoPage() {
-  const { uploadId } = useDashboardFilters()
-  const { data: forecast, isError, error } = useForecast(uploadId)
+  const { upload } = useDashboardFilters()
+  return (
+    <>
+      <IndicatorForecastSection />
+      {upload?.epi && <DepartmentForecast />}
+    </>
+  )
+}
+
+// Pronóstico por departamento de la capa epidemiológica
+function DepartmentForecast() {
+  const { uploadId, indicator } = useDashboardFilters()
+  const { data: forecast, isError, error } = useForecast(uploadId, indicator)
 
   if (isError) {
     return <ErrorBanner message={errorMessage(error)} />
   }
 
   if (!forecast) {
-    return <LoadingState label="Calculando el pronóstico…" />
+    return <LoadingState label="Calculando el pronóstico por departamento…" />
   }
 
   return <ForecastContent forecast={forecast} />
@@ -38,6 +50,7 @@ function ForecastContent({ forecast }: { forecast: ForecastResponse }) {
 
   return (
     <>
+      <h2 className="mt-2 text-lg font-bold text-title">Por departamento</h2>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Kpi
           label="Pronósticos confiables"

@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
-import { ResumenPage } from '@/modules/resumen'
+import { TableroPage } from '@/modules/tablero'
 
 export const metadata: Metadata = {
-  title: 'Resumen · Vigia',
+  title: 'Tablero · Vigia',
 }
 
-// Página principal: cómo viene la semana, de un vistazo
+// Página principal: tablero que se adapta a las columnas del archivo elegido
 export default function Page() {
-  return <ResumenPage />
+  return <TableroPage />
 }

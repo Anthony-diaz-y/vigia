@@ -54,9 +54,9 @@ function detailFrom(data: unknown): string | null {
   return null
 }
 
-// Parámetros para filtrar por un archivo o por todos cuando no hay uno elegido
-export function uploadScope(uploadId: number | null): QueryParams {
-  return { upload_id: uploadId ?? undefined }
+// Parámetros para filtrar por archivo (o todos si no hay uno) y por el indicador elegido
+export function uploadScope(uploadId: number | null, indicator: string | null = null): QueryParams {
+  return { upload_id: uploadId ?? undefined, indicator: indicator ?? undefined }
 }
 
 // Petición GET tipada

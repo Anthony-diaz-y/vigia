@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { AnomalyRow } from '@vigia/contracts'
 
 import { Badge, Section } from '@/modules/shared/components/ui'
+import type { IndicatorInfo } from '@/modules/shared/hooks'
 import { formatNumber, plural, severityOf } from '@/modules/shared/utils'
 
 const ANOMALY_PREVIEW = 10
@@ -13,9 +14,11 @@ const ANOMALY_PREVIEW = 10
 export function AnomaliesCard({
   anomalies,
   flagged,
+  info,
 }: {
   anomalies: ReadonlyArray<AnomalyRow>
   flagged: ReadonlyArray<AnomalyRow>
+  info: IndicatorInfo
 }) {
   const [showAll, setShowAll] = useState(false)
   const sorted = [...flagged].sort(
@@ -26,8 +29,8 @@ export function AnomaliesCard({
   return (
     <Section title="Semanas fuera de lo esperado">
       <div className="card-sub">
-        {flagged.length} {plural(flagged.length, 'semana')} con casos muy por encima o por debajo de
-        lo habitual para esa época del año, de la más a la menos marcada.
+        {flagged.length} {plural(flagged.length, 'semana')} con valores muy por encima o por debajo
+        de lo habitual para esa época del año, de la más a la menos marcada.
       </div>
       {anomalies.length === 0 ? (
         <p className="text-sm text-muted">Sin datos de anomalías para el período.</p>
@@ -44,7 +47,7 @@ export function AnomaliesCard({
                   <th>Señal</th>
                   <th>Departamento</th>
                   <th>Semana</th>
-                  <th className="num">Casos</th>
+                  <th className="num">{info.label}</th>
                   <th className="num">Esperado</th>
                   <th className="num">Desvío</th>
                 </tr>
@@ -61,8 +64,8 @@ export function AnomaliesCard({
                       <td>
                         S{row.epi_week} de {row.year}
                       </td>
-                      <td className="num strong">{formatNumber(row.cases)}</td>
-                      <td className="num">{formatNumber(row.seasonal_baseline)}</td>
+                      <td className="num strong">{formatNumber(row.cases, info.decimals)}</td>
+                      <td className="num">{formatNumber(row.seasonal_baseline, info.decimals)}</td>
                       <td className="num">{formatNumber(row.robust_z, 1)}</td>
                     </tr>
                   )

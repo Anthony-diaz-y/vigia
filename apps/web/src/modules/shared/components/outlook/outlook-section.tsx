@@ -1,14 +1,20 @@
 import type { OutlookDto } from '@vigia/contracts'
 
-import { Section } from '@/modules/shared/components/ui'
-import { formatNumber, plural } from '@/modules/shared/utils'
+import { Section } from '../ui'
+import { formatNumber, plural } from '../../utils'
 
-import { CONFIDENCE_LABEL } from '../constants/outlook'
+import { CONFIDENCE_LABEL } from './confidence'
 import { OutlookTable } from './outlook-table'
 import { YearBars } from './year-bars'
 
 // Sección con la proyección de casos para los próximos años y su confianza
-export function OutlookSection({ outlook }: { outlook: OutlookDto }) {
+export function OutlookSection({
+  outlook,
+  unit = 'casos',
+}: {
+  outlook: OutlookDto
+  unit?: string
+}) {
   const { total } = outlook
   if (total.projection.length === 0) {
     return (
@@ -40,12 +46,12 @@ export function OutlookSection({ outlook }: { outlook: OutlookDto }) {
       </div>
       {first && last && (
         <p className="outlook-lead">
-          Se esperan unos <strong>{formatNumber(first.p50)}</strong> casos en {first.year} y{' '}
+          Se esperan unos <strong>{formatNumber(first.p50)}</strong> {unit} en {first.year} y{' '}
           <strong>{formatNumber(last.p50)}</strong> en {last.year}.
         </p>
       )}
 
-      <YearBars outlook={outlook} />
+      <YearBars outlook={outlook} unit={unit} />
 
       <ul className="outlook-legend" aria-hidden="true">
         <li>

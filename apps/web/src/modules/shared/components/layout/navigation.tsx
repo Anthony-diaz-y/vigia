@@ -6,16 +6,16 @@ import { useEffect, useRef } from 'react'
 
 import type { UploadDto } from '@vigia/contracts'
 
-import { NAV_ITEMS, navItemForPath } from '../../constants/navigation'
+import { navItemForPath, type NavItem } from '../../constants/navigation'
 import { formatNumber, plural } from '../../utils'
 import { Logo, NavIcon } from '../ui'
 import { ClearDataButton, TokenInput, type AccessControl } from './access-control'
 
-// Enlaces a cada página, marcando la página actual
-function NavLinks() {
+// Enlaces a las páginas disponibles para el archivo elegido, marcando la actual
+function NavLinks({ items }: { items: readonly NavItem[] }) {
   const current = navItemForPath(usePathname())
 
-  return NAV_ITEMS.map((item) => {
+  return items.map((item) => {
     const active = item.id === current.id
     return (
       <Link
@@ -43,9 +43,11 @@ function uploadsSummary(uploads: ReadonlyArray<UploadDto>): string {
 // Barra lateral con la marca, las páginas y los ajustes de acceso
 export function Sidebar({
   uploads,
+  items,
   access,
 }: {
   uploads: ReadonlyArray<UploadDto>
+  items: readonly NavItem[]
   access: AccessControl
 }) {
   return (
@@ -54,11 +56,11 @@ export function Sidebar({
         <Logo size={44} />
         <div>
           <span className="rail-brand-name">vigia</span>
-          <span className="rail-brand-tag">vigilancia de dengue</span>
+          <span className="rail-brand-tag">análisis de datos de salud</span>
         </div>
       </div>
       <nav className="flex flex-col gap-1" aria-label="Módulos">
-        <NavLinks />
+        <NavLinks items={items} />
       </nav>
       <div className="rail-foot">
         <div>
@@ -73,7 +75,7 @@ export function Sidebar({
 }
 
 // Navegación horizontal para pantallas angostas
-export function MobileNav() {
+export function MobileNav({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement>(null)
 
@@ -85,7 +87,7 @@ export function MobileNav() {
 
   return (
     <nav ref={navRef} className="mobile-nav md:hidden" aria-label="Módulos">
-      <NavLinks />
+      <NavLinks items={items} />
     </nav>
   )
 }

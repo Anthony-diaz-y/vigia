@@ -7,8 +7,9 @@ import type { RankingRow } from '@vigia/contracts'
 import { ErrorBanner, Kpi, LoadingState, Section } from '@/modules/shared/components/ui'
 import { EMPTY_ANOMALIES, EMPTY_SERIES } from '@/modules/shared/constants'
 import { useDashboardFilters } from '@/modules/shared/contexts'
-import { useAnomalies, useSeries } from '@/modules/shared/hooks'
+import { useAnomalies, useIndicatorInfo, useSeries } from '@/modules/shared/hooks'
 import {
+  averageForYear,
   countSignalWeeks,
   errorMessage,
   flaggedAnomalies,
@@ -26,12 +27,13 @@ const EMPTY_RANKING: ReadonlyArray<RankingRow> = []
 
 // Página de análisis: dónde y cuándo se concentran los casos del año elegido
 export function AnalisisPage() {
-  const { uploadId, year } = useDashboardFilters()
+  const { uploadId, year, indicator } = useDashboardFilters()
+  const info = useIndicatorInfo()
 
-  const seriesQuery = useSeries(uploadId)
-  const heatmapQuery = useHeatmap(uploadId, year)
-  const rankingQuery = useRanking(uploadId, year)
-  const anomaliesQuery = useAnomalies(uploadId)
+  const seriesQuery = useSeries(uploadId, indicator)
+  const heatmapQuery = useHeatmap(uploadId, year, indicator)
+  const rankingQuery = useRanking(uploadId, year, indicator)
+  const anomaliesQuery = useAnomalies(uploadId, indicator)
 
   const series = seriesQuery.data ?? EMPTY_SERIES
   const ranking = rankingQuery.data ?? EMPTY_RANKING
@@ -39,7 +41,10 @@ export function AnalisisPage() {
   const heatmap = heatmapQuery.data ?? null
 
   const flagged = useMemo(() => flaggedAnomalies(anomalies), [anomalies])
-  const totalCases = useMemo(() => totalCasesForYear(series, year), [series, year])
+  const yearValue = useMemo(
+    () => (info.mean ? averageForYear(series, year) : totalCasesForYear(series, year)),
+    [info.mean, series, year],
+  )
   const peak = useMemo(() => heatmapPeak(heatmap), [heatmap])
   const weeksWithSignal = useMemo(() => countSignalWeeks(flagged), [flagged])
 
@@ -47,11 +52,13 @@ export function AnalisisPage() {
     heatmapQuery.error ?? rankingQuery.error ?? anomaliesQuery.error ?? seriesQuery.error
 
   if (year === null) {
-    return seriesQuery.isPending ? (
+    return seriesQuery.isPending || series.length > 0 ? (
       <LoadingState label="Cargando el análisis…" />
     ) : (
       <Section title="Análisis">
-        <p className="text-sm text-muted">El archivo no tiene casos con semana y año válidos.</p>
+        <p className="text-sm text-muted">
+          El archivo no tiene registros con semana y año válidos.
+        </p>
       </Section>
     )
   }
@@ -66,9 +73,9 @@ export function AnalisisPage() {
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Kpi
-          label={`Casos en ${year}`}
-          value={formatNumber(totalCases)}
-          delta="acumulado del año"
+          label={`${info.label} en ${year}`}
+          value={formatNumber(yearValue, info.decimals)}
+          delta={info.mean ? 'promedio semanal del año' : 'acumulado del año'}
         />
         <Kpi
           label="Departamentos"
@@ -81,15 +88,19 @@ export function AnalisisPage() {
           delta={weeksWithSignal > 0 ? 'revisar la notificación' : 'sin señales'}
           warn={weeksWithSignal > 0}
         />
-        <Kpi label="Semana más alta" value={formatNumber(peak)} delta="casos en una semana" />
+        <Kpi
+          label="Semana más alta"
+          value={formatNumber(peak, info.decimals)}
+          delta={`${info.unit} en una semana`}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <HeatmapCard heatmap={heatmap} peak={peak} year={year} />
-        <RankingCard ranking={ranking} year={year} />
+        <HeatmapCard heatmap={heatmap} peak={peak} year={year} info={info} />
+        <RankingCard ranking={ranking} year={year} info={info} />
       </div>
 
-      <AnomaliesCard anomalies={anomalies} flagged={flagged} />
+      <AnomaliesCard anomalies={anomalies} flagged={flagged} info={info} />
     </>
   )
 }

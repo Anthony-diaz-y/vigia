@@ -11,6 +11,15 @@ export function totalCasesForYear(
   return series.filter((row) => row.year === year).reduce((sum, row) => sum + (row.cases ?? 0), 0)
 }
 
+// Promedio semanal del año elegido, para indicadores que son promedios
+export function averageForYear(
+  series: ReadonlyArray<WeeklySeriesRow>,
+  year: number | null,
+): number | null {
+  const values = series.filter((row) => row.year === year).map((row) => row.cases)
+  return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
 // Semanas marcadas como anómalas
 export function flaggedAnomalies(anomalies: ReadonlyArray<AnomalyRow>): AnomalyRow[] {
   return anomalies.filter((row) => row.is_anomaly)

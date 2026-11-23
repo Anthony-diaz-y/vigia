@@ -7,9 +7,9 @@ import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Vigia, vigilancia de dengue',
+  title: 'Vigia, análisis de datos de salud',
   description:
-    'Ingesta, análisis y pronóstico de vigilancia epidemiológica de dengue. Herramienta de apoyo a la decisión, no un dispositivo médico.',
+    'Sube cualquier dataset de salud y obtén tableros, alertas y pronósticos que se adaptan a tus datos. Herramienta de apoyo a la decisión, no un dispositivo médico.',
 }
 
 const publicSans = Public_Sans({

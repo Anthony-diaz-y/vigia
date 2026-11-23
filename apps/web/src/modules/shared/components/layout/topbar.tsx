@@ -4,6 +4,7 @@ import type { Theme } from '../../constants/theme'
 import { formatNumber } from '../../utils'
 import {
   CalendarIcon,
+  ChartIcon,
   FileIcon,
   MoonIcon,
   RefreshIcon,
@@ -14,16 +15,17 @@ import {
 } from '../ui'
 import { ClearDataButton, TokenInput, type AccessControl } from './access-control'
 
-const ALL_FILES = 0
-
 interface TopbarFilters {
   uploads: ReadonlyArray<UploadDto>
   activeUploadId: number | null
-  onUploadChange: (id: number | null) => void
+  onUploadChange: (id: number) => void
   years: ReadonlyArray<number>
   year: number | null
   onYearChange: (year: number) => void
   showYear: boolean
+  indicators: ReadonlyArray<{ id: string; label: string }>
+  indicator: string | null
+  onIndicatorChange: (indicator: string) => void
 }
 
 interface TopbarProps {
@@ -50,14 +52,15 @@ export function Topbar({
   onUploadClick,
   access,
 }: TopbarProps) {
-  const fileOptions: SelectOption<number>[] = [
-    { value: ALL_FILES, label: 'Todos los archivos', hint: 'Suma de todo lo cargado' },
-    ...filters.uploads.map((row) => ({
-      value: row.id,
-      label: row.filename,
-      hint: `${formatNumber(row.rows_in)} filas`,
-    })),
-  ]
+  const fileOptions: SelectOption<number>[] = filters.uploads.map((row) => ({
+    value: row.id,
+    label: row.title || row.filename,
+    hint: `${row.topic ? `${row.topic}, ` : ''}${formatNumber(row.rows_in)} filas`,
+  }))
+  const indicatorOptions: SelectOption<string>[] = filters.indicators.map((option) => ({
+    value: option.id,
+    label: option.label,
+  }))
   const yearOptions: SelectOption<number>[] = filters.years.map((value) => ({
     value,
     label: String(value),
@@ -75,11 +78,25 @@ export function Topbar({
             label="Archivo a analizar"
             caption="Archivo"
             icon={<FileIcon />}
-            value={filters.activeUploadId ?? ALL_FILES}
+            value={filters.activeUploadId ?? 0}
             options={fileOptions}
-            onChange={(value) => filters.onUploadChange(value === ALL_FILES ? null : value)}
+            onChange={filters.onUploadChange}
             disabled={busy || filters.uploads.length === 0}
           />
+          {indicatorOptions.length > 1 && filters.indicator !== null && (
+            <>
+              <span className="toolbar-divider" aria-hidden="true" />
+              <Select
+                label="Indicador"
+                caption="Indicador"
+                icon={<ChartIcon />}
+                value={filters.indicator}
+                options={indicatorOptions}
+                onChange={filters.onIndicatorChange}
+                disabled={busy}
+              />
+            </>
+          )}
           {filters.showYear && filters.year !== null && (
             <>
               <span className="toolbar-divider" aria-hidden="true" />

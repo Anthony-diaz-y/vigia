@@ -1,10 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { clearUploads, createUpload, previewUpload } from '../services/uploads.service'
+import {
+  clearUploads,
+  createUpload,
+  previewUpload,
+  type UploadReview,
+} from '../services/uploads.service'
 
 interface UploadInput {
   file: File
-  mapping?: Record<string, string>
+  review: UploadReview
 }
 
 // Vista previa del archivo antes de confirmar el mapeo de columnas
@@ -18,7 +23,7 @@ export function useUploadPreview() {
 export function useUploadFile() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ file, mapping }: UploadInput) => createUpload(file, mapping),
+    mutationFn: ({ file, review }: UploadInput) => createUpload(file, review),
     onSuccess: () => queryClient.invalidateQueries(),
   })
 }

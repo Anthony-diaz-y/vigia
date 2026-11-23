@@ -14,11 +14,19 @@ import { ACCENT, AXIS_LABEL, AXIS_TICK, TOOLTIP_STYLE } from './chart-theme'
 
 export interface WeeklyPoint {
   label: string
-  total: number
+  total: number | null
 }
 
-// Gráfico de área con el total de casos por semana epidemiológica
-export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
+// Gráfico de área con el valor de cada periodo (por defecto, casos por semana epidemiológica)
+export function WeeklyChart({
+  data,
+  xLabel = 'Semana epidemiológica (año-S##)',
+  yLabel = 'Casos',
+}: {
+  data: ReadonlyArray<WeeklyPoint>
+  xLabel?: string
+  yLabel?: string
+}) {
   return (
     <div className="chart">
       <ResponsiveContainer width="100%" height="100%">
@@ -35,7 +43,7 @@ export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
             tick={{ fontSize: 10, fill: 'var(--muted)' }}
             minTickGap={32}
             label={{
-              value: 'Semana epidemiológica (año-S##)',
+              value: xLabel,
               position: 'insideBottom',
               offset: -16,
               style: AXIS_LABEL,
@@ -44,7 +52,7 @@ export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
           <YAxis
             tick={AXIS_TICK}
             label={{
-              value: 'Casos',
+              value: yLabel,
               angle: -90,
               position: 'insideLeft',
               style: { ...AXIS_LABEL, textAnchor: 'middle' },
@@ -58,7 +66,7 @@ export function WeeklyChart({ data }: { data: ReadonlyArray<WeeklyPoint> }) {
           <Area
             type="monotone"
             dataKey="total"
-            name="Casos"
+            name={yLabel}
             stroke={ACCENT}
             strokeWidth={2}
             fill="url(#weekly-fill)"

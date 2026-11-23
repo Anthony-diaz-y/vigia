@@ -1,19 +1,20 @@
 'use client'
 
+import { OutlookSection } from '@/modules/shared/components/outlook'
 import { ErrorBanner, LoadingState } from '@/modules/shared/components/ui'
 import { LEVEL_LABEL } from '@/modules/shared/constants'
 import { useDashboardFilters } from '@/modules/shared/contexts'
-import { useRecommendations } from '@/modules/shared/hooks'
+import { useIndicatorInfo, useRecommendations } from '@/modules/shared/hooks'
 import { errorMessage } from '@/modules/shared/utils'
 
 import { windowLabel } from '../utils/window-label'
 import { ActionList } from './action-list'
-import { OutlookSection } from './outlook-section'
 
 // Página de recomendaciones: resumen, dónde actuar y proyección de los próximos años
 export function RecomendacionesPage() {
-  const { uploadId } = useDashboardFilters()
-  const { data, isError, error, isFetching } = useRecommendations(uploadId)
+  const { uploadId, indicator } = useDashboardFilters()
+  const info = useIndicatorInfo()
+  const { data, isError, error, isFetching } = useRecommendations(uploadId, indicator)
 
   if (isError) {
     return <ErrorBanner message={errorMessage(error)} />
@@ -45,11 +46,13 @@ export function RecomendacionesPage() {
         </p>
       </section>
 
-      <ActionList items={data.items} />
-      <OutlookSection outlook={data.outlook} />
+      <ActionList items={data.items} info={info} />
+      {!info.mean && <OutlookSection outlook={data.outlook} unit={info.unit} />}
 
       <p className="brief-footnote">
-        Los niveles y las acciones salen de reglas fijas. La IA solo redacta el resumen.
+        {data.items.some((item) => item.actions_source === 'deepseek')
+          ? 'Los niveles salen de reglas fijas. Las acciones marcadas como sugeridas las propone la IA: revisalas con el equipo.'
+          : 'Los niveles y las acciones salen de reglas fijas. La IA solo redacta el resumen.'}
       </p>
     </>
   )

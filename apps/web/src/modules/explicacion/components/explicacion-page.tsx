@@ -13,8 +13,8 @@ import { dominantDriver } from '../utils/drivers'
 
 // Página de explicación: factores que mueven el pronóstico y acciones por departamento
 export function ExplicacionPage() {
-  const { uploadId } = useDashboardFilters()
-  const { data: explain, isError, error } = useExplanation(uploadId)
+  const { uploadId, indicator } = useDashboardFilters()
+  const { data: explain, isError, error } = useExplanation(uploadId, indicator)
 
   if (isError) {
     return <ErrorBanner message={errorMessage(error)} />
@@ -28,7 +28,7 @@ export function ExplicacionPage() {
     return (
       <Section title="Explicación">
         <p className="text-sm text-muted">
-          Todavía no hay factores explicables: se necesita más historia de casos por departamento.
+          Todavía no hay factores explicables: se necesita más historia semanal por lugar.
         </p>
       </Section>
     )
@@ -93,7 +93,7 @@ function ExplanationContent({ explain }: { explain: ExplainResponse }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Section title={`Qué mueve el pronóstico en ${activeDepartment ?? '—'}`}>
           <div className="card-sub">
-            Barra más larga, más peso. En ámbar, los factores que empujan los casos hacia arriba.
+            Barra más larga, más peso. En ámbar, los factores que empujan el indicador hacia arriba.
           </div>
           <div className="flex flex-col gap-4">
             {drivers.map((row) => {

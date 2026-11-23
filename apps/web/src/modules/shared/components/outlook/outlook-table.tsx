@@ -1,6 +1,6 @@
 import type { OutlookDto } from '@vigia/contracts'
 
-import { formatNumber, plural } from '@/modules/shared/utils'
+import { formatNumber, plural } from '../../utils'
 
 import { Trend } from './trend'
 
@@ -39,7 +39,7 @@ export function OutlookTable({ outlook }: { outlook: OutlookDto }) {
       </table>
       {rest > 0 && (
         <p className="text-xs text-muted">
-          y {rest} {plural(rest, 'departamento')} más con menos casos.
+          y {rest} {plural(rest, 'departamento')} más con valores menores.
         </p>
       )}
     </div>

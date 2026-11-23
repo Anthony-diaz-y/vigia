@@ -2,29 +2,31 @@
 
 import { useIsFetching } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 
 import { DISCLAIMER, type UploadPreview } from '@vigia/contracts'
 
-import { EMPTY_SERIES, EMPTY_UPLOADS } from '../../constants'
-import { navItemForPath } from '../../constants/navigation'
+import { EMPTY_UPLOADS, EMPTY_YEARS } from '../../constants'
+import { NAV_ITEMS, isAvailable, navItemForPath } from '../../constants/navigation'
 import { DashboardFiltersProvider } from '../../contexts'
 import {
   useAccessToken,
+  defaultIndicatorId,
   useClearUploads,
   useHealth,
   useRefreshData,
   useSelectedYear,
-  useSeries,
   useTheme,
   useUploadFile,
   useUploadPreview,
+  useUploadYears,
   useUploads,
 } from '../../hooks'
 import { errorMessage } from '../../utils'
-import { EmptyState, ErrorBanner } from '../ui'
+import { EmptyState, ErrorBanner, UnavailableState } from '../ui'
 import type { AccessControl } from './access-control'
+import type { UploadReview } from '../../services/uploads.service'
 import { MappingDialog } from './mapping-dialog'
 import { MobileNav, Sidebar } from './navigation'
 import { Topbar } from './topbar'
@@ -43,7 +45,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const { token, changeToken } = useAccessToken()
   const refresh = useRefreshData()
 
-  const [activeUploadId, setActiveUploadId] = useState<number | null>(null)
+  const [pickedUploadId, setActiveUploadId] = useState<number | null>(null)
+  const [pickedIndicator, setIndicator] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingUpload | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -52,11 +55,14 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const uploads = uploadsQuery.data ?? EMPTY_UPLOADS
   const hasUploads = uploads.length > 0
 
-  const series = useSeries(activeUploadId, hasUploads).data ?? EMPTY_SERIES
-  const years = useMemo(
-    () => [...new Set(series.map((row) => row.year))].sort((left, right) => right - left),
-    [series],
-  )
+  const activeUpload = uploads.find((upload) => upload.id === pickedUploadId) ?? uploads[0] ?? null
+  const activeUploadId = activeUpload?.id ?? null
+  const indicator = activeUpload?.indicators.some((option) => option.id === pickedIndicator)
+    ? pickedIndicator
+    : null
+
+  const yearsQuery = useUploadYears(activeUploadId)
+  const years = yearsQuery.data ?? EMPTY_YEARS
   const [year, setYear] = useSelectedYear(years)
 
   const { data: health } = useHealth()
@@ -89,13 +95,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   // Sube el archivo con el mapeo confirmado y lo deja como archivo activo
-  const onConfirmUpload = (mapping: Record<string, string>) => {
+  const onConfirmUpload = (review: UploadReview) => {
     if (!pending) {
       return
     }
     setError(null)
     uploadMutation.mutate(
-      { file: pending.file, mapping },
+      { file: pending.file, review },
       {
         onSuccess: (created) => {
           setActiveUploadId(created.id)
@@ -118,6 +124,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     })
   }
 
+  const navItems = NAV_ITEMS.filter((item) => isAvailable(item, activeUpload))
+
   const access: AccessControl = {
     token,
     onTokenChange: changeToken,
@@ -127,12 +135,17 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DashboardFiltersProvider uploadId={activeUploadId} year={year}>
+    <DashboardFiltersProvider
+      upload={activeUpload}
+      year={year}
+      yearsReady={yearsQuery.isSuccess}
+      indicator={indicator}
+    >
       <div className="flex min-h-screen">
-        <Sidebar uploads={uploads} access={access} />
+        <Sidebar uploads={uploads} items={navItems} access={access} />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileNav />
+          <MobileNav items={navItems} />
 
           <Topbar
             title={current.label}
@@ -145,6 +158,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               year,
               onYearChange: setYear,
               showYear: current.usesYear,
+              indicators: current.usesIndicator ? (activeUpload?.indicators ?? []) : [],
+              indicator: indicator ?? defaultIndicatorId(activeUpload),
+              onIndicatorChange: setIndicator,
             }}
             busy={busy}
             theme={theme}
@@ -160,7 +176,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             {uploadsQuery.isSuccess && !hasUploads && <EmptyState onUpload={openFileDialog} />}
             {hasUploads && (
               <div key={pathname} className="view-enter flex flex-col gap-[18px]">
-                {children}
+                {isAvailable(current, activeUpload) ? (
+                  children
+                ) : (
+                  <UnavailableState page={current.label} />
+                )}
               </div>
             )}
           </main>
@@ -174,12 +194,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           accept=".csv,.txt,.xlsx"
           onChange={onFileSelected}
           className="hidden"
-          aria-label="Archivo de vigilancia"
+          aria-label="Archivo de datos"
         />
 
         {pending && (
           <MappingDialog
             preview={pending.preview}
+            filename={pending.file.name}
             busy={busy}
             onCancel={() => setPending(null)}
             onConfirm={onConfirmUpload}

@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, type Query } from '@tanstack/react-query'
 
 import { ApiError } from './client'
 
@@ -27,4 +27,12 @@ export function createQueryClient(): QueryClient {
       },
     },
   })
+}
+
+// Conserva los datos anteriores mientras se recarga el mismo archivo; al cambiar de archivo no muestra los del otro
+export function placeholderFor(uploadId: number | null) {
+  return <T>(
+    previous: T | undefined,
+    previousQuery: Query<T, Error, T, readonly unknown[]> | undefined,
+  ) => (previousQuery?.queryKey.includes(uploadId ?? 'all') ? previous : undefined)
 }

@@ -11,17 +11,21 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { InterannualRow } from '@vigia/contracts'
-
 import { AXIS_LABEL, AXIS_TICK, TOOLTIP_STYLE, yearColor } from './chart-theme'
 
-// Gráfico de líneas que compara los casos semanales de cada año
+// Gráfico de líneas que compara el valor de cada semana o mes entre años
 export function InterannualChart({
   data,
   years,
+  xKey = 'epi_week',
+  xLabel = 'Semana epidemiológica',
+  yLabel = 'Casos',
 }: {
-  data: ReadonlyArray<InterannualRow>
+  data: ReadonlyArray<Record<string, number | null>>
   years: ReadonlyArray<string>
+  xKey?: string
+  xLabel?: string
+  yLabel?: string
 }) {
   return (
     <div className="chart chart-tall">
@@ -29,11 +33,11 @@ export function InterannualChart({
         <LineChart data={[...data]} margin={{ top: 8, right: 24, bottom: 36, left: 16 }}>
           <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
           <XAxis
-            dataKey="epi_week"
+            dataKey={xKey}
             tick={AXIS_TICK}
             interval={3}
             label={{
-              value: 'Semana epidemiológica',
+              value: xLabel,
               position: 'insideBottom',
               offset: -22,
               style: AXIS_LABEL,
@@ -42,7 +46,7 @@ export function InterannualChart({
           <YAxis
             tick={AXIS_TICK}
             label={{
-              value: 'Casos',
+              value: yLabel,
               angle: -90,
               position: 'insideLeft',
               offset: 0,

@@ -3,20 +3,30 @@
 import { createContext, useContext, useMemo } from 'react'
 import type { ReactNode } from 'react'
 
+import type { UploadDto } from '@vigia/contracts'
+
 interface DashboardFilters {
+  upload: UploadDto | null
   uploadId: number | null
   year: number | null
+  yearsReady: boolean
+  indicator: string | null
 }
 
 const DashboardFiltersContext = createContext<DashboardFilters | null>(null)
 
-// Comparte el archivo y el año seleccionados con la página que se está mostrando
+// Comparte el archivo, el año y el indicador elegidos con la página que se está mostrando
 export function DashboardFiltersProvider({
-  uploadId,
+  upload,
   year,
+  yearsReady,
+  indicator,
   children,
-}: DashboardFilters & { children: ReactNode }) {
-  const value = useMemo<DashboardFilters>(() => ({ uploadId, year }), [uploadId, year])
+}: Omit<DashboardFilters, 'uploadId'> & { children: ReactNode }) {
+  const value = useMemo<DashboardFilters>(
+    () => ({ upload, uploadId: upload?.id ?? null, year, yearsReady, indicator }),
+    [upload, year, yearsReady, indicator],
+  )
 
   return (
     <DashboardFiltersContext.Provider value={value}>{children}</DashboardFiltersContext.Provider>

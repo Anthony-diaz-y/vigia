@@ -53,3 +53,11 @@ export function maseQuality(mase: number | null): { label: string; tone: Tone; w
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
+// Abrevia números grandes en miles, igual en servidor y navegador
+export function compactNumber(value: number): string {
+  if (value < 1000) {
+    return formatNumber(value)
+  }
+  return `${formatNumber(value / 1000, value >= 10_000 ? 0 : 1)} mil`
+}

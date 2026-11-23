@@ -6,9 +6,10 @@ import type { RecommendationItemDto } from '@vigia/contracts'
 
 import { Section } from '@/modules/shared/components/ui'
 import { LEVEL_LABEL } from '@/modules/shared/constants'
+import type { IndicatorInfo } from '@/modules/shared/hooks'
 import { formatNumber, plural } from '@/modules/shared/utils'
 
-import { Trend } from './trend'
+import { Trend } from '@/modules/shared/components/outlook'
 
 const MIN_CASES_FOR_ROW = 10
 
@@ -18,7 +19,13 @@ function isRelevant(item: RecommendationItemDto): boolean {
 }
 
 // Lista desplegable de departamentos con su nivel, casos y acciones sugeridas
-export function ActionList({ items }: { items: ReadonlyArray<RecommendationItemDto> }) {
+export function ActionList({
+  items,
+  info,
+}: {
+  items: ReadonlyArray<RecommendationItemDto>
+  info: IndicatorInfo
+}) {
   const [open, setOpen] = useState<string | null>(null)
   const [showQuiet, setShowQuiet] = useState(false)
 
@@ -44,7 +51,8 @@ export function ActionList({ items }: { items: ReadonlyArray<RecommendationItemD
                 </span>
                 <span className="act-level">{LEVEL_LABEL[item.level]}</span>
                 <span className="act-cases">
-                  {formatNumber(item.recent_cases)} casos <Trend value={item.change_pct} />
+                  {formatNumber(item.recent_cases, info.decimals)} {info.unit}{' '}
+                  <Trend value={item.change_pct} />
                 </span>
                 <span className="act-action">{item.actions[0]}</span>
                 <span className="act-chevron" aria-hidden="true" />
@@ -56,6 +64,9 @@ export function ActionList({ items }: { items: ReadonlyArray<RecommendationItemD
                       <li key={reason}>{reason}</li>
                     ))}
                   </ul>
+                  {item.actions_source === 'deepseek' && (
+                    <p className="act-ai">Sugerida por IA, revisar con el equipo.</p>
+                  )}
                   {item.actions.length > 1 && (
                     <p className="act-next">
                       También: <span>{item.actions.slice(1).join(' ')}</span>
@@ -77,7 +88,7 @@ export function ActionList({ items }: { items: ReadonlyArray<RecommendationItemD
             onClick={() => setShowQuiet((value) => !value)}
           >
             {showQuiet ? 'Ocultar' : 'Ver'} {quiet.length} {plural(quiet.length, 'departamento')}{' '}
-            sin casos relevantes
+            sin cambios relevantes
           </button>
           {showQuiet && (
             <p className="act-quiet-list">{quiet.map((item) => item.department).join(', ')}</p>

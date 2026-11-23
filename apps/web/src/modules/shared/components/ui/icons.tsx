@@ -28,7 +28,7 @@ const ICON = {
 }
 
 const NAV_PATHS: Record<string, ReactNode> = {
-  resumen: (
+  tablero: (
     <>
       <rect x="3" y="3" width="7" height="9" rx="1.5" />
       <rect x="14" y="3" width="7" height="5" rx="1.5" />
@@ -92,6 +92,15 @@ export function FileIcon() {
   )
 }
 
+// Ícono de gráfico de barras para el indicador
+export function ChartIcon() {
+  return (
+    <svg {...ICON} width={16} height={16}>
+      <path d="M4 20V11M10 20V5M16 20v-6M3 20h18" />
+    </svg>
+  )
+}
+
 // Ícono de calendario
 export function CalendarIcon() {
   return (
@@ -126,6 +135,35 @@ export function MoonIcon() {
   return (
     <svg {...ICON} strokeWidth={2}>
       <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
+  )
+}
+
+// Ícono de cerrar (X) para diálogos
+export function CloseIcon() {
+  return (
+    <svg {...ICON} strokeWidth={2}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
+// Ícono de lápiz para indicar que un texto se puede editar
+export function PencilIcon() {
+  return (
+    <svg {...ICON} width={14} height={14}>
+      <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
+  )
+}
+
+// Ícono de candado para datos protegidos
+export function LockIcon() {
+  return (
+    <svg {...ICON} width={16} height={16}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </svg>
   )
 }

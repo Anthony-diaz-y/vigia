@@ -1,8 +1,6 @@
 import type { OutlookDto } from '@vigia/contracts'
 
-import { formatNumber } from '@/modules/shared/utils'
-
-import { compactNumber } from '../utils/compact'
+import { compactNumber, formatNumber } from '../../utils'
 
 // Valor de la barra: número completo en pantallas anchas y abreviado en angostas
 function BarValue({ value }: { value: number | null }) {
@@ -23,7 +21,7 @@ function BarValue({ value }: { value: number | null }) {
 }
 
 // Barras anuales de casos observados, estimados y proyectados con su rango
-export function YearBars({ outlook }: { outlook: OutlookDto }) {
+export function YearBars({ outlook, unit }: { outlook: OutlookDto; unit: string }) {
   const { projection } = outlook.total
   const observed = outlook.total.history
   const history: Array<{ year: number; cases: number | null; estimated: boolean }> = []
@@ -45,11 +43,11 @@ export function YearBars({ outlook }: { outlook: OutlookDto }) {
     ...history.map((point) =>
       point.cases === null
         ? `${point.year}: sin datos`
-        : `${point.year}: ${formatNumber(point.cases)} casos${point.estimated ? ' (estimado)' : ''}`,
+        : `${point.year}: ${formatNumber(point.cases)} ${unit}${point.estimated ? ' (estimado)' : ''}`,
     ),
     ...projection.map(
       (point) =>
-        `${point.year}: ${formatNumber(point.p50)} casos proyectados (entre ${formatNumber(
+        `${point.year}: ${formatNumber(point.p50)} ${unit} proyectados (entre ${formatNumber(
           point.p10,
           0,
         )} y ${formatNumber(point.p90)})`,

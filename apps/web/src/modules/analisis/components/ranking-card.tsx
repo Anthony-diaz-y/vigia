@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { RankingRow } from '@vigia/contracts'
 
 import { Section } from '@/modules/shared/components/ui'
+import type { IndicatorInfo } from '@/modules/shared/hooks'
 import { formatNumber } from '@/modules/shared/utils'
 
 const RANKING_PREVIEW = 8
@@ -13,9 +14,11 @@ const RANKING_PREVIEW = 8
 export function RankingCard({
   ranking,
   year,
+  info,
 }: {
   ranking: ReadonlyArray<RankingRow>
   year: number
+  info: IndicatorInfo
 }) {
   const [showAll, setShowAll] = useState(false)
   const total = ranking.reduce((sum, row) => sum + (row.cases ?? 0), 0)
@@ -23,7 +26,7 @@ export function RankingCard({
   const visible = showAll ? ranking : ranking.slice(0, RANKING_PREVIEW)
 
   return (
-    <Section title={`Departamentos con más casos en ${year}`}>
+    <Section title={`${info.label} por departamento en ${year}`}>
       {ranking.length > 0 ? (
         <>
           <div
@@ -42,8 +45,8 @@ export function RankingCard({
                     <div className="rank-fill" style={{ width: `${Math.max(width, 1)}%` }} />
                   </div>
                   <span className="rank-value">
-                    {formatNumber(row.cases)}
-                    <span className="rank-share">{share.toFixed(1)} %</span>
+                    {formatNumber(row.cases, info.decimals)}
+                    {!info.mean && <span className="rank-share">{share.toFixed(1)} %</span>}
                   </span>
                 </div>
               )

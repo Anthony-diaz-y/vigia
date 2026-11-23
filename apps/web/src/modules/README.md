@@ -20,10 +20,12 @@ Solo se crean las carpetas que la página necesita.
 `shared/` contiene lo que usan dos o más páginas o el layout del tablero:
 
 - `api/`: cliente axios, token y `QueryClient`.
-- `components/`: UI, gráficos y layout (barra lateral, topbar, diálogo de mapeo).
+- `components/`: UI, gráficos, proyección anual (`outlook/`) y layout (barra lateral, topbar,
+  modal de revisión de columnas).
 - `constants/`: navegación, etiquetas, claves de consulta y arreglos vacíos.
-- `contexts/`: filtros activos (archivo y año) compartidos con cada página.
-- `hooks/`: tema, token, año, refresco y consultas/mutaciones compartidas.
+- `contexts/`: filtros activos (archivo, año e indicador) compartidos con cada página.
+- `hooks/`: tema, token, año, indicador (`useIndicatorInfo`), refresco y consultas/mutaciones
+  compartidas.
 - `services/`: llamadas HTTP compartidas.
 - `utils/`: formato y tema.
 
@@ -53,9 +55,20 @@ de una (o en el layout), vive en `shared/`.
 
 | Ruta               | Página            |
 | ------------------ | ----------------- |
-| `/`                | `resumen`         |
+| `/`                | `tablero`         |
 | `/recomendaciones` | `recomendaciones` |
 | `/analisis`        | `analisis`        |
 | `/pronostico`      | `pronostico`      |
 | `/explicacion`     | `explicacion`     |
 | `/archivos`        | `archivos`        |
+
+## Páginas que se adaptan al archivo
+
+Cada archivo trae sus propias columnas, así que el menú solo muestra lo que el archivo
+permite (`isAvailable` en `shared/constants/navigation.ts`):
+
+- Tablero, Pronóstico y Archivos: siempre.
+- Recomendaciones, Análisis y Explicación: cuando el archivo tiene fechas o año y semana.
+
+Las páginas leen el indicador elegido (registros, total o promedio) de los filtros y lo
+envían a la API; los textos usan `useIndicatorInfo()` en lugar de decir "casos" fijo.

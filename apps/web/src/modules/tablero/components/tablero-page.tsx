@@ -12,6 +12,7 @@ import { useDashboard } from '../hooks/use-dashboard'
 import { BarsWidget } from './bars-widget'
 import { HeatmapWidget } from './heatmap-widget'
 import { HistogramWidget } from './histogram-widget'
+import { InsightsCard } from './insights-card'
 import { RecommendationBanner } from './recommendation-banner'
 
 const WIDE: ReadonlySet<WidgetDto['type']> = new Set([
@@ -46,7 +47,15 @@ export function TableroPage() {
     <>
       {upload && WEEKLY.has(upload.time) && <EpiBanner uploadId={uploadId} indicator={indicator} />}
       {data.widgets
-        .filter((widget) => WIDE.has(widget.type))
+        .filter((widget) => widget.type === 'kpis')
+        .map((widget) => (
+          <div key={widget.id} className="min-w-0">
+            <Widget widget={widget} dashboard={data} />
+          </div>
+        ))}
+      <InsightsCard insights={data.insights} />
+      {data.widgets
+        .filter((widget) => WIDE.has(widget.type) && widget.type !== 'kpis')
         .map((widget) => (
           <div key={widget.id} className="min-w-0">
             <Widget widget={widget} dashboard={data} />

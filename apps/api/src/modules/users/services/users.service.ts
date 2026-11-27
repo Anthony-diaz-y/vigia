@@ -52,6 +52,9 @@ export class UsersService implements OnApplicationBootstrap {
       return
     }
     const { email, name, password } = this.config.auth.admin
+    if (!password) {
+      throw new Error('set VIGIA_ADMIN_PASSWORD in .env to create the first administrator')
+    }
     await this.create({ email, name, password, role: 'admin' })
     this.logger.log(`Administrador inicial creado: ${email}`)
   }

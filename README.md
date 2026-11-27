@@ -46,6 +46,7 @@ API structure and conventions: `apps/api/README.md`.
 
 ```bash
 pnpm install
+cp .env.example .env     # then replace every change-me value
 docker compose up -d
 pnpm migration:run
 pnpm dev
@@ -55,14 +56,21 @@ pnpm dev
 - API: http://localhost:3001/api
 - Next rewrites `/api/*` to `VIGIA_API_URL` (default `http://localhost:3001`).
 
-Copy `.env.example` to `.env` to set the session secret, the first
-administrator, the database URLs and the Next.js API origin.
+`.env` holds the only credentials: the PostgreSQL user, password and database
+that docker compose creates, the same values in `VIGIA_DATABASE_URL`, the
+session secret and the first administrator. `VIGIA_DATABASE_URL` is required.
+`VIGIA_ADMIN_PASSWORD` has no default: the API refuses to start without it while
+the `users` table is empty (migrations and backfills do not need it).
+Optional settings and their defaults: `PORT` (3001), `VIGIA_SESSION_HOURS` (12),
+`VIGIA_CORS_ORIGINS` (`http://localhost:3000,http://localhost:5173`),
+`VIGIA_DATA_DIR` (`data`), `VIGIA_DATABASE_SSL` (false), `DEEPSEEK_API_KEY`.
+Postgres listens on `localhost:55432` and holds a single database.
 
 ### Access
 
 Everyone signs in with an email and a password. On its first start the API
 creates the administrator from `VIGIA_ADMIN_EMAIL` / `VIGIA_ADMIN_PASSWORD`
-(development defaults: `admin@vigia.local` / `vigia-admin`). The administrator
+(email default: `admin@vigia.local`; the password has no default). The administrator
 creates the other accounts on the **Usuarios** page.
 
 | Role | Can |
@@ -87,7 +95,7 @@ pnpm typecheck
 pnpm lint
 pnpm format:check
 pnpm test                    # unit tests
-pnpm --filter @vigia/api test:db   # PostgreSQL e2e (needs vigia_test)
+pnpm --filter @vigia/api test:db   # PostgreSQL e2e in a throwaway <db>_test database
 pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
 ```
 

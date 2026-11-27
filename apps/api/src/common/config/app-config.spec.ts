@@ -3,16 +3,21 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
-  DEFAULT_ADMIN_PASSWORD,
   DEFAULT_AUTH_SECRET,
-  DEFAULT_DATABASE_URL,
+  LEGACY_ADMIN_PASSWORD,
   loadConfig,
   normalizeDatabaseUrl,
 } from './app-config'
 
+const REQUIRED = {
+  VIGIA_DATABASE_URL: 'postgresql://app:secret@localhost:55432/vigia',
+  VIGIA_ADMIN_PASSWORD: 'a-real-admin-password',
+}
+
 describe('loadConfig', () => {
   it('normalizes the SQLAlchemy Postgres URL and parses CORS origins', () => {
     const config = loadConfig({
+      ...REQUIRED,
       NODE_ENV: 'test',
       PORT: '4000',
       VIGIA_DATABASE_URL: 'postgresql+psycopg://vigia:vigia@db:5432/vigia',
@@ -29,6 +34,7 @@ describe('loadConfig', () => {
 
   it('prefers the explicit VIGIA_TS_DATABASE_URL override', () => {
     const config = loadConfig({
+      ...REQUIRED,
       NODE_ENV: 'test',
       VIGIA_DATABASE_URL: 'postgresql+psycopg://vigia:vigia@localhost:55432/vigia',
       VIGIA_TS_DATABASE_URL: 'postgresql://vigia:vigia@localhost:55432/vigia_ts',
@@ -42,8 +48,8 @@ describe('loadConfig', () => {
       loadConfig({
         NODE_ENV: 'production',
         VIGIA_AUTH_SECRET: DEFAULT_AUTH_SECRET,
-        VIGIA_ADMIN_PASSWORD: DEFAULT_ADMIN_PASSWORD,
-        VIGIA_DATABASE_URL: DEFAULT_DATABASE_URL,
+        VIGIA_ADMIN_PASSWORD: LEGACY_ADMIN_PASSWORD,
+        VIGIA_DATABASE_URL: REQUIRED.VIGIA_DATABASE_URL,
       }),
     ).toThrow(/VIGIA_AUTH_SECRET.*VIGIA_ADMIN_PASSWORD/)
   })
@@ -61,6 +67,7 @@ describe('loadConfig', () => {
 
   it('reads the session length and the first administrator', () => {
     const config = loadConfig({
+      ...REQUIRED,
       NODE_ENV: 'test',
       VIGIA_SESSION_HOURS: '8',
       VIGIA_ADMIN_EMAIL: 'Jefa@Diresa.gob.pe',
@@ -87,10 +94,28 @@ describe('loadConfig', () => {
     expect(config.databaseSsl).toBe(true)
   })
 
+  it('requires the database URL', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'test', VIGIA_ADMIN_PASSWORD: REQUIRED.VIGIA_ADMIN_PASSWORD }),
+    ).toThrow(/VIGIA_DATABASE_URL/)
+    expect(() => loadConfig({ ...REQUIRED, NODE_ENV: 'test', VIGIA_DATABASE_URL: '' })).toThrow(
+      /VIGIA_DATABASE_URL/,
+    )
+  })
+
+  it('loads without an administrator password, as the migration CLI needs', () => {
+    const config = loadConfig({ NODE_ENV: 'test', VIGIA_DATABASE_URL: REQUIRED.VIGIA_DATABASE_URL })
+    expect(config.auth.admin.password).toBeUndefined()
+    expect(() =>
+      loadConfig({ ...REQUIRED, NODE_ENV: 'test', VIGIA_ADMIN_PASSWORD: 'short' }),
+    ).toThrow(/VIGIA_ADMIN_PASSWORD/)
+  })
+
   it('rejects an invalid port', () => {
     expect(() =>
       loadConfig({
         NODE_ENV: 'test',
+        ...REQUIRED,
         PORT: 'not-a-port',
         VIGIA_DATABASE_URL: 'postgresql://localhost/vigia',
       }),

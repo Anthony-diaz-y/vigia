@@ -15,18 +15,18 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: vigia
-          POSTGRES_PASSWORD: vigia
+          POSTGRES_USER: vigia_ci
+          POSTGRES_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}
           POSTGRES_DB: vigia_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U vigia -d vigia_test"
+          --health-cmd "pg_isready -U vigia_ci -d vigia_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      VIGIA_TEST_DATABASE_URL: postgresql://vigia:vigia@localhost:5432/vigia_test
+      VIGIA_TEST_DATABASE_URL: postgresql://vigia_ci:ci-${{ github.run_id }}-${{ github.run_attempt }}@localhost:5432/vigia_test
       VIGIA_AUTH_SECRET: ci-secret-for-signing-test-sessions
     steps:
       - uses: actions/checkout@v4

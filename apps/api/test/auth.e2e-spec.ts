@@ -15,7 +15,8 @@ import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
 const config = loadConfig()
-const admin = config.auth.admin
+// test/setup.ts siempre define VIGIA_ADMIN_PASSWORD
+const admin = { ...config.auth.admin, password: config.auth.admin.password ?? '' }
 
 describe.skipIf(!dbEnabled)('login and users against PostgreSQL', () => {
   let app: INestApplication

@@ -5,9 +5,9 @@ import { loadEnvFile } from 'node:process'
 import { z } from 'zod'
 
 export const DEFAULT_AUTH_SECRET = 'vigia-dev-secret-change-me-in-production'
-export const DEFAULT_ADMIN_PASSWORD = 'vigia-admin'
+// Contraseña que la app traía por defecto; se rechaza en producción si alguien la vuelve a usar
+export const LEGACY_ADMIN_PASSWORD = 'vigia-admin'
 const MIN_PRODUCTION_SECRET = 32
-export const DEFAULT_DATABASE_URL = 'postgresql://vigia:vigia@localhost:55432/vigia'
 
 export const APP_CONFIG = Symbol('APP_CONFIG')
 
@@ -19,8 +19,9 @@ const rawSchema = z
     VIGIA_SESSION_HOURS: z.coerce.number().int().min(1).max(720).default(12),
     VIGIA_ADMIN_EMAIL: z.string().email().default('admin@vigia.local'),
     VIGIA_ADMIN_NAME: z.string().min(1).max(80).default('Administrador'),
-    VIGIA_ADMIN_PASSWORD: z.string().min(8).default(DEFAULT_ADMIN_PASSWORD),
-    VIGIA_DATABASE_URL: z.string().min(1).default(DEFAULT_DATABASE_URL),
+    // Opcional para los CLI; la API la exige al crear el primer administrador
+    VIGIA_ADMIN_PASSWORD: z.string().min(8).optional(),
+    VIGIA_DATABASE_URL: z.string({ error: 'is required' }).min(1, 'is required'),
     VIGIA_TS_DATABASE_URL: z.string().min(1).optional(),
     VIGIA_DATA_DIR: z.string().min(1).default('data'),
     VIGIA_CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
@@ -41,18 +42,11 @@ const rawSchema = z
         message: `set a random VIGIA_AUTH_SECRET of at least ${MIN_PRODUCTION_SECRET} characters in production`,
       })
     }
-    if (raw.VIGIA_ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+    if (raw.VIGIA_ADMIN_PASSWORD === LEGACY_ADMIN_PASSWORD) {
       context.addIssue({
         code: 'custom',
         path: ['VIGIA_ADMIN_PASSWORD'],
         message: 'set a non-default VIGIA_ADMIN_PASSWORD in production',
-      })
-    }
-    if ((raw.VIGIA_TS_DATABASE_URL ?? raw.VIGIA_DATABASE_URL) === DEFAULT_DATABASE_URL) {
-      context.addIssue({
-        code: 'custom',
-        path: ['VIGIA_DATABASE_URL'],
-        message: 'set the production VIGIA_DATABASE_URL',
       })
     }
   })

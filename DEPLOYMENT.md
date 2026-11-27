@@ -106,6 +106,10 @@ the authority:
 pnpm --filter @vigia/api test:db
 ```
 
+The suite drops and recreates its own database: `VIGIA_TEST_DATABASE_URL`, or
+`VIGIA_DATABASE_URL` with a `_test` suffix. It refuses any name that does not
+end in `_test`, so it never touches the application database.
+
 ## Cutover
 
 1. Freeze writes on the external legacy service. Reads can continue.

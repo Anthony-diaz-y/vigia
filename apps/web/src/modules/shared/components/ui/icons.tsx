@@ -60,6 +60,13 @@ const NAV_PATHS: Record<string, ReactNode> = {
       <path d="M4 6h10M4 12h16M4 18h7" />
     </>
   ),
+  usuarios: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20" />
+    </>
+  ),
   archivos: (
     <>
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
@@ -164,6 +171,16 @@ export function LockIcon() {
     <svg {...ICON} width={16} height={16}>
       <rect x="5" y="11" width="14" height="9" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  )
+}
+
+// Ícono de salida para cerrar sesión
+export function LogoutIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+      <path d="M10 17l-5-5 5-5M5 12h11" />
     </svg>
   )
 }

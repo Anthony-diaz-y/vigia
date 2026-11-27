@@ -8,6 +8,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Vigia, análisis de datos de salud',
+  icons: { icon: '/logo.webp' },
   description:
     'Sube cualquier dataset de salud y obtén tableros, alertas y pronósticos que se adaptan a tus datos. Herramienta de apoyo a la decisión, no un dispositivo médico.',
 }

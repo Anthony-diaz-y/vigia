@@ -51,6 +51,9 @@ export function maseQuality(mase: number | null): { label: string; tone: Tone; w
 
 // Extrae un mensaje legible de un error desconocido
 export function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.name === 'AxiosError') {
+    return 'No se pudo conectar con el servidor de Vigia. Revisa tu conexión e inténtalo de nuevo.'
+  }
   return error instanceof Error ? error.message : String(error)
 }
 

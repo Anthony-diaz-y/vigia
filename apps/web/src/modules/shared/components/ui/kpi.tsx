@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { CountUp } from './count-up'
+
 // Indicador con etiqueta, valor y variación opcional
 export function Kpi({
   label,
@@ -17,7 +19,9 @@ export function Kpi({
   return (
     <div className="kpi">
       <div className="kpi-label">{label}</div>
-      <div className={`kpi-value${small ? ' kpi-value-small' : ''}`}>{value}</div>
+      <div className={`kpi-value${small ? ' kpi-value-small' : ''}`}>
+        {typeof value === 'string' ? <CountUp value={value} /> : value}
+      </div>
       {delta !== undefined && (
         <div className={`kpi-delta${warn ? ' kpi-delta-warn' : ''}`}>{delta}</div>
       )}

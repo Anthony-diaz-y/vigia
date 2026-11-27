@@ -2,6 +2,7 @@
 
 import {
   Area,
+  Bar,
   CartesianGrid,
   ComposedChart,
   ResponsiveContainer,
@@ -17,7 +18,15 @@ export interface WeeklyPoint {
   total: number | null
 }
 
-// Gráfico de área con el valor de cada periodo (por defecto, casos por semana epidemiológica)
+const SPARSE_SHARE = 0.4
+
+// Indica si la serie tiene tantos ceros o vacíos que una curva inventaría formas que no existen
+export function isSparse(data: ReadonlyArray<WeeklyPoint>): boolean {
+  const empty = data.filter((point) => !point.total).length
+  return data.length > 0 && empty / data.length >= SPARSE_SHARE
+}
+
+// Valor de cada periodo: área si la serie es continua, barras si tiene muchos ceros
 export function WeeklyChart({
   data,
   xLabel = 'Semana epidemiológica (año-S##)',
@@ -27,6 +36,7 @@ export function WeeklyChart({
   xLabel?: string
   yLabel?: string
 }) {
+  const sparse = isSparse(data)
   return (
     <div className="chart">
       <ResponsiveContainer width="100%" height="100%">
@@ -63,16 +73,27 @@ export function WeeklyChart({
             itemStyle={{ color: 'var(--text)' }}
             labelStyle={{ color: 'var(--muted)' }}
           />
-          <Area
-            type="monotone"
-            dataKey="total"
-            name={yLabel}
-            stroke={ACCENT}
-            strokeWidth={2}
-            fill="url(#weekly-fill)"
-            dot={false}
-            isAnimationActive={false}
-          />
+          {sparse ? (
+            <Bar
+              dataKey="total"
+              name={yLabel}
+              fill={ACCENT}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={14}
+              animationDuration={700}
+            />
+          ) : (
+            <Area
+              type="monotone"
+              dataKey="total"
+              name={yLabel}
+              stroke={ACCENT}
+              strokeWidth={2}
+              fill="url(#weekly-fill)"
+              dot={false}
+              animationDuration={900}
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

@@ -1,4 +1,6 @@
 export { Badge } from './badge'
+export { ConfirmDialog } from './confirm-dialog'
+export { CountUp } from './count-up'
 export { EmptyState } from './empty-state'
 export { ErrorBanner } from './error-banner'
 export {
@@ -7,6 +9,7 @@ export {
   CloseIcon,
   FileIcon,
   LockIcon,
+  LogoutIcon,
   Logo,
   MoonIcon,
   NavIcon,

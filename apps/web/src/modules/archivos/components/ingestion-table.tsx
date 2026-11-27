@@ -25,7 +25,13 @@ export function IngestionTable({ uploads }: { uploads: ReadonlyArray<UploadDto> 
           <tbody>
             {uploads.map((row) => (
               <tr key={row.id}>
-                <td className="strong">{row.filename}</td>
+                <td className="file-cell">
+                  <span className="file-title">{row.title || row.filename}</span>
+                  <span className="file-name" title={row.filename}>
+                    {row.topic ? `${row.topic} · ` : ''}
+                    {row.filename}
+                  </span>
+                </td>
                 <td>
                   <Badge tone={row.status === 'ok' ? 'ok' : 'warn'}>
                     {UPLOAD_STATUS_LABELS[row.status] ?? row.status}

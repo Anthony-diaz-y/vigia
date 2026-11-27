@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "02-resumen-del-tablero.html",
+  "handoffs": {
+    "02-resumen-del-tablero.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-27T07:09:54.415Z",
+      "startedAt": "2026-11-27T07:10:17.727Z",
+      "implementedAt": "2026-11-27T07:23:21.020Z",
+      "note": "Implementado en mapping-dialog.tsx; resumen derivado de summarizeDashboard (misma lógica que la API). Layout móvil corregido.",
+      "previewUrl": "http://localhost:3000/archivos"
+    }
+  }
+}

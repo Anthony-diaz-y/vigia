@@ -1,0 +1,27 @@
+{
+  "title": "Revisión de columnas tras subir un archivo",
+  "brief": "Rediseño del modal «Revisa cómo se leerá el archivo» que aparece al subir un CSV/Excel. Reemplaza la grilla de 3 columnas (Nombre / Ejemplos / Tipo de dato) por lenguaje de uso en el tablero, para que analistas de salud pública sepan qué contendrá su tablero antes de confirmar. Conserva: nombre y tema del dataset, nombre editable por columna, columna original, hasta 3 ejemplos, motivo de la IA, roles de un solo cupo, datos personales bloqueados, avisos sin tiempo/lugar/cantidad y confirmación deshabilitada sin columnas útiles.",
+  "artboards": [
+    {
+      "file": "01-agrupado-por-uso.html",
+      "title": "Columnas agrupadas por uso",
+      "tradeoff": "Lectura rápida: cada columna aparece bajo Tiempo, Lugar, Indicadores o Agrupar por, y «Sin usar» queda plegada con un atajo «Usar como indicador». Mantiene la lista larga de columnas y el efecto en el tablero solo se deduce de los títulos de grupo.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-resumen-del-tablero.html",
+      "title": "Lista con resumen del tablero en vivo",
+      "tradeoff": "Muestra la consecuencia de cada cambio en el panel «Así quedará tu tablero», que es el mayor apoyo para entender qué pierde o gana el usuario. Es el modal más ancho y exige que el producto calcule ese resumen con fidelidad.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-asistente-por-pasos.html",
+      "title": "Asistente por pasos (cuándo, dónde, qué medir)",
+      "tradeoff": "Cada pantalla hace una sola pregunta en lenguaje natural y evita ver las 16 columnas a la vez; es la más guiada para quien llega por primera vez. Requiere más clics si el archivo ya viene bien clasificado, y corregir una sola columna obliga a cambiar de paso.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Vigia — sistema de diseño</title>
+<style>
+:root,[data-theme='light']{color-scheme:light;--bg:#f4f6f9;--surface:#ffffff;--surface-2:#f1f4f8;--surface-3:#e4e9f0;--border:#dfe5ec;--border-strong:#c9d2dd;--text:#172133;--muted:#5a6678;--title:#2c384b;--accent:#2455a4;--accent-hover:#1c4588;--accent-soft:#eaf1fb;--accent-contrast:#ffffff;--focus-ring:rgba(36,85,164,0.3);--danger:#b93a2b;--danger-bg:#fcece9;--danger-border:#f2c7c0;--warning:#a35a06;--warning-bg:#fdf3e2;--warning-border:#f0d6a6;--success-bg:#e6f4ee;--success-fg:#22704f;--rail:#16213a;--rail-2:#212e4b;--rail-text:#a9b5cb;--rail-strong:#f3f6fb;--rail-accent:#8fb3f5;--heat:36,85,164;--chart-grid:#e6ebf1;--series-muted-1:#8995a7;--series-muted-2:#b4bdca;--series-muted-3:#d2d8e1;--shadow-sm:0 1px 2px rgba(23,33,51,0.05);--shadow-md:0 12px 32px -8px rgba(23,33,51,0.18),0 2px 6px rgba(23,33,51,0.06);--radius:12px;--radius-sm:8px;--ease:cubic-bezier(0.2,0.7,0.2,1);--font-sans:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+[data-theme='dark']{color-scheme:dark;--bg:#0f1522;--surface:#161e2e;--surface-2:#1c2538;--surface-3:#253047;--border:#273249;--border-strong:#34415c;--text:#e7ecf4;--muted:#9aa6ba;--title:#cdd5e2;--accent:#7aa5ee;--accent-hover:#9abcf5;--accent-soft:#1d2a45;--accent-contrast:#0c1629;--focus-ring:rgba(122,165,238,0.35);--danger:#f08a7c;--danger-bg:#331b1a;--danger-border:#5e2d29;--warning:#f1b45e;--warning-bg:#2f2412;--warning-border:#5b4519;--success-bg:#14302a;--success-fg:#74cfa6;--rail:#0b1120;--rail-2:#18223a;--rail-text:#93a0b7;--rail-strong:#e7ecf4;--rail-accent:#8fb3f5;--heat:122,165,238;--chart-grid:#222c41;--series-muted-1:#7d899d;--series-muted-2:#556177;--series-muted-3:#3a455a;--shadow-sm:0 1px 2px rgba(0,0,0,0.4);--shadow-md:0 12px 32px -8px rgba(0,0,0,0.6),0 2px 6px rgba(0,0,0,0.3)}
+*{box-sizing:border-box}
+body{margin:0;width:1440px;font-family:var(--font-sans);font-size:14px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header.top{padding:32px 48px 8px}
+h1{margin:0;font-size:24px;font-weight:700;color:var(--title)}
+.lead{margin:6px 0 0;color:var(--muted);max-width:90ch;line-height:1.55;font-size:13px}
+main{padding:8px 48px 48px;display:grid;gap:28px}
+h2{margin:0 0 12px;font-size:15px;font-weight:650;color:var(--text)}
+.themes{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.theme{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;color:var(--text)}
+.theme h3{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sw{display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+.sw i{display:block;height:34px;border-radius:6px;border:1px solid var(--border-strong)}
+.sw b{font-weight:600;color:var(--text);overflow-wrap:anywhere}
+.sw span{color:var(--muted);overflow-wrap:anywhere}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.type div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--border)}
+.type div:first-child{border-top:0}
+.type small{color:var(--muted);font-size:12px;white-space:nowrap}
+.boxes{display:flex;gap:16px;flex-wrap:wrap}
+.box{width:110px;height:72px;background:var(--surface);border:1px solid var(--border-strong);display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.comps{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.stack{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font:inherit;font-weight:550;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--surface-2);border-color:var(--surface-3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-contrast)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover);border-color:var(--accent-hover)}
+.input{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font:inherit}
+.field{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:12px;font-weight:600}
+.label-input{width:240px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-weight:600}
+.sample{padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--text);font-size:12px}
+.badge{display:inline-flex;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.ok{background:var(--success-bg);color:var(--success-fg)}.warn{background:var(--warning-bg);color:var(--warning)}.dng{background:var(--danger-bg);color:var(--danger)}
+.privacy{display:flex;gap:8px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-2);font-size:13px;line-height:1.45}
+.privacy svg{flex:none;margin-top:1px;color:var(--accent)}
+.modal-demo{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-md);overflow:hidden}
+.modal-demo header{padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+.modal-demo header h3{margin:0;font-size:18px;font-weight:600;color:var(--title)}
+.modal-demo header p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.modal-demo footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid var(--border);background:var(--surface-2)}
+.modal-demo .b{padding:16px 24px}
+.rail{background:var(--rail);border-radius:var(--radius);padding:14px;width:236px;color:var(--rail-text)}
+.nav{display:flex;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);font-weight:500;position:relative}
+.nav.on{background:var(--rail-2);color:var(--rail-strong)}
+.nav.on::before{content:'';position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--rail-accent)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol></svg>
+<header class="top">
+  <h1>Vigia — sistema de diseño</h1>
+  <p class="lead">Tokens leídos de <code>apps/web/app/globals.css</code> (claro y oscuro) y componentes del diálogo de columnas. Los valores se leen en vivo desde las variables CSS; el detalle y las fuentes están en <code>design/system.md</code>. La fuente de la app es Public Sans (next/font); este tablero usa la pila del sistema como respaldo.</p>
+</header>
+<main>
+  <section aria-labelledby="h-col">
+    <h2 id="h-col">Colores</h2>
+    <div class="themes">
+      <div class="theme" data-theme="dark"><h3>Oscuro — <code>[data-theme='dark']</code></h3><div class="sw-grid" data-tokens="colors"></div></div>
+      <div class="theme" data-theme="light"><h3>Claro — <code>:root</code></h3><div class="sw-grid" data-tokens="colors"></div></div>
+    </div>
+  </section>
+  <section class="row">
+    <div class="panel type" aria-labelledby="h-type">
+      <h2 id="h-type">Tipografía</h2>
+      <div><span style="font-size:18px;font-weight:600;color:var(--title)">Título del modal</span><small>18px / 600</small></div>
+      <div><span style="font-size:15px;font-weight:650">Título de sección</span><small>15px / 650</small></div>
+      <div><span style="font-size:14px;font-weight:600">Nombre de columna</span><small>14px / 600</small></div>
+      <div><span style="font-size:14px">Texto base del cuerpo</span><small>14px / 400</small></div>
+      <div><span style="font-size:13px;color:var(--muted)">Texto secundario y avisos</span><small>13px</small></div>
+      <div><span style="font-size:12px;color:var(--muted)">Etiquetas, ejemplos y motivos</span><small>12px</small></div>
+    </div>
+    <div class="panel" aria-labelledby="h-rad">
+      <h2 id="h-rad">Radio y sombras</h2>
+      <div class="boxes">
+        <div class="box" style="border-radius:var(--radius-sm)">--radius-sm 8px</div>
+        <div class="box" style="border-radius:var(--radius)">--radius 12px</div>
+        <div class="box" style="box-shadow:var(--shadow-sm);border-radius:var(--radius-sm)">--shadow-sm</div>
+        <div class="box" style="box-shadow:var(--shadow-md);border-radius:var(--radius-sm)">--shadow-md</div>
+      </div>
+      <p class="lead">No hay tokens de espaciado; el diálogo usa 24px laterales, 14–20px verticales y huecos de 8–16px (ver <code>design/system.md</code>).</p>
+    </div>
+    <div class="panel" aria-labelledby="h-rail">
+      <h2 id="h-rail">Barra lateral</h2>
+      <div class="rail"><div class="nav on">Tablero</div><div class="nav">Pronóstico</div><div class="nav">Archivos</div></div>
+    </div>
+  </section>
+  <section aria-labelledby="h-comp">
+    <h2 id="h-comp">Componentes del diálogo de columnas</h2>
+    <div class="comps">
+      <div class="panel">
+        <div class="stack" style="margin-bottom:16px"><button class="btn">Cancelar</button><button class="btn btn-primary">Confirmar y cargar</button><button class="btn" disabled>Deshabilitado</button><span class="badge ok">Listo</span><span class="badge warn">Aviso</span><span class="badge dng">Error</span></div>
+        <div class="stack" style="align-items:flex-start;margin-bottom:16px">
+          <label class="field">Nombre del dataset<input class="input" value="Anemia en niños por distrito"></label>
+          <label class="field">Nombre en Vigia<input class="label-input" value="Hemoglobina promedio"></label>
+        </div>
+        <div class="stack" style="margin-bottom:16px"><span class="sample">10.9</span><span class="sample">11.4</span><span class="sample">10.2</span></div>
+        <p class="privacy"><svg width="16" height="16"><use href="#lock"/></svg><span>Datos personales (DNI): se aceptan, pero no se guardan ni se envían a la IA.</span></p>
+      </div>
+      <div class="modal-demo">
+        <header><h3>Revisa cómo se leerá el archivo</h3><p>anemia_ninos_distrito.csv, 78 filas.</p></header>
+        <div class="b" style="color:var(--muted);font-size:13px">Contenido con desplazamiento.</div>
+        <footer><button class="btn">Cancelar</button><button class="btn btn-primary">Confirmar y cargar</button></footer>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const COLORS=['--bg','--surface','--surface-2','--surface-3','--border','--border-strong','--text','--muted','--title','--accent','--accent-hover','--accent-soft','--accent-contrast','--focus-ring','--danger','--danger-bg','--danger-border','--warning','--warning-bg','--warning-border','--success-bg','--success-fg','--rail','--rail-2','--rail-text','--rail-strong','--rail-accent','--heat','--chart-grid','--series-muted-1','--series-muted-2','--series-muted-3'];
+document.querySelectorAll('[data-tokens=colors]').forEach(g=>{
+  const cs=getComputedStyle(g);
+  g.innerHTML=COLORS.map(t=>{const v=cs.getPropertyValue(t).trim();const bg=t==='--heat'?`rgb(${v})`:`var(${t})`;return `<div class="sw"><i style="background:${bg}"></i><b>${t}</b><span>${v}</span></div>`}).join('');
+});
+</script>
+</body>
+</html>

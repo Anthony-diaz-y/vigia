@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Revisión de columnas — Resumen del tablero</title>
+<style>
+:root,[data-theme='light']{color-scheme:light;--bg:#f4f6f9;--surface:#ffffff;--surface-2:#f1f4f8;--surface-3:#e4e9f0;--border:#dfe5ec;--border-strong:#c9d2dd;--text:#172133;--muted:#5a6678;--title:#2c384b;--accent:#2455a4;--accent-hover:#1c4588;--accent-soft:#eaf1fb;--accent-contrast:#ffffff;--focus-ring:rgba(36,85,164,0.3);--danger:#b93a2b;--danger-bg:#fcece9;--danger-border:#f2c7c0;--warning:#a35a06;--warning-bg:#fdf3e2;--warning-border:#f0d6a6;--success-bg:#e6f4ee;--success-fg:#22704f;--rail:#16213a;--rail-2:#212e4b;--rail-text:#a9b5cb;--rail-strong:#f3f6fb;--rail-accent:#8fb3f5;--shadow-sm:0 1px 2px rgba(23,33,51,0.05);--shadow-md:0 12px 32px -8px rgba(23,33,51,0.18),0 2px 6px rgba(23,33,51,0.06);--radius:12px;--radius-sm:8px;--ease:cubic-bezier(0.2,0.7,0.2,1);--font-sans:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+[data-theme='dark']{color-scheme:dark;--bg:#0f1522;--surface:#161e2e;--surface-2:#1c2538;--surface-3:#253047;--border:#273249;--border-strong:#34415c;--text:#e7ecf4;--muted:#9aa6ba;--title:#cdd5e2;--accent:#7aa5ee;--accent-hover:#9abcf5;--accent-soft:#1d2a45;--accent-contrast:#0c1629;--focus-ring:rgba(122,165,238,0.35);--danger:#f08a7c;--danger-bg:#331b1a;--danger-border:#5e2d29;--warning:#f1b45e;--warning-bg:#2f2412;--warning-border:#5b4519;--success-bg:#14302a;--success-fg:#74cfa6;--rail:#0b1120;--rail-2:#18223a;--rail-text:#93a0b7;--rail-strong:#e7ecf4;--rail-accent:#8fb3f5;--shadow-sm:0 1px 2px rgba(0,0,0,0.4);--shadow-md:0 12px 32px -8px rgba(0,0,0,0.6),0 2px 6px rgba(0,0,0,0.3)}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{position:relative;width:1440px;height:900px;overflow:hidden;font-family:var(--font-sans);font-size:14px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code{font-family:inherit;font-weight:600;color:var(--text)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* dimmed app behind the modal */
+.app{position:absolute;inset:0;display:flex}
+.rail{width:236px;background:var(--rail);border-right:1px solid var(--rail-2);padding:20px 14px;color:var(--rail-text);flex:none}
+.brand{font-size:18px;font-weight:700;color:var(--rail-strong);padding:0 6px 22px}
+.brand small{display:block;font-size:12px;font-weight:400;color:var(--rail-text)}
+.nav{display:flex;padding:10px 12px;border-radius:var(--radius-sm);font-weight:500;position:relative}
+.nav.on{background:var(--rail-2);color:var(--rail-strong)}
+.nav.on::before{content:'';position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--rail-accent)}
+.page{flex:1;padding:28px 36px}
+.page h1{margin:0 0 16px;font-size:22px;font-weight:700;color:var(--title)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.card .sk{height:10px;border-radius:5px;background:var(--surface-3);margin-top:12px}
+.scrim{position:absolute;inset:0;background:rgba(15,21,34,0.5);backdrop-filter:blur(2px)}
+/* demo bar (not part of the product) */
+.demo{position:absolute;z-index:5;top:0;left:0;right:0;height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--rail);border-bottom:1px solid var(--rail-2);color:var(--rail-text);font-size:12px}
+.demo b{color:var(--rail-strong);font-weight:600;margin-right:4px}
+.demo button{height:26px;padding:0 10px;border:1px solid var(--rail-2);border-radius:6px;background:var(--rail-2);color:var(--rail-strong);font-size:12px;font-weight:550}
+.demo button:hover{border-color:var(--rail-accent)}
+.demo .sp{margin-left:auto}
+/* modal */
+.stage{position:absolute;z-index:2;left:0;right:0;top:48px;bottom:10px;display:flex;justify-content:center}
+.modal{display:flex;flex-direction:column;width:var(--mw,1080px);max-height:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);overflow:hidden}
+.m-head{display:flex;align-items:flex-start;gap:16px;padding:18px 24px 14px;border-bottom:1px solid var(--border)}
+.m-head .tx{flex:1;min-width:0}
+.m-head h2{margin:0;font-size:18px;font-weight:600;color:var(--title)}
+.m-head p{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--muted)}
+.m-head p strong{color:var(--text)}
+.close{display:grid;place-items:center;flex:none;width:36px;height:36px;margin:-4px -8px 0 0;border:0;border-radius:8px;background:none;color:var(--muted)}
+.close:hover{background:var(--surface-2);color:var(--text)}
+.m-body{flex:1 1 auto;min-height:0;overflow:auto}
+.m-notes{padding:0 24px}
+.m-foot{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface-2)}
+.m-foot .sum{margin-right:auto;min-width:0}
+.sum strong{font-size:14px;font-weight:600;color:var(--text)}
+.sum span{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.sum .why{color:var(--danger)}
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:550;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--surface-2);border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-contrast)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-sm{height:30px;padding:0 10px;font-size:13px}
+.btn-link{border-color:transparent;background:transparent;color:var(--accent)}
+.btn-link:hover:not(:disabled){background:var(--accent-soft);border-color:transparent}
+.input{height:36px;padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;width:100%}
+.input:hover{border-color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:12px;font-weight:600}
+.nm{position:relative;display:block}
+.nm .ic{position:absolute;right:9px;top:50%;margin-top:-7px;color:var(--muted);pointer-events:none}
+.name-input{width:100%;height:30px;padding:0 28px 0 9px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;font-weight:600;text-overflow:ellipsis}
+.name-input:hover{border-color:var(--muted)}
+.orig{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.samples{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.sample{max-width:100%;padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--text);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sample.hid{color:var(--muted);font-style:italic}
+.chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;line-height:1.5;white-space:nowrap}
+.chip.off{background:var(--surface-3);color:var(--muted)}
+.chip.lock{background:var(--surface-3);color:var(--text)}
+.reason{margin:0;font-size:12px;line-height:1.4;color:var(--muted)}
+.reason em{font-style:normal;color:var(--text)}
+.banner{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);font-size:13px;line-height:1.45;color:var(--text)}
+.banner .ic{margin-top:2px;color:var(--accent)}
+.banner.warn{background:var(--warning-bg);border-color:var(--warning-border)}
+.banner.warn .ic{color:var(--warning)}
+.banner.err{background:var(--danger-bg);border-color:var(--danger-border)}
+.banner.err .ic{color:var(--danger)}
+.banner b{font-weight:600}
+.banner ul{margin:0;padding:0;list-style:none}
+.banner.warn li+li{margin-top:2px}
+.notes{display:grid;gap:8px;padding:10px 0 12px}
+.notes:empty{display:none}
+/* use menu */
+.menu{position:fixed;z-index:20;width:440px;overflow:auto;padding:6px;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:var(--shadow-md)}
+.menu[hidden]{display:none}
+.m-h{display:flex;flex-direction:column;padding:8px 10px 4px;font-size:12px;color:var(--muted)}
+.m-h b{font-size:12px;font-weight:650;color:var(--title);text-transform:uppercase;letter-spacing:.04em}
+.m-grp+.m-grp{border-top:1px solid var(--border);margin-top:4px}
+.mi{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;width:100%;padding:7px 10px;border:0;border-radius:6px;background:none;text-align:left;font-size:14px;color:var(--text)}
+.mi:hover,.mi:focus-visible{background:var(--surface-2)}
+.mi:focus-visible{outline-offset:-2px}
+.mi .ck{width:16px;height:16px;margin-top:2px;color:var(--accent)}
+.mi[aria-checked=true]{color:var(--accent);font-weight:600}
+.mi small{display:block;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35}
+.mi small.rep{color:var(--warning)}
+.mi.inl{padding:5px 10px}
+.mi.inl .t{display:flex;gap:8px;align-items:baseline;white-space:nowrap}
+.mi.inl .t small{display:inline;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+/* artboard 02 */
+.modal{height:100%}
+.split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 420px}
+.left{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--border)}
+.l-bar{display:flex;align-items:center;gap:12px;padding:12px 20px 10px}
+.l-bar h3{margin:0;font-size:15px;font-weight:650}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-2)}
+.seg button{height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;font-size:13px;font-weight:550;color:var(--muted)}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.l-bar .tip{margin-left:auto;font-size:12px;color:var(--muted)}
+.l-head,.l-row{display:grid;grid-template-columns:108px minmax(0,1fr) 166px 200px;gap:14px;align-items:center;padding:0 20px}
+.l-head{height:30px;background:var(--surface-2);font-size:12px;font-weight:600;color:var(--muted);border-top:1px solid var(--border)}
+.l-list{flex:1;min-height:0;overflow:auto}
+.l-row{min-height:62px;padding-block:8px;border-bottom:1px solid var(--border)}
+.l-row.is-off .name-input{color:var(--muted);font-weight:550}
+.l-row.is-lock{background:var(--surface-2)}
+.sub{margin-top:4px;font-size:12px;line-height:1.35;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub code{font-weight:600}
+.sub em{font-style:normal;color:var(--text)}
+.sub .ic{vertical-align:-2px;margin-right:3px}
+.sw{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 2px;border:0;border-radius:999px;background:none;font-size:13px;font-weight:600;color:var(--text)}
+.sw>span:last-child{white-space:nowrap}
+.sw .track{position:relative;flex:none;width:38px;height:22px;border-radius:999px;border:2px solid var(--muted);background:transparent;transition:background .15s var(--ease),border-color .15s var(--ease)}
+.sw .thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .15s var(--ease),background .15s var(--ease)}
+.sw[aria-checked=true] .track{background:var(--accent);border-color:var(--accent)}
+.sw[aria-checked=true] .thumb{transform:translateX(16px);background:var(--accent-contrast)}
+.sw[aria-checked=false]{color:var(--muted)}
+.lockmark{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text)}
+.chip-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:6px;width:100%;height:32px;padding:0 8px 0 10px;border:1px solid var(--accent);border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:600;text-align:left}
+.chip-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-btn.off{border-color:var(--border-strong);background:var(--surface-3);color:var(--muted)}
+.chip-btn:hover{border-color:var(--accent-hover)}
+.right{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface)}
+.right .scroll{flex:1;min-height:0;overflow:auto;padding:16px 20px}
+.right h3{margin:0;font-size:15px;font-weight:650}
+.right .lead{margin:3px 0 12px;font-size:12px;color:var(--muted)}
+.meta2{display:grid;grid-template-columns:1fr 120px;gap:10px;margin-bottom:14px}
+.widgets{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.wd{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2)}
+.wd .ico{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--accent-soft);color:var(--accent)}
+.wd h4{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.wd h4 .st{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--success-fg)}
+.wd p{margin:3px 0 0;font-size:12px;line-height:1.45;color:var(--muted)}
+.wd.no{background:var(--warning-bg);border-color:var(--warning-border)}
+.wd.no .ico{background:var(--surface-3);color:var(--warning)}
+.wd.no h4 .st{color:var(--warning)}
+.wd.neutral .ico{background:var(--surface-3);color:var(--muted)}
+.wd.neutral h4 .st{color:var(--muted)}
+.wd .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.wd .tags .chip{font-weight:550}
+.wd .link{margin-top:6px;padding:0;border:0;background:none;color:var(--accent);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.right .m-notes{padding:0 20px}
+.empty-l{margin:0;padding:24px 20px;color:var(--muted);font-size:13px}
+/*ENDCSS*/
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/></symbol>
+<symbol id="i-line" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+<symbol id="i-bars" viewBox="0 0 24 24"><path d="M5 21V10M12 21V4M19 21v-8"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+</svg>
+<div class="app" aria-hidden="true">
+  <div class="rail"><div class="brand">Vigia<small>Datos de salud</small></div><div class="nav">Tablero</div><div class="nav">Recomendaciones</div><div class="nav">Análisis</div><div class="nav">Pronóstico</div><div class="nav">Explicación</div><div class="nav on">Archivos</div></div>
+  <div class="page"><h1>Archivos</h1>
+    <div class="card"><b>Sube un archivo</b><p>CSV o Excel con tus registros de salud.</p><div class="sk" style="width:60%"></div><div class="sk" style="width:40%"></div></div>
+    <div class="card"><div class="sk" style="width:30%"></div><div class="sk" style="width:80%"></div><div class="sk" style="width:55%"></div></div>
+  </div>
+</div>
+<div class="scrim" aria-hidden="true"></div>
+<div class="demo" role="toolbar" aria-label="Estados de ejemplo (no forma parte del producto)">
+  <b>Estados de ejemplo</b>
+  <button type="button" data-demo="reset">Restablecer</button>
+  <button type="button" data-demo="noPlace">Sin lugar</button>
+  <button type="button" data-demo="noTime">Sin tiempo</button>
+  <button type="button" data-demo="none">Nada usable</button>
+  <button type="button" class="sp" data-demo="theme">Cambiar tema claro/oscuro</button>
+</div>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+<div id="menu" class="menu" role="menu" aria-label="Cambiar uso de la columna" hidden></div>
+<main class="stage">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="t" style="--mw:1280px">
+    <header class="m-head">
+      <div class="tx">
+        <h2 id="t">Revisa cómo Vigia entendió tu archivo</h2>
+        <p><strong>anemia_ninos_distrito.csv</strong> · 78 filas · La IA sugirió un nombre y un uso para cada columna. Cambia lo que no esté bien y mira a la derecha cómo quedará tu tablero.</p>
+      </div>
+      <button type="button" class="close" aria-label="Cerrar"><svg class="ic" width="18" height="18" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="split">
+      <section class="left" aria-labelledby="cols-t">
+        <div class="l-bar">
+          <h3 id="cols-t">Columnas del archivo</h3>
+          <div class="seg" role="group" aria-label="Filtrar columnas" id="seg"></div>
+          <span class="tip" id="tip"></span>
+        </div>
+        <div class="l-head" aria-hidden="true"><span>¿Usar?</span><span>Nombre en Vigia · columna del archivo</span><span>Ejemplos</span><span>Cómo la usa Vigia</span></div>
+        <div class="l-list scroll" id="list"></div>
+      </section>
+      <aside class="right" aria-labelledby="pv-t">
+        <div class="scroll">
+          <h3 id="pv-t">Así quedará tu tablero</h3>
+          <p class="lead">Se actualiza con cada cambio que hagas.</p>
+          <div class="meta2">
+            <label class="field">Nombre del dataset<input class="input" value="Anemia en niños por distrito" maxlength="80"></label>
+            <label class="field">Tema<input class="input" value="anemia" maxlength="40" placeholder="Por ejemplo: dengue, anemia, egresos"></label>
+          </div>
+          <div class="notes" id="notes" data-only="err" style="padding-top:0"></div>
+          <ul class="widgets" id="widgets"></ul>
+        </div>
+      </aside>
+    </div>
+    <footer class="m-foot">
+      <div class="sum" id="summary"></div>
+      <button type="button" class="btn" id="cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="confirm">Confirmar y cargar</button>
+    </footer>
+  </div>
+</main>
+<script>
+const ROLE={
+  date:{label:'Fecha',g:'time',desc:'Día exacto del registro. Permite ver la evolución.'},
+  year:{label:'Año',g:'time',desc:'Año del registro, cuando no hay fecha completa.'},
+  week:{label:'Semana',g:'time',desc:'Semana epidemiológica, de 1 a 53.'},
+  month:{label:'Mes',g:'time',desc:'Mes del registro, de 1 a 12.'},
+  place:{label:'Lugar',g:'place',desc:'Dónde ocurrió.'},
+  measure:{label:'Indicador para medir',g:'measure',desc:'Número que se promedia, como la hemoglobina o un porcentaje.'},
+  count:{label:'Cantidad de casos',g:'measure',desc:'Cuántos casos o personas representa cada fila.'},
+  category:{label:'Agrupar por',g:'category',desc:'Texto con pocos valores para separar resultados: sexo, diagnóstico…'},
+  ignore:{label:'No usar',g:'off',desc:'No aparece en el tablero ni se guarda.'},
+  identifier:{label:'No usar',g:'off',desc:'Código o dato personal; no se guarda.'}
+};
+const LEVEL={department:'Departamento',province:'Provincia',district:'Distrito',location:'Ubicación completa',ubigeo:'Código UBIGEO'};
+const LEVEL_DESC={department:'Ejemplo: Lima, Cusco.',province:'Ejemplo: Lima, Callao.',district:'Ejemplo: Ate, Ancón.',location:'Texto con la ubicación completa.',ubigeo:'Código numérico del lugar, ejemplo: 150101.'};
+const SINGLE=['date','year','week','month','count'];
+const DATA=[
+  {name:'ubigeo',label:'Código UBIGEO',samples:['150101','150102','150103'],role:'place',level:'ubigeo',reason:'Código de 6 dígitos que identifica cada distrito.'},
+  {name:'provincia',label:'Provincia',samples:['LIMA','CALLAO','HUAURA'],role:'place',level:'province',reason:'Nombres de provincia: Lima, Callao, Huaura…'},
+  {name:'distrito',label:'Distrito',samples:['CERCADO','ANCÓN','ATE'],role:'place',level:'district',reason:'Nombres de distrito: Cercado, Ancón, Ate…'},
+  {name:'anio',label:'Año',samples:['2022','2023','2024'],role:'year',reason:'Valores entre 2022 y 2024.'},
+  {name:'mes',label:'Mes',samples:['1','6','12'],role:'month',reason:'Valores del 1 al 12.'},
+  {name:'ninos_eval',label:'Niños evaluados',samples:['412','58','133'],role:'count',num:1,reason:'Cuántos niños se evaluaron en cada fila.'},
+  {name:'anemia_pct',label:'Porcentaje con anemia',samples:['0.38','0.21','0.44'],role:'measure',num:1,reason:'Proporción entre 0 y 1; se promedia.'},
+  {name:'hb_prom',label:'Hemoglobina promedio',samples:['10.9','11.4','10.2'],role:'measure',num:1,reason:'Medida clínica por fila; se promedia.'},
+  {name:'visitas_p',label:'Visitas promedio',samples:['1','2.2','1.2'],role:'measure',num:1,reason:'Promedio de visitas por fila; se promedia.'},
+  {name:'cons_med',label:'Consultas médicas',samples:['95','2','16'],role:'ignore',num:1,reason:'Parece actividad del servicio, no un resultado de salud.'},
+  {name:'cons_nutr',label:'Consultas nutricionales',samples:['76','1','7'],role:'ignore',num:1,reason:'Conteo de atenciones del servicio.'},
+  {name:'exam_par',label:'Exámenes parasitológicos',samples:['280','9','21'],role:'ignore',num:1,reason:'Conteo de exámenes del servicio.'},
+  {name:'hemograma',label:'Hemogramas realizados',samples:['132','4','1'],role:'ignore',num:1,reason:'Conteo de exámenes del servicio.'},
+  {name:'atenc_cPct',label:'Porcentaje atención completa',samples:['0.3465','0.85','0.56'],role:'measure',num:1,reason:'Proporción entre 0 y 1; se promedia.'},
+  {name:'recuperad',label:'Niños recuperados',samples:['193','17','46'],role:'ignore',num:1,reason:'Conteo de niños; la IA no lo vio como indicador.'},
+  {name:'dni_resp',label:'DNI del responsable',samples:[],role:'identifier',locked:1,reason:'Dato personal detectado (DNI).'}
+];
+let cols=[],busy=false,pendingFocus=null,menuFor=null;
+const fresh=()=>DATA.map(d=>({...d,level:d.level||null,sug:{role:d.role,level:d.level||null}}));
+cols=fresh();
+const $=s=>document.querySelector(s);
+const get=n=>cols.find(c=>c.name===n);
+const ic=(n,s=16)=>`<svg class="ic" width="${s}" height="${s}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const g=c=>ROLE[c.role].g;
+const used=c=>g(c)!=='off';
+const shortUse=(c)=>c.role==='place'?LEVEL[c.level]:ROLE[c.role].label==='Indicador para medir'?'Indicador':ROLE[c.role].label;
+const fullUse=(c)=>g(c)==='time'?'Tiempo · '+ROLE[c.role].label:c.role==='place'?'Lugar · '+LEVEL[c.level]:shortUse(c);
+const sugOf=c=>({role:c.sug.role,level:c.sug.level});
+const changed=c=>c.role!==c.sug.role||c.level!==c.sug.level;
+function assign(name,role,level){
+  const nl=role==='place'?(level||'department'):null,freed=[];
+  cols.forEach(c=>{
+    if(c.name===name){c.role=role;c.level=nl;return}
+    const clash=(SINGLE.includes(role)&&c.role===role)||(role==='place'&&c.role==='place'&&c.level===nl);
+    if(clash&&!c.locked){c.role='ignore';c.level=null;freed.push(c)}
+  });
+  return freed;
+}
+const enable=n=>{const c=get(n);return assign(n,c.num?'measure':'category',null)};
+const disable=n=>assign(n,'ignore',null);
+function stats(){
+  const total=cols.length,u=cols.filter(used).length,locked=cols.filter(c=>c.locked).length;
+  return{total,u,locked,off:total-u-locked,useful:u>0};
+}
+function notes(){
+  const r=new Set(cols.map(c=>c.role)),n=[];
+  if(!['date','year','week','month'].some(x=>r.has(x)))n.push('Sin una columna de tiempo no habrá evolución ni pronóstico.');
+  if(!r.has('place'))n.push('Sin una columna de lugar no habrá ranking por zona.');
+  if(!r.has('count'))n.push('Sin una columna de cantidad, cada fila cuenta como un registro.');
+  return n;
+}
+function renderCommon(){
+  const s=stats();
+  const sum=$('#summary');
+  if(sum)sum.innerHTML=`<strong>${s.u} de ${s.total} columnas se usarán</strong><span>${s.off} sin usar${s.locked?` · ${s.locked} protegida${s.locked>1?'s':''} (dato personal)`:''}</span>${s.useful?'':'<span class="why" id="why">Elige al menos una columna para poder confirmar.</span>'}`;
+  const b=$('#confirm');
+  if(b){b.disabled=busy||!s.useful;b.textContent=busy?'Cargando…':'Confirmar y cargar';if(!s.useful)b.setAttribute('aria-describedby','why');else b.removeAttribute('aria-describedby')}
+  const cc=$('#cancel');if(cc)cc.disabled=busy;
+  const nb=$('#notes');
+  if(nb){
+    const n=notes();let h='';
+    if(!s.useful)h+=`<p class="banner err" role="alert">${ic('warn')}<span><b>No hay ninguna columna para usar.</b> Ahora todas están sin usar o protegidas. Activa al menos una para continuar.</span></p>`;
+    else if(n.length&&nb.dataset.only!=='err')h+=`<div class="banner warn">${ic('warn')}<ul>${n.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+    nb.innerHTML=h;
+  }
+}
+const subs=[],labelSubs=[];
+function keepFocus(fn){
+  const a=document.activeElement,f=a&&a.dataset&&a.dataset.f;
+  const tops=[...document.querySelectorAll('.scroll')].map(e=>e.scrollTop);
+  fn();
+  document.querySelectorAll('.scroll').forEach((e,i)=>e.scrollTop=tops[i]||0);
+  const id=pendingFocus||f;pendingFocus=null;
+  if(id){const el=document.querySelector(`[data-f="${id}"]`);if(el)el.focus()}
+}
+function commit(msg){
+  keepFocus(()=>{renderCommon();subs.forEach(f=>f())});
+  $('#live').textContent=(msg?msg+' ':'')+$('#summary').firstChild.textContent+'.';
+}
+function setLabel(n,v){get(n).label=v;labelSubs.forEach(f=>f())}
+const unlist=a=>a.map(c=>'«'+c.label+'»').join(', ');
+/* use menu */
+const MENU=[
+  {h:'Tiempo',d:'Permite ver la evolución y el pronóstico.',items:['date','year','week','month'].map(r=>({role:r,inl:1,label:ROLE[r].label,desc:ROLE[r].desc}))},
+  {h:'Lugar',d:'Permite el ranking por zona.',items:Object.keys(LEVEL).map(l=>({role:'place',level:l,inl:1,label:LEVEL[l],desc:LEVEL_DESC[l]}))},
+  {h:'Medir y contar',items:[{role:'measure',label:'Indicador para medir',desc:ROLE.measure.desc},{role:'count',label:'Cantidad de casos',desc:ROLE.count.desc}]},
+  {h:'Agrupar o dejar fuera',items:[{role:'category',label:'Agrupar por',desc:ROLE.category.desc},{role:'ignore',label:'No usar',desc:ROLE.ignore.desc}]}
+];
+const menu=$('#menu');
+function itemClash(c,it){
+  return cols.find(o=>o!==c&&!o.locked&&((SINGLE.includes(it.role)&&o.role===it.role)||(it.role==='place'&&o.role==='place'&&o.level===it.level)));
+}
+function openMenu(btn,name){
+  closeMenu(true);
+  const c=get(name);menuFor={btn,name};
+  menu.innerHTML=MENU.map((gr,gi)=>`<div class="m-grp" role="group" aria-label="${gr.h}"><div class="m-h"><b>${gr.h}</b>${gr.d?`<span>${gr.d}</span>`:''}</div>${gr.items.map((it,ii)=>{
+    const on=(c.role===it.role||(it.role==='ignore'&&c.role==='identifier'))&&(it.role!=='place'||c.level===it.level);
+    const cl=!on&&itemClash(c,it);
+    return `<button type="button" class="mi${it.inl?' inl':''}" role="menuitemradio" aria-checked="${on}" data-i="${gi}.${ii}"><span>${on?`<svg class="ic ck" width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>`:''}</span><span><span class="t">${it.label}<small>${it.desc}</small></span>${cl?`<small class="rep">Reemplaza a «${cl.label}», que pasará a No usar.</small>`:''}</span></span></button>`}).join('')}</div>`).join('');
+  menu.hidden=false;
+  const r=btn.getBoundingClientRect(),W=440;
+  menu.style.maxHeight=(innerHeight-16)+'px';
+  let left=Math.min(Math.max(8,r.right-W),innerWidth-W-8),h=menu.offsetHeight,top=r.bottom+4;
+  if(top+h>innerHeight-8)top=Math.max(8,r.top-h-4);
+  menu.style.left=left+'px';menu.style.top=top+'px';
+  btn.setAttribute('aria-expanded','true');
+  (menu.querySelector('[aria-checked=true]')||menu.querySelector('.mi')).focus();
+}
+function closeMenu(silent){
+  if(!menuFor)return;
+  menuFor.btn.setAttribute('aria-expanded','false');
+  menu.hidden=true;
+  if(!silent)menuFor.btn.focus();
+  menuFor=null;
+}
+menu.addEventListener('click',e=>{
+  const b=e.target.closest('.mi');if(!b||!menuFor)return;
+  const [gi,ii]=b.dataset.i.split('.').map(Number),it=MENU[gi].items[ii],name=menuFor.name,c=get(name);
+  const freed=assign(name,it.role,it.level);
+  pendingFocus='menu:'+name;
+  closeMenu(true);
+  commit(`${c.label}: ${fullUse(c)}.`+(freed.length?` ${unlist(freed)} pasó a No usar.`:''));
+});
+menu.addEventListener('keydown',e=>{
+  const items=[...menu.querySelectorAll('.mi')],i=items.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'){e.preventDefault();items[(i+1)%items.length].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();items[(i-1+items.length)%items.length].focus()}
+  else if(e.key==='Home'){e.preventDefault();items[0].focus()}
+  else if(e.key==='End'){e.preventDefault();items[items.length-1].focus()}
+  else if(e.key==='Escape'){e.preventDefault();closeMenu()}
+  else if(e.key==='Tab'){closeMenu(true)}
+});
+document.addEventListener('pointerdown',e=>{if(menuFor&&!menu.contains(e.target)&&!menuFor.btn.contains(e.target))closeMenu(true)});
+/* demo states */
+const DEMO={
+  reset(){cols=fresh();busy=false},
+  noPlace(){cols.forEach(c=>{if(c.role==='place')Object.assign(c,{role:'ignore',level:null})})},
+  noTime(){cols.forEach(c=>{if(['date','year','week','month'].includes(c.role))c.role='ignore'})},
+  none(){cols.forEach(c=>{if(!c.locked)Object.assign(c,{role:'ignore',level:null})})},
+  theme(){const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark'}
+};
+document.querySelector('.demo').addEventListener('click',e=>{
+  const b=e.target.closest('[data-demo]');if(!b)return;
+  DEMO[b.dataset.demo]();closeMenu(true);
+  if(window.afterDemo)window.afterDemo(b.dataset.demo);
+  commit(b.dataset.demo==='theme'?'':'Estado de ejemplo aplicado.');
+});
+document.addEventListener('click',e=>{if(e.target.closest('#confirm')&&!e.target.closest('#confirm').disabled){busy=true;commit('Cargando el archivo.')}});
+/* artboard 02 */
+let filter='all';
+const FILTERS=[['all','Todas'],['on','Se usarán'],['off','No se usarán']];
+const visible=c=>filter==='all'||(filter==='on'?used(c):!used(c));
+function nameSub(c){
+  if(c.locked)return`${ic('lock',12)}<code>${c.name}</code> · Dato personal (DNI): no se guarda ni se envía a la IA.`;
+  if(changed(c))return`<code>${c.name}</code> · <em>Lo cambiaste tú.</em> La IA sugería: ${fullUse({...c,...sugOf(c)})}.`;
+  return`<code>${c.name}</code> · ${c.reason}`;
+}
+function row(c){
+  const on=used(c);
+  const label=c.label;
+  const sw=c.locked?`<span class="lockmark">${ic('lock',16)} Protegida</span>`:
+    `<button type="button" class="sw" role="switch" aria-checked="${on}" data-act="sw" data-name="${c.name}" data-f="sw:${c.name}" aria-label="Usar ${label} en el tablero"><span class="track"><span class="thumb"></span></span><span>${on?'Usar':'No usar'}</span></button>`;
+  const use=c.locked?`<span class="chip lock">${ic('lock',12)} No editable</span>`:
+    `<button type="button" class="chip-btn${on?'':' off'}" aria-haspopup="menu" aria-expanded="false" data-act="menu" data-name="${c.name}" data-f="menu:${c.name}" aria-label="Cambiar uso de ${label}. Ahora: ${fullUse(c)}"><span>${fullUse(c)}</span>${ic('chev-d',14)}</button>`;
+  const samples=c.locked?'<span class="sample hid">Ocultos por privacidad</span>':c.samples.map(s=>`<span class="sample" title="${s}">${s}</span>`).join('');
+  return`<div class="l-row${on?'':' is-off'}${c.locked?' is-lock':''}">${sw}<div style="min-width:0"><label class="nm"><input class="name-input" data-name="${c.name}" value="${label}" maxlength="60" aria-label="Nombre en Vigia de la columna ${c.name}">${ic('pencil',14)}</label><div class="sub" title="${c.name}">${nameSub(c)}</div></div><div class="samples">${samples}</div><div>${use}</div></div>`;
+}
+function renderList(){
+  const s=stats(),list=cols.filter(visible);
+  $('#seg').innerHTML=FILTERS.map(([k,t])=>{const n=k==='all'?s.total:k==='on'?s.u:s.total-s.u;return`<button type="button" aria-pressed="${filter===k}" data-act="flt" data-k="${k}" data-f="flt:${k}">${t} (${n})</button>`}).join('');
+  const num=cols.filter(c=>!used(c)&&c.num).length;
+  $('#tip').textContent=num?`${num} columnas numéricas están sin usar.`:'';
+  $('#list').innerHTML=list.length?list.map(row).join(''):'<p class="empty-l">No hay columnas en este filtro.</p>';
+}
+const LV_NOUN={location:'ubicación',district:'distrito',province:'provincia',department:'departamento',ubigeo:'código UBIGEO'};
+const q=a=>a.map(c=>'«'+c.label+'»').join(' y ');
+function widget(kind,ico,title,body,status,extra=''){
+  const st=kind==='ok'?`${ic('check',13)} Incluido`:kind==='no'?`${ic('warn',13)} No disponible`:`${ic('info',13)} Opcional`;
+  return`<li class="wd ${kind}"><span class="ico">${ic(ico,18)}</span><div><h4>${title}<span class="st">${st}</span></h4><p>${body}</p>${extra}</div></li>`;
+}
+function renderPanel(){
+  const by=r=>cols.filter(c=>c.role===r),has=r=>by(r).length>0,w=[];
+  let evo=null;
+  if(has('date'))evo=['Evolución por fecha',by('date')];
+  else if(has('year')&&has('month'))evo=['Evolución mensual',[...by('year'),...by('month')]];
+  else if(has('week'))evo=['Evolución semanal',[...by('year'),...by('week')]];
+  else if(has('month'))evo=['Evolución por mes',by('month')];
+  else if(has('year'))evo=['Evolución anual',by('year')];
+  w.push(evo?widget('ok','line',evo[0]+' y pronóstico',`Usa ${q(evo[1])}.`):widget('no','line','Sin evolución ni pronóstico','Falta una columna de tiempo. Elige una fecha, un año, una semana o un mes.'));
+  const place=cols.filter(c=>c.role==='place'),fine=['location','district','province','department','ubigeo'].find(l=>place.some(c=>c.level===l));
+  w.push(fine?widget('ok','pin',`Ranking por ${LV_NOUN[fine]}`,`Niveles de lugar: ${place.map(c=>LEVEL[c.level]).join(', ')}.`):widget('no','pin','Sin ranking por zona','Falta una columna de lugar. Elige un distrito, una provincia o un código UBIGEO.'));
+  const ms=by('measure'),hid=cols.filter(c=>!used(c)&&c.num).length;
+  const link=hid?`<button type="button" class="link" data-act="show-off" data-f="showoff">Ver ${hid} columnas numéricas sin usar</button>`:'';
+  w.push(ms.length?widget('ok','bars',`${ms.length} indicador${ms.length>1?'es':''} para medir`,'Se verán como promedios y tendencias.',0,`<div class="tags">${ms.map(c=>`<span class="chip">${c.label}</span>`).join('')}</div>${link}`):widget('no','bars','Sin indicadores','No hay números para medir. Activa una columna numérica.',0,link));
+  const ct=by('count')[0];
+  w.push(ct?widget('ok','hash','Cantidad de casos',`Cada fila suma el valor de «${ct.label}».`):widget('no','hash','Cada fila cuenta como un registro','Sin una columna de cantidad, los totales cuentan filas.'));
+  const cat=by('category');
+  w.push(cat.length?widget('ok','layers',`Desglose por ${q(cat)}`,'Separa los resultados en grupos.'):widget('neutral','layers','Sin desglose','Puedes agrupar por columnas de texto como sexo o diagnóstico.'));
+  const lk=cols.filter(c=>c.locked);
+  if(lk.length)w.push(`<li class="wd neutral"><span class="ico">${ic('lock',18)}</span><div><h4>${lk.length} columna protegida<span class="st">${ic('check',13)} Segura</span></h4><p>«${lk[0].label}» es un dato personal: no se guarda ni se envía a la IA.</p></div></li>`);
+  $('#widgets').innerHTML=w.join('');
+}
+subs.push(renderList,renderPanel);labelSubs.push(renderPanel);
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,n=b.dataset.name;
+  if(a==='menu'){menuFor&&menuFor.btn===b?closeMenu():openMenu(b,n)}
+  else if(a==='sw'){
+    const c=get(n),on=used(c);
+    on?disable(n):enable(n);
+    pendingFocus='sw:'+n;
+    commit(on?`${c.label} no se usará.`:`${c.label} se usará como ${fullUse(c).toLowerCase()}.`);
+  }
+  else if(a==='flt'){filter=b.dataset.k;pendingFocus='flt:'+filter;commit('')}
+  else if(a==='show-off'){filter='off';pendingFocus='flt:off';commit('Mostrando las columnas que no se usarán.')}
+});
+document.addEventListener('input',e=>{if(e.target.classList.contains('name-input'))setLabel(e.target.dataset.name,e.target.value)});
+commit('');
+</script>
+</body>
+</html>

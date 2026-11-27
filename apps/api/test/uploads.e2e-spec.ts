@@ -7,6 +7,7 @@ import request from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
@@ -15,7 +16,7 @@ import { QualityIssueEntity } from '../src/modules/datasets/entities/quality-iss
 import { UploadEntity } from '../src/modules/datasets/entities/upload.entity'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
   let app: INestApplication
@@ -33,6 +34,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
     app.setGlobalPrefix('api')
     app.useGlobalFilters(new HttpExceptionFilter())
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
   })
 
@@ -70,14 +72,16 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
     )
   }
 
-  it('serves health without a token', async () => {
+  it('serves health without a session', async () => {
     const response = await request(server).get('/api/health').expect(200)
     expect(response.body).toEqual({ status: 'ok', disclaimer: DISCLAIMER })
   })
 
-  it('rejects uploads without a token using the FastAPI envelope', async () => {
+  it('rejects uploads without a session using the FastAPI envelope', async () => {
     const response = await request(server).get('/api/uploads').expect(401)
-    expect(response.body).toEqual({ detail: 'token de acceso inválido o ausente' })
+    expect(response.body).toEqual({
+      detail: 'Tu sesión venció o no es válida. Vuelve a iniciar sesión.',
+    })
   })
 
   it('lists uploads newest first', async () => {
@@ -86,7 +90,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
 
     const response = await request(server)
       .get('/api/uploads')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
 
     expect(response.body).toHaveLength(2)
@@ -121,7 +125,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
 
     const response = await request(server)
       .get(`/api/uploads/${upload.id}/quality`)
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
 
     expect(response.body).toMatchObject({
@@ -145,7 +149,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
   it('returns a FastAPI-shaped 404 for an unknown upload', async () => {
     const response = await request(server)
       .get('/api/uploads/999/quality')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(404)
     expect(response.body).toEqual({ detail: 'carga no encontrada' })
   })
@@ -153,7 +157,7 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
   it('returns 422 for a non-numeric upload id', async () => {
     const response = await request(server)
       .get('/api/uploads/not-a-number/quality')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(422)
     expect(typeof response.body.detail).toBe('string')
   })
@@ -163,11 +167,11 @@ describe.skipIf(!dbEnabled)('uploads API against PostgreSQL', () => {
 
     const response = await request(server)
       .delete('/api/uploads')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
     expect(response.body).toEqual({ cleared: true })
 
-    const list = await request(server).get('/api/uploads').set('X-Access-Token', token).expect(200)
+    const list = await request(server).get('/api/uploads').set('Authorization', auth).expect(200)
     expect(list.body).toEqual([])
 
     const next = await seedUpload('b')

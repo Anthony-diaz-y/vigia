@@ -7,6 +7,7 @@ import request, { type Test as SupertestTest } from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
@@ -14,7 +15,7 @@ import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter
 import { fixture } from './support'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 describe.skipIf(!dbEnabled)('recommendations against PostgreSQL', () => {
   let app: INestApplication
@@ -33,6 +34,7 @@ describe.skipIf(!dbEnabled)('recommendations against PostgreSQL', () => {
     app.setGlobalPrefix('api')
     app.useGlobalFilters(new HttpExceptionFilter())
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
   })
 
@@ -46,9 +48,9 @@ describe.skipIf(!dbEnabled)('recommendations against PostgreSQL', () => {
     await dataSource?.destroy()
   })
 
-  // Arma una petición GET autenticada con el token de acceso
+  // Arma una petición GET autenticada con la sesión del administrador
   function get(path: string): SupertestTest {
-    return request(server).get(path).set('X-Access-Token', token)
+    return request(server).get(path).set('Authorization', auth)
   }
 
   it('returns the no-data envelopes', async () => {
@@ -60,14 +62,14 @@ describe.skipIf(!dbEnabled)('recommendations against PostgreSQL', () => {
       .expect({ detail: 'carga no encontrada' })
   })
 
-  it('requires the access token', async () => {
+  it('requires a session', async () => {
     await request(server).get('/api/recommendations').expect(401)
   })
 
   it('builds a traffic light per department with a template summary', async () => {
     const uploaded = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', fixture('demo_624.csv'), {
         filename: 'demo_624.csv',
         contentType: 'text/csv',

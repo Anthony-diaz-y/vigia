@@ -8,6 +8,7 @@ import request, { type Response } from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
@@ -17,7 +18,7 @@ import { UploadEntity } from '../src/modules/datasets/entities/upload.entity'
 import { fixture, snapshot } from './support'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
   let app: INestApplication
@@ -36,6 +37,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
     app.setGlobalPrefix('api')
     app.useGlobalFilters(new HttpExceptionFilter())
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
   })
 
@@ -52,7 +54,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
   async function uploadDemo(): Promise<Response> {
     return request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', fixture('demo_624.csv'), {
         filename: 'historico.csv',
         contentType: 'text/csv',
@@ -88,7 +90,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
     const uploaded = await uploadDemo()
     const response = await request(server)
       .get(`/api/uploads/${uploaded.body.id}/quality`)
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
 
     expect(response.body).toEqual(snapshot('api_quality.json'))
@@ -98,7 +100,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
   async function preview(csv: Buffer, filename: string): Promise<UploadPreview> {
     const response = await request(server)
       .post('/api/upload/preview')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', csv, { filename, contentType: 'text/csv' })
       .expect(200)
     return response.body as UploadPreview
@@ -109,7 +111,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
     const columns = body.columns.map(({ samples: _samples, reason: _reason, ...column }) => column)
     return request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .field('columns', JSON.stringify(columns))
       .field('title', body.title)
       .field('topic', body.topic)
@@ -146,7 +148,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
 
     const upload = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', csv, { filename: 'pii.csv', contentType: 'text/csv' })
       .expect(200)
     expect(upload.body).toMatchObject({ rows_valid: 1 })
@@ -162,7 +164,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
 
     const upload = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', csv, { filename: 'sin-lugar.csv', contentType: 'text/csv' })
       .expect(200)
     expect(upload.body).toMatchObject({ epi: false, time: 'week', rows_in: 1, rows_valid: 1 })
@@ -204,7 +206,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
     const csv = Buffer.from('Id\nA1\nA2\n')
     const upload = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', csv, { filename: 'ids.csv', contentType: 'text/csv' })
       .expect(422)
     expect(String(upload.body.detail)).toContain('no tiene columnas utilizables')
@@ -234,7 +236,7 @@ describe.skipIf(!dbEnabled)('ingestion API against PostgreSQL', () => {
 
     const series = await request(server)
       .get('/api/analysis/series')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
     expect(
       (series.body as Array<{ department: string; year: number; epi_week: number }>).map((row) => [

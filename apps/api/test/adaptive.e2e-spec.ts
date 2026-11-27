@@ -13,13 +13,14 @@ import request from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 // Listado semanal de 30 semanas: fecha, lugar combinado y edad
 function lineList(withPlace: boolean): string {
@@ -52,6 +53,7 @@ describe.skipIf(!dbEnabled)('adaptive tabs against PostgreSQL', () => {
     app.setGlobalPrefix('api')
     app.useGlobalFilters(new HttpExceptionFilter())
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
   })
 
@@ -68,14 +70,14 @@ describe.skipIf(!dbEnabled)('adaptive tabs against PostgreSQL', () => {
   async function upload(csv: string, filename: string, topic: string): Promise<UploadDto> {
     const preview = await request(server)
       .post('/api/upload/preview')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', Buffer.from(csv), { filename, contentType: 'text/csv' })
       .expect(200)
     const body = preview.body as UploadPreview
     const columns = body.columns.map(({ samples: _samples, reason: _reason, ...column }) => column)
     const response = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .field('columns', JSON.stringify(columns))
       .field('title', body.title)
       .field('topic', topic)
@@ -89,7 +91,7 @@ describe.skipIf(!dbEnabled)('adaptive tabs against PostgreSQL', () => {
     const response = await request(server)
       .get(path)
       .query(query)
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
     return response.body as unknown
   }

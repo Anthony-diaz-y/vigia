@@ -7,13 +7,14 @@ import request from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 const ANEMIA = [
   'distrito;sexo;hemoglobina;anemia',
@@ -49,6 +50,7 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
     app.setGlobalPrefix('api')
     app.useGlobalFilters(new HttpExceptionFilter())
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
   })
 
@@ -65,7 +67,7 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
   async function upload(csv: string, filename: string): Promise<UploadDto> {
     const response = await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', Buffer.from(csv), { filename, contentType: 'text/csv' })
       .expect(200)
     return response.body as UploadDto
@@ -76,7 +78,7 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
     const response = await request(server)
       .get('/api/dashboard')
       .query({ upload_id: uploadId, ...(indicator ? { indicator } : {}) })
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
     return DashboardResponseSchema.parse(response.body)
   }
@@ -125,7 +127,7 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
     const created = await upload(EGRESOS, 'egresos.csv')
     const response = await request(server)
       .get(`/api/uploads/${created.id}/years`)
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(200)
     expect(response.body).toEqual([2026])
   })
@@ -134,7 +136,7 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
     await request(server)
       .get('/api/dashboard')
       .query({ upload_id: 999 })
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .expect(404)
   })
 })

@@ -6,6 +6,7 @@ import request from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { adminBearer } from './auth'
 import { AppModule } from '../src/app.module'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
@@ -14,7 +15,7 @@ import { backfillGeneric } from '../src/cli/backfill-generic'
 import { fixture } from './support'
 
 const dbEnabled = process.env.VIGIA_DB_TESTS === '1'
-const token = process.env.VIGIA_ACCESS_TOKEN ?? 'test-token'
+let auth = ''
 
 describe.skipIf(!dbEnabled)('generic backfill against PostgreSQL', () => {
   let app: INestApplication
@@ -32,6 +33,7 @@ describe.skipIf(!dbEnabled)('generic backfill against PostgreSQL', () => {
     app = moduleRef.createNestApplication()
     app.setGlobalPrefix('api')
     await app.init()
+    auth = await adminBearer(dataSource)
     server = app.getHttpServer() as Server
     storage = app.get<StoragePort>(STORAGE)
   })
@@ -48,7 +50,7 @@ describe.skipIf(!dbEnabled)('generic backfill against PostgreSQL', () => {
   it('rellena una carga antigua sin columnas', async () => {
     await request(server)
       .post('/api/upload')
-      .set('X-Access-Token', token)
+      .set('Authorization', auth)
       .attach('file', fixture('demo_624.csv'), {
         filename: 'historico.csv',
         contentType: 'text/csv',

@@ -8,15 +8,14 @@ import type { ChangeEvent, ReactNode } from 'react'
 import { DISCLAIMER, type UploadPreview } from '@vigia/contracts'
 
 import { EMPTY_UPLOADS, EMPTY_YEARS } from '../../constants'
-import { NAV_ITEMS, isAvailable, navItemForPath } from '../../constants/navigation'
+import { NAV_ITEMS, canSee, isAvailable, navItemForPath } from '../../constants/navigation'
 import { DashboardFiltersProvider } from '../../contexts'
 import {
-  useAccessToken,
   defaultIndicatorId,
-  useClearUploads,
   useHealth,
   useRefreshData,
   useSelectedYear,
+  useSession,
   useTheme,
   useUploadFile,
   useUploadPreview,
@@ -24,11 +23,11 @@ import {
   useUploads,
 } from '../../hooks'
 import { errorMessage } from '../../utils'
-import { EmptyState, ErrorBanner, UnavailableState } from '../ui'
-import type { AccessControl } from './access-control'
+import { CloseIcon, EmptyState, ErrorBanner, UnavailableState } from '../ui'
 import type { UploadReview } from '../../services/uploads.service'
 import { MappingDialog } from './mapping-dialog'
 import { MobileNav, Sidebar } from './navigation'
+import { SessionGate } from './session-gate'
 import { Topbar } from './topbar'
 
 interface PendingUpload {
@@ -36,18 +35,28 @@ interface PendingUpload {
   preview: UploadPreview
 }
 
-// Layout del tablero: navegación, filtros, carga de archivos y descargo de responsabilidad
+// Layout del tablero, visible solo con una sesión vigente
 export function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <SessionGate>
+      <DashboardShell>{children}</DashboardShell>
+    </SessionGate>
+  )
+}
+
+// Navegación, filtros, carga de archivos y descargo de responsabilidad
+function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const { user } = useSession()
   const current = navItemForPath(pathname)
 
   const { theme, toggleTheme } = useTheme()
-  const { token, changeToken } = useAccessToken()
   const refresh = useRefreshData()
 
   const [pickedUploadId, setActiveUploadId] = useState<number | null>(null)
   const [pickedIndicator, setIndicator] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingUpload | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -69,13 +78,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   const previewMutation = useUploadPreview()
   const uploadMutation = useUploadFile()
-  const clearMutation = useClearUploads()
 
-  const busy =
-    useIsFetching() > 0 ||
-    previewMutation.isPending ||
-    uploadMutation.isPending ||
-    clearMutation.isPending
+  const busy = useIsFetching() > 0 || previewMutation.isPending || uploadMutation.isPending
 
   // Abre el selector de archivos del sistema
   const openFileDialog = () => fileRef.current?.click()
@@ -88,6 +92,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       return
     }
     setError(null)
+    setNotice(null)
     previewMutation.mutate(file, {
       onSuccess: (preview) => setPending({ file, preview }),
       onError: (caught) => setError(errorMessage(caught)),
@@ -104,6 +109,12 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       { file: pending.file, review },
       {
         onSuccess: (created) => {
+          const repeated = uploads.some((upload) => upload.id === created.id)
+          setNotice(
+            repeated
+              ? `Este archivo ya estaba cargado con el mismo contenido. Se abrió «${created.title || created.filename}».`
+              : null,
+          )
           setActiveUploadId(created.id)
           setPending(null)
         },
@@ -112,27 +123,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
 
-  // Borra todos los datos cargados tras pedir confirmación
-  const onClear = () => {
-    if (!window.confirm('¿Borrar todos los datos ingeridos?')) {
-      return
-    }
-    setError(null)
-    clearMutation.mutate(undefined, {
-      onSuccess: () => setActiveUploadId(null),
-      onError: (caught) => setError(errorMessage(caught)),
-    })
-  }
-
-  const navItems = NAV_ITEMS.filter((item) => isAvailable(item, activeUpload))
-
-  const access: AccessControl = {
-    token,
-    onTokenChange: changeToken,
-    onTokenCommit: refresh,
-    onClear,
-    canClear: hasUploads && !busy,
-  }
+  const navItems = NAV_ITEMS.filter((item) => canSee(item, user) && isAvailable(item, activeUpload))
+  const standalone = current.requires === 'none'
+  const permitted = canSee(current, user)
+  const allowed = permitted && isAvailable(current, activeUpload)
 
   return (
     <DashboardFiltersProvider
@@ -142,15 +136,16 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       indicator={indicator}
     >
       <div className="flex min-h-screen">
-        <Sidebar uploads={uploads} items={navItems} access={access} />
+        <Sidebar uploads={uploads} items={navItems} user={user} />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileNav items={navItems} />
+          <MobileNav items={navItems} user={user} />
 
           <Topbar
             title={current.label}
             description={current.description}
             filters={{
+              hidden: standalone,
               uploads,
               activeUploadId,
               onUploadChange: setActiveUploadId,
@@ -167,19 +162,41 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             onToggleTheme={toggleTheme}
             onRefresh={refresh}
             onUploadClick={openFileDialog}
-            access={access}
           />
 
           <main className="main">
             {error && <ErrorBanner message={error} />}
+            {notice && (
+              <p role="status" className="notice">
+                {notice}
+                <button
+                  type="button"
+                  className="notice-close"
+                  onClick={() => setNotice(null)}
+                  aria-label="Cerrar aviso"
+                >
+                  <CloseIcon />
+                </button>
+              </p>
+            )}
             {uploadsQuery.isError && <ErrorBanner message={errorMessage(uploadsQuery.error)} />}
-            {uploadsQuery.isSuccess && !hasUploads && <EmptyState onUpload={openFileDialog} />}
-            {hasUploads && (
+            {uploadsQuery.isSuccess && !hasUploads && !standalone && (
+              <EmptyState onUpload={openFileDialog} />
+            )}
+            {(hasUploads || standalone) && (
               <div key={pathname} className="view-enter flex flex-col gap-[18px]">
-                {isAvailable(current, activeUpload) ? (
+                {allowed ? (
                   children
-                ) : (
+                ) : permitted ? (
                   <UnavailableState page={current.label} />
+                ) : (
+                  <section className="card">
+                    <h2 className="section-title">Solo para administradores</h2>
+                    <p className="card-sub">
+                      Tu cuenta es de analista. Pide a un administrador de Vigia que haga este
+                      cambio.
+                    </p>
+                  </section>
                 )}
               </div>
             )}

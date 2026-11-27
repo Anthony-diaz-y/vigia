@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { AxiosError } from 'axios'
 
-import { getAccessToken } from './token'
+import { clearSession, getSession } from './session'
 
 // Parámetros de consulta aceptados por la API
 export type QueryParams = Record<string, string | number | undefined>
@@ -11,7 +11,7 @@ export class ApiError extends Error {
   readonly status: number
 
   constructor(status: number, detail: string) {
-    super(detail ? `${status}: ${detail}` : String(status))
+    super(detail || `El servidor respondió con un error (${status}).`)
     this.name = 'ApiError'
     this.status = status
   }
@@ -19,9 +19,14 @@ export class ApiError extends Error {
 
 const client = axios.create()
 
-// Adjunta el token de acceso a cada petición
+const LOGIN_URL = '/api/auth/login'
+
+// Adjunta la sesión del usuario a cada petición
 client.interceptors.request.use((config) => {
-  config.headers.set('X-Access-Token', getAccessToken())
+  const session = getSession()
+  if (session) {
+    config.headers.set('Authorization', `Bearer ${session.token}`)
+  }
   return config
 })
 
@@ -32,6 +37,9 @@ client.interceptors.response.use(
     const status = error.response?.status
     if (!status) {
       return Promise.reject(error)
+    }
+    if (status === 401 && error.config?.url !== LOGIN_URL) {
+      clearSession()
     }
     return Promise.reject(new ApiError(status, detailFrom(error.response?.data) ?? error.message))
   },
@@ -65,8 +73,8 @@ export async function apiGet<T>(url: string, params?: QueryParams): Promise<T> {
   return data
 }
 
-// Petición POST tipada, usada para enviar formularios
-export async function apiPost<T>(url: string, body: FormData): Promise<T> {
+// Petición POST tipada; acepta un formulario o un objeto que se envía como JSON
+export async function apiPost<T>(url: string, body: FormData | object): Promise<T> {
   const { data } = await client.post<T>(url, body)
   return data
 }

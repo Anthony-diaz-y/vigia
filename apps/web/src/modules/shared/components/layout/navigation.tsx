@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
-import type { UploadDto } from '@vigia/contracts'
+import type { SessionUser, UploadDto } from '@vigia/contracts'
 
 import { navItemForPath, type NavItem } from '../../constants/navigation'
 import { formatNumber, plural } from '../../utils'
 import { Logo, NavIcon } from '../ui'
-import { ClearDataButton, TokenInput, type AccessControl } from './access-control'
+import { UserCard } from './user-card'
 
 // Enlaces a las páginas disponibles para el archivo elegido, marcando la actual
 function NavLinks({ items }: { items: readonly NavItem[] }) {
@@ -40,15 +40,15 @@ function uploadsSummary(uploads: ReadonlyArray<UploadDto>): string {
   return `${uploads.length} ${plural(uploads.length, 'archivo')}, ${formatNumber(rows)} filas`
 }
 
-// Barra lateral con la marca, las páginas y los ajustes de acceso
+// Barra lateral con la marca, las páginas, los datos cargados y el usuario
 export function Sidebar({
   uploads,
   items,
-  access,
+  user,
 }: {
   uploads: ReadonlyArray<UploadDto>
   items: readonly NavItem[]
-  access: AccessControl
+  user: SessionUser | null
 }) {
   return (
     <aside className="rail" aria-label="Navegación">
@@ -67,15 +67,20 @@ export function Sidebar({
           <span className="rail-label">Datos cargados</span>
           <span className="rail-file">{uploadsSummary(uploads)}</span>
         </div>
-        <TokenInput access={access} labelClassName="rail-label" inputClassName="rail-input" />
-        <ClearDataButton access={access} className="rail-danger" />
+        {user && <UserCard user={user} variant="rail" />}
       </div>
     </aside>
   )
 }
 
-// Navegación horizontal para pantallas angostas
-export function MobileNav({ items }: { items: readonly NavItem[] }) {
+// Navegación horizontal para pantallas angostas, con el usuario al final
+export function MobileNav({
+  items,
+  user,
+}: {
+  items: readonly NavItem[]
+  user: SessionUser | null
+}) {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement>(null)
 
@@ -88,6 +93,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
   return (
     <nav ref={navRef} className="mobile-nav md:hidden" aria-label="Módulos">
       <NavLinks items={items} />
+      {user && <UserCard user={user} variant="menu" />}
     </nav>
   )
 }

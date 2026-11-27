@@ -1,6 +1,6 @@
-import type { UploadDto } from '@vigia/contracts'
+import type { SessionUser, UploadDto } from '@vigia/contracts'
 
-export type NavRequirement = 'any' | 'weekly'
+export type NavRequirement = 'any' | 'weekly' | 'none'
 
 export interface NavItem {
   id: string
@@ -10,6 +10,7 @@ export interface NavItem {
   usesYear: boolean
   usesIndicator: boolean
   requires: NavRequirement
+  adminOnly?: boolean
 }
 
 // Cada entrada es una página real del sistema y lo que el dataset necesita para mostrarla
@@ -68,6 +69,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
     usesIndicator: false,
     requires: 'any',
   },
+  {
+    id: 'usuarios',
+    href: '/usuarios',
+    label: 'Usuarios',
+    description: 'Quién puede entrar a Vigia y con qué permisos.',
+    usesYear: false,
+    usesIndicator: false,
+    requires: 'none',
+    adminOnly: true,
+  },
 ]
 
 // Devuelve la entrada de navegación que corresponde a la ruta actual
@@ -81,5 +92,15 @@ export function navItemForPath(pathname: string): NavItem {
 
 // Indica si el archivo elegido tiene lo necesario para mostrar una página (fechas o semanas)
 export function isAvailable(item: NavItem, upload: UploadDto | null): boolean {
-  return item.requires === 'any' || upload?.time === 'date' || upload?.time === 'week'
+  return (
+    item.requires === 'any' ||
+    item.requires === 'none' ||
+    upload?.time === 'date' ||
+    upload?.time === 'week'
+  )
+}
+
+// Indica si el usuario puede ver una página según su rol
+export function canSee(item: NavItem, user: SessionUser | null): boolean {
+  return !item.adminOnly || user?.role === 'admin'
 }

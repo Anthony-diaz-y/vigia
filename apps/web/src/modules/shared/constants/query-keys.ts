@@ -7,6 +7,7 @@ function scope(uploadId: number | null): number | 'all' {
 export const queryKeys = {
   health: ['health'] as const,
   uploads: ['uploads'] as const,
+  users: ['users'] as const,
   uploadYears: (uploadId: number | null) => ['uploads', 'years', scope(uploadId)] as const,
   dashboard: (uploadId: number | null, indicator: string | null, year: number | null) =>
     ['dashboard', scope(uploadId), indicator ?? 'default', year ?? 'latest'] as const,

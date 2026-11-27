@@ -9,8 +9,9 @@ Target platform: Railway. Three services plus object storage.
 | `postgres` | Railway add-on | managed | managed |
 
 `next start` reads `PORT` from the environment. The API reads `PORT` too
-(default 3001). Set `NODE_ENV=production`; the config rejects the default access
-token and the default database URL in production.
+(default 3001). Set `NODE_ENV=production`; the config rejects the default
+session secret, the default administrator password and the default database URL
+in production.
 
 ## Environment
 
@@ -19,7 +20,11 @@ token and the default database URL in production.
 | Variable | Required | Notes |
 | --- | --- | --- |
 | `NODE_ENV` | yes | `production` on Railway. |
-| `VIGIA_ACCESS_TOKEN` | yes | Non-default token. |
+| `VIGIA_AUTH_SECRET` | yes | Random string of at least 32 characters; signs sessions. Changing it signs everyone out. |
+| `VIGIA_ADMIN_EMAIL` | yes | First administrator, created only while the `users` table is empty. |
+| `VIGIA_ADMIN_PASSWORD` | yes | Non-default; change it from the app after the first sign-in by creating a new admin. |
+| `VIGIA_ADMIN_NAME` | no | Display name of the first administrator. |
+| `VIGIA_SESSION_HOURS` | no | Session length, 12 by default. |
 | `VIGIA_DATABASE_URL` | yes | Railway PostgreSQL connection string (target). |
 | `VIGIA_DATABASE_SSL` | yes | `true` for Railway. |
 | `VIGIA_DATA_DIR` | no | Local raw-artifact directory until R2 is provisioned. |
@@ -40,6 +45,15 @@ pnpm migration:run
 ```
 
 Run it once per deploy, before starting the API. Migrations are idempotent.
+
+Uploads created before flexible datasets need their column roles and generic
+rows once:
+
+```bash
+pnpm --filter @vigia/api backfill:generic
+```
+
+It is idempotent: uploads that already have roles are skipped.
 
 ## Backfill from an external legacy database
 
@@ -72,13 +86,17 @@ SELECT count(*) FROM "surveillance_cases";
 SELECT count(*) FROM "upload_quality_issues";
 ```
 
-Then compare the API responses with the frozen fixtures for the same uploads:
+Then compare the API responses with the frozen fixtures for the same uploads,
+signed in as an administrator:
 
 ```bash
-curl -H "X-Access-Token: $TOKEN" https://api.example/api/uploads
-curl -H "X-Access-Token: $TOKEN" https://api.example/api/analysis/series
-curl -H "X-Access-Token: $TOKEN" https://api.example/api/forecast
-curl -H "X-Access-Token: $TOKEN" https://api.example/api/explain
+TOKEN=$(curl -s https://api.example/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.org","password":"…"}' | jq -r .token)
+curl -H "Authorization: Bearer $TOKEN" https://api.example/api/uploads
+curl -H "Authorization: Bearer $TOKEN" https://api.example/api/analysis/series
+curl -H "Authorization: Bearer $TOKEN" https://api.example/api/forecast
+curl -H "Authorization: Bearer $TOKEN" https://api.example/api/explain
 ```
 
 The demo fixture must produce `model_id 28a9c197d91b9a33`. The parity suite is
@@ -92,7 +110,7 @@ pnpm --filter @vigia/api test:db
 
 1. Freeze writes on the external legacy service. Reads can continue.
 2. Run `pnpm migration:run` against the target.
-3. Run the backfill dry-run and then the real backfill.
+3. Run the backfill dry-run, the real backfill and `backfill:generic`.
 4. Verify counts, the demo model id and the API responses.
 5. Point `VIGIA_API_URL` on the `web` service to the Nest API and redeploy.
 6. Keep the legacy service read-only for one observation window and compare

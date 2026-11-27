@@ -4,9 +4,12 @@
 comes from *vigilancia epidemiologica*, the practice this tool supports.
 
 Ingestion, analysis and short-term forecasting for Peruvian public health
-surveillance data (dengue first, multi-disease by design). The project turns a
-messy surveillance export (`.csv` / `.xlsx`) into a validated canonical dataset,
-interactive charts and a short-horizon forecast with measured accuracy. It is a
+data: dengue, anemia, hospital discharges or any other health dataset. There are
+no mandatory columns: each column gets a role (date, place, category, measure…)
+suggested by rules and, optionally, by DeepSeek, and confirmed by the user. The
+project turns a messy export (`.csv` / `.xlsx`) into an adaptive dashboard with
+plain-language findings, alerts, anomalies and a short-horizon forecast with
+measured accuracy. It is a
 decision-support tool, not a medical device, and it never substitutes the
 official health authority.
 
@@ -52,9 +55,25 @@ pnpm dev
 - API: http://localhost:3001/api
 - Next rewrites `/api/*` to `VIGIA_API_URL` (default `http://localhost:3001`).
 
-Copy `.env.example` to `.env` to set the access token, database URLs and the
-Next.js API origin. Access is token-gated: pass `X-Access-Token` or the token
-field in the UI (default `vigia-dev`).
+Copy `.env.example` to `.env` to set the session secret, the first
+administrator, the database URLs and the Next.js API origin.
+
+### Access
+
+Everyone signs in with an email and a password. On its first start the API
+creates the administrator from `VIGIA_ADMIN_EMAIL` / `VIGIA_ADMIN_PASSWORD`
+(development defaults: `admin@vigia.local` / `vigia-admin`). The administrator
+creates the other accounts on the **Usuarios** page.
+
+| Role | Can |
+| --- | --- |
+| Analista | Upload files and see every page. |
+| Administrador | Also create and delete users and delete all data. |
+
+Sessions are HMAC-signed tokens (`VIGIA_AUTH_SECRET`) that expire after
+`VIGIA_SESSION_HOURS` (12 by default) and stop working as soon as the user is
+deleted. Five failed sign-ins in a row lock that email for 15 minutes.
+Passwords are stored as scrypt hashes.
 
 ## Commands
 
@@ -70,15 +89,19 @@ pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
 
 ## API
 
+- `POST /api/auth/login`, `GET /api/auth/me` — sign in and read the session.
+  `GET|POST /api/users`, `DELETE /api/users/:id` — accounts (administrators).
+  Every other endpoint except `/api/health` needs `Authorization: Bearer`.
 - `POST /api/upload` and `POST /api/upload/preview` — ingest or preview a file
-  with the mapping review step. The preview lists the file's real columns with
+  with the column review step. The preview lists the file's real columns with
   samples; when `DEEPSEEK_API_KEY` is set, DeepSeek names each column in Spanish
-  and suggests its field (validated server-side, confirmed by the user). Only
-  dates and frequently repeated values are sent to the AI, never identifiers.
-  A file needs _when_ (event date, or year + epi week) and _where_ (combined
-  location, department, or UBIGEO); dates become MMWR epi weeks.
+  and suggests its role (validated server-side, editable by the user). Personal
+  data (DNI, names) is accepted but never stored nor sent to the AI. Dates
+  become MMWR epi weeks.
 - `GET /api/dashboard?upload_id&indicator&year` — dashboard built from the
-  file's column roles (only the widgets its data supports); `GET
+  file's column roles (only the widgets its data supports) plus `insights`:
+  trend, year-over-year change, peak, concentration and dominant categories,
+  written from the numbers without an LLM; `GET
   /api/uploads/:id/years` for the year filter; `GET /api/forecast/indicator` —
   seasonal forecast of the chosen indicator (week or month), published only if
   MASE < 1.
@@ -88,7 +111,7 @@ pnpm --filter @vigia/api backfill  # legacy database -> target (cutover)
 - `pnpm --filter @vigia/api backfill:generic` fills column roles and generic
   rows for uploads created before flexible datasets.
 - `GET /api/uploads`, `GET /api/uploads/:id/quality`, `DELETE /api/uploads` —
-  upload catalog and quality report.
+  upload catalog and quality report; deleting is for administrators.
 - `GET /api/analysis/{series,interannual,heatmap,ranking,anomalies}` —
   parameterized SQL aggregates over `surveillance_cases`.
 - `GET /api/forecast` — seasonal drift, rolling backtest, MASE/WIS and the
@@ -108,9 +131,12 @@ aggregates all uploads.
 ## Invariants
 
 - `rows_in == rows_valid + rows_dropped + duplicates_collapsed`.
-- Only `CANONICAL_COLUMNS` are persisted; personal-data columns are rejected.
+- Personal-data columns are forced to _identifier_: never stored, never sent
+  to the AI.
+- Every endpoint except health needs a signed, unexpired session of an
+  existing user.
 - The same bytes produce the same upload identity (SHA-256 idempotency).
-- The epidemiological week is the time unit.
+- With weekly data the year is the epidemiological year on every page.
 - A forecast is published only when it beats the seasonal baseline (`MASE < 1`).
 - The LLM writes prose, never decisions: alert levels and actions come from
   fixed rules and the action table; DeepSeek only rewords the summary.
@@ -127,5 +153,7 @@ Railway services, environment variables, backfill, dual-run, rollback and the
 - INS / SIEN: nutritional status and anemia records.
 - SENAMHI and ENFEN/IMARPE: climate and El Nino context.
 
-Uploads are aggregated counts by geography, epidemiological week and case
-classification. Nominal patient records are out of contract.
+Uploads can be aggregated counts or line lists; nominal identifiers are
+dropped at ingestion. Alerts by place (Recomendaciones, Análisis, Explicación)
+need dates or epidemiological weeks; monthly or yearly files get the dashboard,
+its findings and the indicator forecast.

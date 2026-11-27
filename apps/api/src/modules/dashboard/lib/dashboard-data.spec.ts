@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildDashboard, periodRange, weeklyIndicatorRows } from './dashboard-data'
+import { buildDashboard, epiYearOf, periodRange, weeklyIndicatorRows } from './dashboard-data'
 
 describe('periodRange', () => {
   it('completa los meses sin datos entre el primero y el último', () => {
@@ -70,5 +70,33 @@ describe('histogramas', () => {
     const ids = body.widgets.map((widget) => widget.id)
     expect(ids).toContain('histogram:edad')
     expect(ids).not.toContain('histogram:codigo')
+  })
+})
+
+describe('año epidemiológico', () => {
+  it('con fechas semanales cuenta el 2 de enero de 2026 en el año 2025, igual que Análisis', () => {
+    expect(epiYearOf('2026-01-02')).toBe(2025)
+    expect(epiYearOf('2026-01-04')).toBe(2026)
+    const columns = [
+      { name: 'fecha', label: '', role: 'date', level: null, field: null, kind: 'date' },
+    ] as const
+    const rows = [
+      { fecha: '2025-10-05' },
+      { fecha: '2025-12-30' },
+      { fecha: '2026-01-02' },
+      { fecha: '2026-03-01' },
+    ]
+    const body = buildDashboard({
+      title: 't',
+      topic: '',
+      columns: [...columns],
+      rows,
+      indicator: { kind: 'records' },
+      year: 2025,
+    })
+    expect(body.granularity).toBe('week')
+    expect(body.years).toEqual([2026, 2025])
+    const kpis = body.widgets.find((widget) => widget.type === 'kpis')
+    expect(kpis?.type === 'kpis' && kpis.items[0]?.value).toBe('3')
   })
 })

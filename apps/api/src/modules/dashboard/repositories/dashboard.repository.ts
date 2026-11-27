@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import type { DatasetColumn } from '@vigia/epidemiology'
+import { chooseGranularity, timeSupport, type DatasetColumn } from '@vigia/epidemiology'
 import { DataSource } from 'typeorm'
 
-import type { DataRow } from '../lib/dashboard-data'
+import { usesEpiYear, type DataRow } from '../lib/dashboard-data'
 
 export interface DatasetSnapshot {
   title: string
@@ -49,7 +49,11 @@ export class DashboardRepository {
     if (!source) {
       return []
     }
-    const expression = date ? 'substring(data->>$2, 1, 4)::int' : 'floor((data->>$2)::numeric)::int'
+    const expression = date
+      ? (await this.weeklyDates(uploadId, columns, date.name))
+        ? 'extract(year from (substring(data->>$2, 1, 10)::date - extract(dow from substring(data->>$2, 1, 10)::date)::int + 3))::int'
+        : 'substring(data->>$2, 1, 4)::int'
+      : 'floor((data->>$2)::numeric)::int'
     const rows = await this.dataSource.query<Array<{ year: number }>>(
       `SELECT DISTINCT ${expression} AS year FROM "dataset_rows"
        WHERE upload_id = $1 AND data->>$2 IS NOT NULL
@@ -57,5 +61,26 @@ export class DashboardRepository {
       [uploadId, source.name],
     )
     return rows.map((row) => Number(row.year))
+  }
+
+  // Indica si el tablero agrupará las fechas por semana, para usar el año epidemiológico
+  private async weeklyDates(
+    uploadId: number,
+    columns: DatasetColumn[],
+    dateName: string,
+  ): Promise<boolean> {
+    const [range] = await this.dataSource.query<
+      Array<{ first: string | null; last: string | null }>
+    >(
+      `SELECT min(data->>$2) AS first, max(data->>$2) AS last FROM "dataset_rows"
+       WHERE upload_id = $1 AND data->>$2 IS NOT NULL`,
+      [uploadId, dateName],
+    )
+    const granularity = chooseGranularity(
+      timeSupport(columns),
+      range?.first ?? null,
+      range?.last ?? null,
+    )
+    return usesEpiYear(columns, granularity)
   }
 }

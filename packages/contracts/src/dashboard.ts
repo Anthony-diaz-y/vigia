@@ -58,6 +58,16 @@ export const WidgetSchema = z.discriminatedUnion('type', [
 
 export type WidgetDto = z.infer<typeof WidgetSchema>
 
+export const InsightSchema = z
+  .object({
+    kind: z.enum(['trend', 'peak', 'comparison', 'concentration', 'dominant']),
+    tone: z.enum(['up', 'down', 'neutral']),
+    text: z.string(),
+  })
+  .strict()
+
+export type InsightDto = z.infer<typeof InsightSchema>
+
 export const DashboardResponseSchema = z
   .object({
     title: z.string(),
@@ -67,6 +77,7 @@ export const DashboardResponseSchema = z
     granularity: GranularitySchema.nullable(),
     years: z.array(z.number().int()),
     widgets: z.array(WidgetSchema),
+    insights: z.array(InsightSchema),
   })
   .strict()
 

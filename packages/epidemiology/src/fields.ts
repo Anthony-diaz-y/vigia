@@ -116,11 +116,40 @@ export function parseDate(text: string): Date | null {
 
 // Lee un número con punto o coma decimal; devuelve null si el texto no es un número
 export function parseNumber(text: string): number | null {
-  const value = text.trim().replace(',', '.')
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
+  const value = normalizeNumber(text.trim().replace(/\s+(?=\d{3}\b)/g, ''))
+  if (value === null || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
     return null
   }
   return Number(value)
+}
+
+const GROUPED = (separator: string) => new RegExp(`^[+-]?\\d{1,3}(?:\\${separator}\\d{3})+$`)
+
+// Quita los separadores de miles y deja el punto como decimal: el último separador es el decimal
+function normalizeNumber(text: string): string | null {
+  const commas = (text.match(/,/g) ?? []).length
+  const dots = (text.match(/\./g) ?? []).length
+  if (commas > 0 && dots > 0) {
+    const decimal = text.lastIndexOf(',') > text.lastIndexOf('.') ? ',' : '.'
+    const thousands = decimal === ',' ? '.' : ','
+    const [whole = '', fraction = ''] = [
+      text.slice(0, text.lastIndexOf(decimal)),
+      text.slice(text.lastIndexOf(decimal) + 1),
+    ]
+    if (whole.includes(decimal) || !GROUPED(thousands).test(whole)) {
+      return null
+    }
+    return `${whole.split(thousands).join('')}.${fraction}`
+  }
+  if (commas > 1 || dots > 1) {
+    const separator = commas > 1 ? ',' : '.'
+    return GROUPED(separator).test(text) ? text.split(separator).join('') : null
+  }
+  // Una sola coma seguida de tres cifras y sin cero a la izquierda es separador de miles (1,234)
+  if (commas === 1 && /^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) {
+    return text.replace(',', '')
+  }
+  return text.replace(',', '.')
 }
 
 // Primer domingo de la semana epidemiológica 1 del año (la que tiene al menos 4 días de enero)

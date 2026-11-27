@@ -78,6 +78,24 @@ describe('parseNumber', () => {
     expect(parseNumber('-3')).toBe(-3)
   })
 
+  it('reconoce separadores de miles en ambos estilos', () => {
+    expect(parseNumber('1,234')).toBe(1234)
+    expect(parseNumber('12,345,678')).toBe(12345678)
+    expect(parseNumber('1.234.567')).toBe(1234567)
+    expect(parseNumber('1.234,5')).toBe(1234.5)
+    expect(parseNumber('1,234.5')).toBe(1234.5)
+    expect(parseNumber('1 234')).toBe(1234)
+    expect(parseNumber('0,123')).toBe(0.123)
+    expect(parseNumber('11,25')).toBe(11.25)
+    expect(parseNumber('1.234')).toBe(1.234)
+  })
+
+  it('rechaza agrupaciones de miles mal formadas', () => {
+    expect(parseNumber('1,23,4')).toBeNull()
+    expect(parseNumber('1.234.5')).toBeNull()
+    expect(parseNumber('1,2345,678')).toBeNull()
+  })
+
   it('rechaza texto, vacíos y miles ambiguos', () => {
     expect(parseNumber('s/d')).toBeNull()
     expect(parseNumber('')).toBeNull()

@@ -164,6 +164,13 @@ describe('topWithOthers', () => {
     expect(result.at(-1)).toEqual({ name: 'Otros', value: 3 + 2 + 1 })
   })
 
+  it('no mezcla una categoría real llamada Otros con el grupo del resto', () => {
+    const withOthers = [{ name: 'Otros', value: 50, count: 1 }, ...rows]
+    const result = topWithOthers(withOthers, { kind: 'records' })
+    expect(result[0]).toEqual({ name: 'Otros', value: 50 })
+    expect(result.at(-1)?.name).toBe('Resto')
+  })
+
   it('promedia Otros ponderando por la cantidad de registros', () => {
     const result = topWithOthers(
       [...rows.slice(0, 10), { name: 'X', value: 1, count: 1 }, { name: 'Y', value: 2, count: 3 }],

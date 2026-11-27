@@ -44,7 +44,7 @@ const MAX_HEATMAP_PLACES = 40
 const MIN_HISTOGRAM_VALUES = 5
 const MAX_BREAKDOWNS = 6
 const MAX_HISTOGRAMS = 3
-const OTHERS = 'Otros'
+const OTHERS_NAMES = ['Otros', 'Resto', 'Demás valores']
 
 const PLACE_PRIORITY: readonly PlaceLevel[] = [
   'department',
@@ -245,5 +245,8 @@ export function topWithOthers(
           rest.reduce((sum, row) => sum + row.count, 0),
         )
       : rest.reduce((sum, row) => sum + row.value, 0)
-  return [...top, { name: OTHERS, value }]
+  const taken = new Set(sorted.map((row) => row.name.trim().toLowerCase()))
+  const name =
+    OTHERS_NAMES.find((candidate) => !taken.has(candidate.toLowerCase())) ?? 'Otros (agrupados)'
+  return [...top, { name, value }]
 }

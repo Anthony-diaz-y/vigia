@@ -17,6 +17,8 @@ import {
   type WidgetPlan,
 } from '@vigia/epidemiology'
 
+import { findInsights } from './insights'
+
 export type DataRow = Record<string, string | number | null>
 
 export interface DashboardInput {
@@ -100,13 +102,19 @@ function formatKpi(value: number | null, decimals = 0): string {
 }
 
 // Lee los años con datos de cada fila según la columna de tiempo disponible
-export function rowYearReader(columns: readonly DatasetColumn[]): (row: DataRow) => number | null {
+export function rowYearReader(
+  columns: readonly DatasetColumn[],
+  epiYear = false,
+): (row: DataRow) => number | null {
   const date = columns.find((column) => column.role === 'date')
   const year = columns.find((column) => column.role === 'year')
   return (row) => {
     if (date) {
       const value = row[date.name]
-      return typeof value === 'string' ? Number(value.slice(0, 4)) : null
+      if (typeof value !== 'string') {
+        return null
+      }
+      return epiYear ? epiYearOf(value) : Number(value.slice(0, 4))
     }
     const value = year ? row[year.name] : null
     return typeof value === 'number' ? Math.trunc(value) : null
@@ -117,8 +125,9 @@ export function rowYearReader(columns: readonly DatasetColumn[]): (row: DataRow)
 export function datasetYears(
   columns: readonly DatasetColumn[],
   rows: readonly DataRow[],
+  epiYear = false,
 ): number[] {
-  const yearOf = rowYearReader(columns)
+  const yearOf = rowYearReader(columns, epiYear)
   const years = new Set<number>()
   for (const row of rows) {
     const year = yearOf(row)
@@ -361,15 +370,20 @@ export function nextPeriod(period: string, granularity: 'week' | 'month'): strin
   return month === 12 ? `${year + 1}-01` : `${year}-${pad(month + 1)}`
 }
 
+// Año epidemiológico de una fecha ISO: el año del miércoles de su semana (domingo a sábado)
+export function epiYearOf(iso: string): number {
+  return epiWeekOf(new Date(`${iso.slice(0, 10)}T00:00:00Z`)).year
+}
+
+// Con fechas agrupadas por semana el año es el epidemiológico, igual que en Análisis
+export function usesEpiYear(columns: readonly DatasetColumn[], granularity: Granularity | null) {
+  return granularity === 'week' && columns.some((column) => column.role === 'date')
+}
+
 // Arma el tablero completo: decide los widgets y calcula los datos de cada uno
 export function buildDashboard(input: DashboardInput): DashboardResponse {
   const { columns, rows, indicator } = input
   const time = timeSupport(columns)
-  const years = datasetYears(columns, rows)
-  const year = input.year !== null && years.includes(input.year) ? input.year : (years[0] ?? null)
-  const yearOf = rowYearReader(columns)
-  const filtered = year === null ? rows : rows.filter((row) => yearOf(row) === year)
-
   const dateColumn = columns.find((column) => column.role === 'date')
   const dates = dateColumn
     ? rows
@@ -378,6 +392,11 @@ export function buildDashboard(input: DashboardInput): DashboardResponse {
         .sort()
     : []
   const granularity = chooseGranularity(time, dates[0] ?? null, dates.at(-1) ?? null)
+  const epiYear = usesEpiYear(columns, granularity)
+  const years = datasetYears(columns, rows, epiYear)
+  const year = input.year !== null && years.includes(input.year) ? input.year : (years[0] ?? null)
+  const yearOf = rowYearReader(columns, epiYear)
+  const filtered = year === null ? rows : rows.filter((row) => yearOf(row) === year)
   const periodOf = periodReader(columns, granularity)
   const placeOf = placeReader(columns)
 
@@ -417,16 +436,19 @@ export function buildDashboard(input: DashboardInput): DashboardResponse {
     granularity,
   }
 
+  const widgets = plan
+    .map((widget) => buildWidget(widget, context))
+    .filter((widget): widget is WidgetDto => widget !== null)
+  const label = indicatorLabel(indicator, columns)
   return {
     title: input.title,
     topic: input.topic,
-    indicator: { id: indicatorId(indicator), label: indicatorLabel(indicator, columns) },
+    indicator: { id: indicatorId(indicator), label },
     indicators: indicatorOptions(columns).map(({ id, label }) => ({ id, label })),
     granularity,
     years,
-    widgets: plan
-      .map((widget) => buildWidget(widget, context))
-      .filter((widget): widget is WidgetDto => widget !== null),
+    widgets,
+    insights: findInsights(widgets, indicator, label),
   }
 }
 

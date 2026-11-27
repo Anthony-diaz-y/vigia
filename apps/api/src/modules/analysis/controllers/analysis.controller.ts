@@ -7,12 +7,12 @@ import type {
   WeeklySeriesRow,
 } from '@vigia/contracts'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { parseInteger, parseLevel, parseOptionalInteger } from '../../../common/utils/query'
 import { AnalysisService } from '../services/analysis.service'
 
 @Controller('analysis')
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class AnalysisController {
   constructor(@Inject(AnalysisService) private readonly analysis: AnalysisService) {}
 

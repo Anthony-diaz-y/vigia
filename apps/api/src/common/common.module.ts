@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
 
-import { AccessTokenGuard } from './guards/access-token.guard'
+import { UserEntity } from '../modules/users/entities/user.entity'
+import { AdminGuard } from './auth/admin.guard'
+import { AuthGuard } from './auth/auth.guard'
 
 @Module({
-  providers: [AccessTokenGuard],
-  exports: [AccessTokenGuard],
+  imports: [TypeOrmModule.forFeature([UserEntity])],
+  providers: [AuthGuard, AdminGuard],
+  exports: [AuthGuard, AdminGuard, TypeOrmModule],
 })
 export class CommonModule {}

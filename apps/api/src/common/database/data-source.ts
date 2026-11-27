@@ -6,6 +6,7 @@ import { SurveillanceCaseEntity } from '../../modules/datasets/entities/surveill
 import { QualityIssueEntity } from '../../modules/datasets/entities/quality-issue.entity'
 import { UploadEntity } from '../../modules/datasets/entities/upload.entity'
 import { ModelRegistryEntity } from '../../modules/forecasting/entities/model-registry.entity'
+import { UserEntity } from '../../modules/users/entities/user.entity'
 import { migrations } from './migrations'
 
 export const entities = [
@@ -14,6 +15,7 @@ export const entities = [
   SurveillanceCaseEntity,
   DatasetRowEntity,
   ModelRegistryEntity,
+  UserEntity,
 ]
 
 // Crea el DataSource de TypeORM para PostgreSQL con entidades y migraciones

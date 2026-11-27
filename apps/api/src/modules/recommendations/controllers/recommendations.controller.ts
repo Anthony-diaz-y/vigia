@@ -1,12 +1,12 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common'
 import type { RecommendationsResponse } from '@vigia/contracts'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { parseOptionalInteger } from '../../../common/utils/query'
 import { RecommendationsService } from '../services/recommendations.service'
 
 @Controller('recommendations')
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class RecommendationsController {
   constructor(
     @Inject(RecommendationsService) private readonly recommendations: RecommendationsService,

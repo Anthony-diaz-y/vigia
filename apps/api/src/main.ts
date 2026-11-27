@@ -19,7 +19,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: config.corsOrigins,
     methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Access-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
   app.enableShutdownHooks()
   app.getHttpAdapter().getInstance().disable('x-powered-by')

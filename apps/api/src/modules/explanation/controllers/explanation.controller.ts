@@ -1,12 +1,12 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common'
 import type { ExplainResponse } from '@vigia/contracts'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { parseLevel, parseOptionalInteger } from '../../../common/utils/query'
 import { ExplanationService } from '../services/explanation.service'
 
 @Controller('explain')
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class ExplanationController {
   constructor(@Inject(ExplanationService) private readonly explanation: ExplanationService) {}
 

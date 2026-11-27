@@ -4,7 +4,9 @@ import { loadEnvFile } from 'node:process'
 
 import { z } from 'zod'
 
-export const DEFAULT_ACCESS_TOKEN = 'vigia-dev'
+export const DEFAULT_AUTH_SECRET = 'vigia-dev-secret-change-me-in-production'
+export const DEFAULT_ADMIN_PASSWORD = 'vigia-admin'
+const MIN_PRODUCTION_SECRET = 32
 export const DEFAULT_DATABASE_URL = 'postgresql://vigia:vigia@localhost:55432/vigia'
 
 export const APP_CONFIG = Symbol('APP_CONFIG')
@@ -13,7 +15,11 @@ const rawSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
-    VIGIA_ACCESS_TOKEN: z.string().min(1).default(DEFAULT_ACCESS_TOKEN),
+    VIGIA_AUTH_SECRET: z.string().min(16).default(DEFAULT_AUTH_SECRET),
+    VIGIA_SESSION_HOURS: z.coerce.number().int().min(1).max(720).default(12),
+    VIGIA_ADMIN_EMAIL: z.string().email().default('admin@vigia.local'),
+    VIGIA_ADMIN_NAME: z.string().min(1).max(80).default('Administrador'),
+    VIGIA_ADMIN_PASSWORD: z.string().min(8).default(DEFAULT_ADMIN_PASSWORD),
     VIGIA_DATABASE_URL: z.string().min(1).default(DEFAULT_DATABASE_URL),
     VIGIA_TS_DATABASE_URL: z.string().min(1).optional(),
     VIGIA_DATA_DIR: z.string().min(1).default('data'),
@@ -25,11 +31,21 @@ const rawSchema = z
     if (raw.NODE_ENV !== 'production') {
       return
     }
-    if (raw.VIGIA_ACCESS_TOKEN === DEFAULT_ACCESS_TOKEN) {
+    if (
+      raw.VIGIA_AUTH_SECRET === DEFAULT_AUTH_SECRET ||
+      raw.VIGIA_AUTH_SECRET.length < MIN_PRODUCTION_SECRET
+    ) {
       context.addIssue({
         code: 'custom',
-        path: ['VIGIA_ACCESS_TOKEN'],
-        message: 'set a non-default VIGIA_ACCESS_TOKEN in production',
+        path: ['VIGIA_AUTH_SECRET'],
+        message: `set a random VIGIA_AUTH_SECRET of at least ${MIN_PRODUCTION_SECRET} characters in production`,
+      })
+    }
+    if (raw.VIGIA_ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+      context.addIssue({
+        code: 'custom',
+        path: ['VIGIA_ADMIN_PASSWORD'],
+        message: 'set a non-default VIGIA_ADMIN_PASSWORD in production',
       })
     }
     if ((raw.VIGIA_TS_DATABASE_URL ?? raw.VIGIA_DATABASE_URL) === DEFAULT_DATABASE_URL) {
@@ -44,7 +60,15 @@ const rawSchema = z
 export const appConfigSchema = rawSchema.transform((raw) => ({
   nodeEnv: raw.NODE_ENV,
   port: raw.PORT,
-  accessToken: raw.VIGIA_ACCESS_TOKEN,
+  auth: {
+    secret: raw.VIGIA_AUTH_SECRET,
+    sessionSeconds: raw.VIGIA_SESSION_HOURS * 3600,
+    admin: {
+      email: raw.VIGIA_ADMIN_EMAIL.toLowerCase(),
+      name: raw.VIGIA_ADMIN_NAME,
+      password: raw.VIGIA_ADMIN_PASSWORD,
+    },
+  },
   databaseUrl: normalizeDatabaseUrl(raw.VIGIA_TS_DATABASE_URL ?? raw.VIGIA_DATABASE_URL),
   dataDir: resolve(raw.VIGIA_DATA_DIR),
   corsOrigins: raw.VIGIA_CORS_ORIGINS.split(',')

@@ -1,13 +1,13 @@
 import { Controller, Get, Inject, Param, Query, UseGuards } from '@nestjs/common'
 import type { DashboardResponse, IndicatorForecastResponse } from '@vigia/contracts'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { parseInteger, parseOptionalInteger } from '../../../common/utils/query'
 import { DashboardService } from '../services/dashboard.service'
 import { IndicatorForecastService } from '../services/indicator-forecast.service'
 
 @Controller()
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class DashboardController {
   constructor(
     @Inject(DashboardService) private readonly dashboards: DashboardService,

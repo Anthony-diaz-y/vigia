@@ -1,12 +1,12 @@
 import { Controller, Get, Inject, Query, Res, StreamableFile, UseGuards } from '@nestjs/common'
 import type { Response } from 'express'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { parseOptionalInteger } from '../../../common/utils/query'
 import { ExportService } from '../services/export.service'
 
 @Controller('export')
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class ExportController {
   constructor(@Inject(ExportService) private readonly exports: ExportService) {}
 

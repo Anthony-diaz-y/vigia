@@ -10,11 +10,12 @@ import {
 } from '@nestjs/common'
 import type { ClearUploadsResponse, QualityReportDto, UploadDto } from '@vigia/contracts'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AdminGuard } from '../../../common/auth/admin.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { DatasetsService } from '../services/datasets.service'
 
 @Controller('uploads')
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class UploadsController {
   constructor(@Inject(DatasetsService) private readonly datasets: DatasetsService) {}
 
@@ -33,8 +34,9 @@ export class UploadsController {
     return this.datasets.quality(id)
   }
 
-  // Elimina todas las cargas y sus archivos
+  // Elimina todas las cargas y sus archivos; solo administradores
   @Delete()
+  @UseGuards(AdminGuard)
   clear(): Promise<ClearUploadsResponse> {
     return this.datasets.clear()
   }

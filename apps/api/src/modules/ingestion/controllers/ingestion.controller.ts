@@ -16,7 +16,7 @@ import { DatasetColumnSchema, type UploadDto, type UploadPreview } from '@vigia/
 import { isMappingTarget, type DatasetColumn } from '@vigia/epidemiology'
 import { z } from 'zod'
 
-import { AccessTokenGuard } from '../../../common/guards/access-token.guard'
+import { AuthGuard } from '../../../common/auth/auth.guard'
 import { IngestError } from '../lib/errors'
 import { decodeFilename } from '../lib/filename'
 import { IngestionService } from '../services/ingestion.service'
@@ -24,7 +24,7 @@ import { IngestionService } from '../services/ingestion.service'
 const UPLOAD_LIMIT = 55 * 1024 * 1024
 
 @Controller()
-@UseGuards(AccessTokenGuard)
+@UseGuards(AuthGuard)
 export class IngestionController {
   constructor(@Inject(IngestionService) private readonly ingestion: IngestionService) {}
 

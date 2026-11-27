@@ -3,7 +3,8 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
-  DEFAULT_ACCESS_TOKEN,
+  DEFAULT_ADMIN_PASSWORD,
+  DEFAULT_AUTH_SECRET,
   DEFAULT_DATABASE_URL,
   loadConfig,
   normalizeDatabaseUrl,
@@ -14,7 +15,6 @@ describe('loadConfig', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
       PORT: '4000',
-      VIGIA_ACCESS_TOKEN: 'secret-token',
       VIGIA_DATABASE_URL: 'postgresql+psycopg://vigia:vigia@db:5432/vigia',
       VIGIA_DATA_DIR: './var/data',
       VIGIA_CORS_ORIGINS: 'http://localhost:3000, https://vigia.example',
@@ -30,7 +30,6 @@ describe('loadConfig', () => {
   it('prefers the explicit VIGIA_TS_DATABASE_URL override', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
-      VIGIA_ACCESS_TOKEN: 'secret-token',
       VIGIA_DATABASE_URL: 'postgresql+psycopg://vigia:vigia@localhost:55432/vigia',
       VIGIA_TS_DATABASE_URL: 'postgresql://vigia:vigia@localhost:55432/vigia_ts',
     })
@@ -42,16 +41,44 @@ describe('loadConfig', () => {
     expect(() =>
       loadConfig({
         NODE_ENV: 'production',
-        VIGIA_ACCESS_TOKEN: DEFAULT_ACCESS_TOKEN,
+        VIGIA_AUTH_SECRET: DEFAULT_AUTH_SECRET,
+        VIGIA_ADMIN_PASSWORD: DEFAULT_ADMIN_PASSWORD,
         VIGIA_DATABASE_URL: DEFAULT_DATABASE_URL,
       }),
-    ).toThrow(/VIGIA_ACCESS_TOKEN/)
+    ).toThrow(/VIGIA_AUTH_SECRET.*VIGIA_ADMIN_PASSWORD/)
+  })
+
+  it('rejects a short signing secret in production', () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        VIGIA_AUTH_SECRET: 'only-sixteen-chars',
+        VIGIA_ADMIN_PASSWORD: 'a-real-admin-password',
+        VIGIA_DATABASE_URL: 'postgresql://vigia:secret@db.internal:5432/vigia',
+      }),
+    ).toThrow(/VIGIA_AUTH_SECRET/)
+  })
+
+  it('reads the session length and the first administrator', () => {
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      VIGIA_SESSION_HOURS: '8',
+      VIGIA_ADMIN_EMAIL: 'Jefa@Diresa.gob.pe',
+      VIGIA_ADMIN_NAME: 'Jefa de epidemiología',
+    })
+
+    expect(config.auth.sessionSeconds).toBe(8 * 3600)
+    expect(config.auth.admin).toMatchObject({
+      email: 'jefa@diresa.gob.pe',
+      name: 'Jefa de epidemiología',
+    })
   })
 
   it('accepts explicit production secrets', () => {
     const config = loadConfig({
       NODE_ENV: 'production',
-      VIGIA_ACCESS_TOKEN: 'a-real-production-token',
+      VIGIA_AUTH_SECRET: 'a-random-production-secret-with-40-chars!!',
+      VIGIA_ADMIN_PASSWORD: 'a-real-admin-password',
       VIGIA_DATABASE_URL: 'postgresql://vigia:secret@db.internal:5432/vigia',
       VIGIA_DATABASE_SSL: 'true',
     })
@@ -65,7 +92,6 @@ describe('loadConfig', () => {
       loadConfig({
         NODE_ENV: 'test',
         PORT: 'not-a-port',
-        VIGIA_ACCESS_TOKEN: 'secret-token',
         VIGIA_DATABASE_URL: 'postgresql://localhost/vigia',
       }),
     ).toThrow(/PORT/)

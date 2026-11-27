@@ -16,6 +16,9 @@ coverage/
 .pnpm-store/
 .turbo/
 
+# Artefactos de herramientas
+.playwright-mcp/
+
 # Sistema
 .DS_Store
 Thumbs.db

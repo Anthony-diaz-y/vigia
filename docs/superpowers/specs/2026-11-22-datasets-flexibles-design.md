@@ -64,16 +64,16 @@ El usuario delegó el cómo ("si lo recomiendas, aplícalo") y aprobó avanzar c
 
 Cada columna recibe un rol, un nombre en español y un tipo inferido:
 
-| Rol | Qué es | Ejemplos |
-| --- | --- | --- |
-| Fecha | Momento del registro | fecha de ingreso, fecha de notificación |
-| Año / Semana / Mes | Tiempo ya partido en columnas | año, semana epidemiológica |
-| Lugar | Ubicación, con nivel: departamento, provincia, distrito, ubicación combinada o UBIGEO | PROCEDENCIA, distrito |
-| Categoría | Texto con pocos valores distintos | sexo, diagnóstico, tipo de seguro |
-| Valor medido | Número que se promedia | hemoglobina, edad, peso |
-| Cantidad | Número de casos que representa la fila | casos |
-| Identificador | Código de registro que no es dato personal | Id, codigo_registro |
-| No usar | Cualquier otra columna | fecha de corte, observaciones |
+| Rol                | Qué es                                                                                | Ejemplos                                |
+| ------------------ | ------------------------------------------------------------------------------------- | --------------------------------------- |
+| Fecha              | Momento del registro                                                                  | fecha de ingreso, fecha de notificación |
+| Año / Semana / Mes | Tiempo ya partido en columnas                                                         | año, semana epidemiológica              |
+| Lugar              | Ubicación, con nivel: departamento, provincia, distrito, ubicación combinada o UBIGEO | PROCEDENCIA, distrito                   |
+| Categoría          | Texto con pocos valores distintos                                                     | sexo, diagnóstico, tipo de seguro       |
+| Valor medido       | Número que se promedia                                                                | hemoglobina, edad, peso                 |
+| Cantidad           | Número de casos que representa la fila                                                | casos                                   |
+| Identificador      | Código de registro que no es dato personal                                            | Id, codigo_registro                     |
+| No usar            | Cualquier otra columna                                                                | fecha de corte, observaciones           |
 
 - Un perfilado determinista calcula para cada columna su tipo (fecha, número, texto), cuántos
   valores distintos tiene y unos ejemplos. La IA, con ese perfil y los ejemplos seguros, sugiere
@@ -146,13 +146,13 @@ puntos); si no, no aparece.
 
 ### 6. Navegación y pantallas existentes
 
-| Pantalla | Cuándo aparece |
-| --- | --- |
-| Tablero (nueva, reemplaza a Resumen) | Siempre |
-| Análisis epidemiológico (actual Análisis) | Capa epidemiológica presente |
-| Pronóstico | Siempre; explica qué falta si no hay fecha |
-| Recomendaciones y Explicación | Capa epidemiológica presente |
-| Archivos | Siempre |
+| Pantalla                                  | Cuándo aparece                             |
+| ----------------------------------------- | ------------------------------------------ |
+| Tablero (nueva, reemplaza a Resumen)      | Siempre                                    |
+| Análisis epidemiológico (actual Análisis) | Capa epidemiológica presente               |
+| Pronóstico                                | Siempre; explica qué falta si no hay fecha |
+| Recomendaciones y Explicación             | Capa epidemiológica presente               |
+| Archivos                                  | Siempre                                    |
 
 - Las pantallas que no aplican al dataset elegido se ocultan del menú; si se entra por URL,
   muestran un mensaje claro de por qué no hay datos, nunca un error.

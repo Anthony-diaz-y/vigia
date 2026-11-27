@@ -39,10 +39,12 @@
 ### Task 1: Roles de columna e indicadores en el núcleo y el contrato
 
 **Files:**
+
 - Create: `packages/epidemiology/src/roles.ts`, `packages/epidemiology/src/roles.spec.ts`
 - Modify: `packages/epidemiology/src/index.ts`, `packages/contracts/src/uploads.ts`, `packages/contracts/src/index.ts`
 
 **Interfaces:**
+
 - Produces:
   - `COLUMN_ROLES = ['date','year','week','month','place','category','measure','count','identifier','ignore'] as const`; `type ColumnRole`
   - `PLACE_LEVELS = ['department','province','district','location','ubigeo'] as const`; `type PlaceLevel`
@@ -62,10 +64,12 @@
 ### Task 2: Perfilado y sugerencia de roles (reglas + IA)
 
 **Files:**
+
 - Create: `apps/api/src/modules/ingestion/application/profile.ts`, `profile.spec.ts`
 - Modify: `apps/api/src/modules/ingestion/infrastructure/column-advisor.ts` (+ spec), `apps/api/src/modules/ingestion/application/ingest.ts` (`previewUpload`, `mergeSuggestions`), `apps/api/src/modules/ingestion/domain/columns.ts`, `apps/api/config/mappings/minsa_dengue.yaml` (quitar `count_rows`)
 
 **Interfaces:**
+
 - Consumes: Task 1 (`DatasetColumn`, `ROLE_INFO`, `validateColumns`, `MAPPING_TARGET_INFO`).
 - Produces:
   - `profileColumn(name: string, values: readonly string[]): { kind: 'date'|'number'|'text'; distinct: number; filled: number }` (fecha si ≥ 75 % `parseDate`; número si ≥ 90 % `parseNumber`).
@@ -83,10 +87,12 @@
 ### Task 3: Almacenamiento genérico y carga
 
 **Files:**
+
 - Create: `apps/api/src/shared/database/migrations/1700000002000-generic-datasets.ts`, `apps/api/src/modules/datasets/infrastructure/persistence/dataset-row.entity.ts`, `apps/api/src/modules/ingestion/application/typed-rows.ts` (+ spec)
 - Modify: `migrations/index.ts`, `upload.entity.ts`, `upload.mapper.ts`, `ingestion.service.ts`, `ingest.ts` (`ingestUpload`), `ingestion.controller.ts`, `datasets.service.ts` (lista con `title/topic/columns/time/epi`)
 
 **Interfaces:**
+
 - Consumes: Task 1, Task 2.
 - Produces:
   - Migración: `uploads` + `title text NOT NULL DEFAULT ''`, `topic text NOT NULL DEFAULT ''`, `columns jsonb NOT NULL DEFAULT '[]'`; tabla `dataset_rows (upload_id int REFERENCES uploads ON DELETE CASCADE, row_number int, data jsonb NOT NULL, PRIMARY KEY (upload_id,row_number))`.
@@ -103,9 +109,11 @@
 ### Task 4: Relleno de cargas existentes
 
 **Files:**
+
 - Create: `apps/api/src/cli/backfill-generic.ts`; script `backfill:generic` en `apps/api/package.json`
 
 **Interfaces:**
+
 - Consumes: Task 2 (`ruleSuggestion`), Task 3 (`typedRows`, entidades).
 - Produces: comando idempotente que, para cada `uploads` con `columns = '[]'`, lee `raw_storage_key` del storage, deriva columnas desde el `mapping` guardado (campo → rol de Task 2), escribe `columns`, `title` (nombre de archivo), `topic` (`'dengue'` si `source = 'minsa_dengue'`) y `dataset_rows`. No toca `surveillance_cases`.
 
@@ -115,9 +123,11 @@
 ### Task 5: Modal de revisión con roles (web)
 
 **Files:**
+
 - Modify: `apps/web/src/modules/shared/components/layout/mapping-dialog.tsx`, `dashboard-layout.tsx`, `apps/web/src/modules/shared/services/uploads.service.ts` (`createUpload(file, review: { columns, title, topic })`), `use-upload-mutations.ts`, `apps/web/app/globals.css` (`.map-*`)
 
 **Interfaces:**
+
 - Consumes: contrato de Task 1, endpoint de Task 3.
 - Produces: modal con título y tema editables arriba; por columna, selector de rol (`ROLE_INFO` del preview) y, si el rol es Lugar, segundo selector de nivel; avisos informativos (no bloqueantes): "Sin fecha no habrá evolución ni pronóstico", "Sin lugar no habrá ranking por zona", "Sin cantidad, cada fila cuenta como un registro". Solo bloquean datos personales o ninguna columna útil.
 
@@ -133,9 +143,11 @@
 ### Task 6: Núcleo del tablero
 
 **Files:**
+
 - Create: `packages/epidemiology/src/dashboard.ts`, `dashboard.spec.ts`; contrato `packages/contracts/src/dashboard.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1.
 - Produces:
   - `type Indicator = { kind: 'records' } | { kind: 'sum'; column: string } | { kind: 'mean'; column: string }`; `defaultIndicator(columns): Indicator` (suma de `count` si existe, si no `records`); `indicatorOptions(columns): { id: string; label: string; indicator: Indicator }[]` (registros, suma de cantidad, promedio de cada `measure`).
@@ -149,11 +161,13 @@
 ### Task 7: Endpoint del tablero y pantalla Tablero
 
 **Files:**
+
 - Create: `apps/api/src/modules/dashboard/` (módulo, `dashboard.repository.ts` con SQL sobre `dataset_rows`, `dashboard.service.ts`, `dashboard.controller.ts` `GET /api/dashboard?upload_id&indicator&year`), e2e `apps/api/test/dashboard.e2e-spec.ts`
 - Create (web): `apps/web/src/modules/tablero/` (`components/tablero-page.tsx`, widgets `kpi-row`, `time-widget`, `ranking-widget`, `heatmap-widget`, `breakdown-widget`, `histogram-widget`; `hooks/use-dashboard.ts`; `services/dashboard.service.ts`; `index.ts`), `app/(dashboard)/page.tsx` → Tablero
 - Modify: `apps/web/src/modules/shared/constants/navigation.ts`, `query-keys.ts`, `topbar.tsx` (selector Indicador; sin "Todos los archivos"; archivo por defecto = el más reciente), `dashboard-filters.tsx` (agrega `indicator`), `dashboard-layout.tsx`; eliminar `apps/web/src/modules/resumen/` (el aviso de recomendación se mueve a `tablero` y solo se muestra si `epi`).
 
 **Interfaces:**
+
 - Consumes: Task 6, Task 3 (`dataset_rows`, `UploadDto.columns/epi/time`).
 - Produces: `useDashboard(uploadId: number, indicator: string, year: number | null)` con `queryKeys.dashboard(uploadId, indicator, year)`; navegación filtrada por capacidades: `navItemsFor(upload: UploadDto): NavItem[]` (Tablero, Pronóstico y Archivos siempre; Análisis, Recomendaciones y Explicación si `upload.time` es `date` o `week`).
 - El repositorio agrega en SQL: conteo/suma/promedio por periodo (`date_trunc` o año+semana/mes), por lugar (separando `location` con la misma regla que `splitLocation` en una función SQL o en memoria si hay ≤ 200 000 filas — decisión del implementador), por categoría, e histograma con `width_bucket`.
@@ -171,10 +185,12 @@
 ### Task 8: Pronóstico del indicador
 
 **Files:**
+
 - Create: `packages/epidemiology/src/indicator-forecast.ts` (+ spec), `apps/api/src/modules/forecasting/application/indicator-forecast.service.ts`, endpoint `GET /api/forecast/indicator?upload_id&indicator`, contrato `IndicatorForecastSchema`
 - Modify (web): `apps/web/src/modules/pronostico/` (sección "Indicador del archivo" arriba; la sección por departamento actual solo si `epi`)
 
 **Interfaces:**
+
 - Consumes: `seasonalDriftForecast`, `rollingBacktest`, `scorecardRow` (`forecast.ts`), `buildOutlook`/`projectAnnual` (`outlook.ts`), serie del indicador del repositorio de Task 7.
 - Produces: `forecastIndicator(values: readonly number[], granularity: 'week'|'month'): { status: ForecastStatus; mase: number | null; horizon: {step,p10,p50,p90}[]; reason: string | null }` — temporada 52/12, horizonte 4 semanas o 3 meses, requiere 2 temporadas (si no, `status: 'insufficient_evidence'` y `reason` en español "Se necesitan al menos 2 años de datos semanales"); granularidad `day` se agrega a semana antes de pronosticar. Proyección anual solo si el indicador es `records` o `sum`.
 
@@ -190,9 +206,11 @@
 ### Task 9: Núcleos parametrizados por indicador
 
 **Files:**
+
 - Modify: `packages/epidemiology/src/recommendations.ts` (+ spec), `packages/epidemiology/src/explain.ts` (+ spec)
 
 **Interfaces:**
+
 - Produces:
   - `buildRecommendations(inputs, options?: RecommendationOptions)` con `RecommendationOptions = { indicatorLabel: string; direction: 'up' | 'both'; actions: 'dengue' | 'general'; minChange: number }`; por defecto `{ indicatorLabel: 'Casos', direction: 'up', actions: 'dengue', minChange: MIN_CASES_FOR_CHANGE }` (paridad). Con `direction: 'both'`, una caída fuerte también sube el nivel. Los motivos usan `indicatorLabel` ("Hemoglobina promedio en baja: 11,2 → 10,4 (−7 %)").
   - `GENERAL_LEVEL_ACTIONS` y `GENERAL_ACTION_TABLE` con redacción neutra (sin vectores ni criaderos); `topDrivers`/`recommend(drivers, actions)` usa la tabla elegida.
@@ -204,10 +222,12 @@
 ### Task 10: Fuente de series por indicador y servicios adaptativos
 
 **Files:**
+
 - Create: `apps/api/src/modules/analysis/infrastructure/indicator-series.repository.ts` (+ e2e)
 - Modify: `analysis.service.ts`, `forecasting.service.ts`, `recommendations.service.ts`, `explanation.service.ts` y sus controladores (parámetro opcional `indicator`)
 
 **Interfaces:**
+
 - Consumes: Task 6 (`Indicator`), Task 9.
 - Produces: `IndicatorSeriesRepository.weekly(uploadId: number, indicator: Indicator): Promise<{ department: string; year: number; epi_week: number; cases: number }[]>` — lugar al nivel departamento (o el nivel disponible más alto; `'Total'` si no hay lugar), semana desde `date` (`epiWeekOf`) o `year`+`week`. Regla de fuente: si la carga es `epi` y el indicador es el por defecto, los servicios usan `AnalysisRepository.weeklyCases` (paridad); en cualquier otro caso usan `IndicatorSeriesRepository.weekly`. Con tiempo `month`/`year`/`none` los endpoints adaptativos responden 200 con `{ unavailable: 'Se necesitan fechas o semanas para detectar anomalías.' }` (campo opcional añadido a los contratos de análisis, recomendaciones y explicación).
 
@@ -217,10 +237,12 @@
 ### Task 11: Acciones sugeridas por la IA y pantallas adaptativas
 
 **Files:**
+
 - Create: `apps/api/src/modules/recommendations/infrastructure/action-advisor.ts` (+ spec)
 - Modify: `recommendations.service.ts`, contrato `RecommendationItemSchema` (+ `actions_source: 'rules' | 'deepseek'`), web `recomendaciones/`, `analisis/`, `explicacion/` (textos con `indicatorLabel`, mensaje `unavailable`, marca "Sugerida por IA, revisar con el equipo")
 
 **Interfaces:**
+
 - Consumes: Task 9, Task 10, `DeepSeekClient`.
 - Produces: `ActionAdvisor.suggest(facts: { topic: string; indicator: string; items: { place: string; level: AlertLevel; reasons: string[] }[] }): Promise<Record<string, string[]> | null>` — solo para items `alto`/`medio`, máximo 2 acciones por lugar, ≤ 20 palabras cada una, sin dosis ni indicaciones clínicas; `parseActions` descarta lugares inventados. Sin IA o con dengue, se usan las tablas de Task 9.
 
@@ -231,6 +253,7 @@
 ### Task 12: Textos generales y cierre
 
 **Files:**
+
 - Modify: `apps/web/app/layout.tsx` (título "Vigia, análisis de datos de salud"), `navigation.tsx` (etiqueta de marca), `packages/contracts` `DISCLAIMER` genérico, `apps/web/src/modules/shared/components/ui/empty-state.tsx` (copia genérica), `apps/api` prompts que dicen "dengue" fuera del caso dengue, `README.md`, `src/modules/README.md`
 
 - [ ] **Step 1:** `rg -i "dengue" apps/web/src apps/web/app` solo devuelve usos condicionados al tema.

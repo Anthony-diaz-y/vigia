@@ -11,3 +11,4 @@ apps/api/test/fixtures
 pnpm-lock.yaml
 README.md
 DEPLOYMENT.md
+.playwright-mcp

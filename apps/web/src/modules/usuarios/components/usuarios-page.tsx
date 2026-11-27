@@ -133,7 +133,7 @@ export function UsuariosPage() {
             <span>Contraseña inicial</span>
             <input
               className="input"
-              type="text"
+              type="password"
               required
               minLength={8}
               autoComplete="new-password"

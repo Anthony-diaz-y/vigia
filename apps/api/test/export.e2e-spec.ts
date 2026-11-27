@@ -113,4 +113,18 @@ describe.skipIf(!dbEnabled)('export API against PostgreSQL', () => {
       .expect(422)
       .expect({ detail: 'upload_id must be an integer' })
   })
+
+  it('rejects an unknown export format', async () => {
+    await upload('demo_624.csv')
+    await get('/api/export?format=xml')
+      .expect(422)
+      .expect({ detail: "format must be one of ('csv', 'parquet'), got 'xml'" })
+  })
+
+  it('exports CSV when the format is omitted', async () => {
+    await upload('demo_624.csv')
+    const response = await get('/api/export').expect(200)
+    expect(response.headers['content-type']).toContain('text/csv')
+    expect(response.text).toBe(snapshotText('export_demo.csv'))
+  })
 })

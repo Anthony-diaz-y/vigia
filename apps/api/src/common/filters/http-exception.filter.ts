@@ -8,8 +8,26 @@ import {
 } from '@nestjs/common'
 import type { Response } from 'express'
 
+type HttpExceptionLike = Pick<HttpException, 'getStatus' | 'getResponse' | 'message'>
+
+// Reconoce una excepción HTTP por su forma, porque con tsx el instanceof falla
+function isHttpException(exception: unknown): exception is HttpExceptionLike {
+  if (exception instanceof HttpException) {
+    return true
+  }
+  if (!(exception instanceof Error)) {
+    return false
+  }
+  const candidate = exception as Partial<HttpExceptionLike>
+  if (typeof candidate.getStatus !== 'function' || typeof candidate.getResponse !== 'function') {
+    return false
+  }
+  const status: unknown = candidate.getStatus()
+  return typeof status === 'number' && status >= 400 && status <= 599
+}
+
 // Obtiene el mensaje de error legible de una excepción HTTP
-function extractDetail(exception: HttpException): string {
+function extractDetail(exception: HttpExceptionLike): string {
   const body = exception.getResponse()
   if (typeof body === 'string') {
     return body
@@ -34,7 +52,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>()
 
-    if (exception instanceof HttpException) {
+    if (isHttpException(exception)) {
       response.status(exception.getStatus()).json({ detail: extractDetail(exception) })
       return
     }

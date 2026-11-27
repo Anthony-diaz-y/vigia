@@ -46,6 +46,8 @@ describe('looksLikeCountName', () => {
     expect(looksLikeCountName('cantidad')).toBe(true)
     expect(looksLikeCountName('cant_vacunas')).toBe(true)
     expect(looksLikeCountName('camas')).toBe(true)
+    expect(looksLikeCountName('canton')).toBe(false)
+    expect(looksLikeCountName('camara')).toBe(false)
   })
 
   it('considera también la etiqueta y el símbolo de porcentaje', () => {

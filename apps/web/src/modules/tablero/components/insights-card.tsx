@@ -31,13 +31,8 @@ function ToneMark({ tone }: { tone: InsightDto['tone'] }) {
 
 // Hallazgos del archivo en lenguaje simple, calculados por la API sin inventar cifras
 export function InsightsCard({ insights }: { insights: InsightDto[] }) {
-  if (insights.length === 0) {
-    return null
-  }
   return (
-    <section className="card insights">
-      <h2 className="section-title">Hallazgos</h2>
-      <p className="card-sub">Lo que más destaca en los datos, calculado directamente de ellos.</p>
+    <div className="card insights">
       <ul className="insight-list">
         {insights.map((insight, index) => (
           <li
@@ -50,6 +45,6 @@ export function InsightsCard({ insights }: { insights: InsightDto[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   )
 }

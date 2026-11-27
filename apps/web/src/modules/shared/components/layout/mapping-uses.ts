@@ -41,11 +41,11 @@ const LEVEL_NAMES: Readonly<Record<Level, string>> = {
 }
 
 const LEVEL_HINTS: Readonly<Record<Level, string>> = {
-  department: 'Ejemplo: Lima, Cusco.',
-  province: 'Ejemplo: Lima, Callao.',
-  district: 'Ejemplo: Ate, Ancón.',
+  department: 'Nombre o código UBIGEO. Ejemplo: Lima, Cusco o 15.',
+  province: 'Nombre o código UBIGEO. Ejemplo: Lima, Callao o 0302.',
+  district: 'Nombre o código UBIGEO. Ejemplo: Ate, Ancón o 150103.',
   location: 'Texto con la ubicación completa.',
-  ubigeo: 'Código numérico del lugar, ejemplo: 150101.',
+  ubigeo: 'Código numérico del lugar, ejemplo: 150101; se muestra con su nombre.',
 }
 
 const USE_ORDER: readonly Use[] = [

@@ -73,6 +73,7 @@ export function InterannualChart({
               stroke={yearColor(index, years.length)}
               strokeWidth={index === years.length - 1 ? 2.75 : 1.75}
               dot={false}
+              connectNulls
               isAnimationActive={false}
             />
           ))}

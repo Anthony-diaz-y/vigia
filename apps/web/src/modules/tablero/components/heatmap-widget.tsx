@@ -27,10 +27,12 @@ export function HeatmapWidget({
   const step = Math.max(1, Math.ceil(columns.length / MAX_LABELS))
 
   return (
-    <Section title={title}>
-      <div className="card-sub">
-        Cada fila es un lugar y cada cuadro un periodo. Más oscuro, mayor valor.
-      </div>
+    <Section
+      title={title}
+      subtitle="Cada fila es un lugar y cada cuadro un periodo. Más oscuro, mayor valor."
+      level={3}
+      className="tb-card"
+    >
       <div className="overflow-x-auto" aria-label={title}>
         <div
           className="heatmap-grid"

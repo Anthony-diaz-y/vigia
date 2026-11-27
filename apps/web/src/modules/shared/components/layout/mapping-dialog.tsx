@@ -60,9 +60,71 @@ const WIDGET_ICONS: Readonly<Record<SummaryWidget['type'], ReactNode>> = {
   forecast: <SparkIcon />,
 }
 
-// Quita del preview los ejemplos y el motivo para quedarse con la columna que se envía
-function toColumn({ samples: _samples, reason: _reason, ...column }: PreviewColumnDto) {
+// Quita del preview los ejemplos, los códigos y el motivo para quedarse con la columna que se envía
+function toColumn({
+  samples: _samples,
+  codes: _codes,
+  reason: _reason,
+  ...column
+}: PreviewColumnDto): DatasetColumnDto {
   return column
+}
+
+// Cambia el significado de un código; vacío lo quita, y sin significados la columna no lleva `values`
+function withMeaning(column: DatasetColumnDto, code: string, label: string): DatasetColumnDto {
+  const { values: current, ...rest } = column
+  const values = { ...current }
+  if (label.trim() === '') {
+    delete values[code]
+  } else {
+    values[code] = label
+  }
+  return Object.keys(values).length > 0 ? { ...rest, values } : rest
+}
+
+// Códigos que se pueden explicar en una columna: los del archivo o, si no, los que ya tienen significado
+function meaningCodes(column: DatasetColumnDto, codes: readonly string[] | undefined): string[] {
+  return codes && codes.length > 0 ? [...codes] : Object.keys(column.values ?? {})
+}
+
+// Resumen de los significados de una columna: "3 valores con significado"
+function meaningSummary(column: DatasetColumnDto): string {
+  const filled = Object.values(column.values ?? {}).filter((label) => label.trim() !== '').length
+  return filled === 0
+    ? 'Significado de los valores (opcional)'
+    : `${filled} ${filled === 1 ? 'valor con significado' : 'valores con significado'}`
+}
+
+// Lista editable plegada de «código → significado» para una categoría de códigos
+function ValueMeanings({
+  column,
+  codes,
+  onChange,
+}: {
+  column: DatasetColumnDto
+  codes: readonly string[]
+  onChange: (code: string, label: string) => void
+}) {
+  return (
+    <details className="map-values">
+      <summary>{meaningSummary(column)}</summary>
+      <div className="map-values-list">
+        {codes.map((code) => (
+          <label key={code} className="map-value">
+            <code title={`Código ${code}`}>{code}</code>
+            <input
+              className="map-value-input"
+              value={column.values?.[code] ?? ''}
+              maxLength={60}
+              placeholder="Qué significa"
+              aria-label={`Significado del valor ${code} de ${displayName(column)}`}
+              onChange={(event) => onChange(code, event.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+    </details>
+  )
 }
 
 // Cambia el rol de una columna y libera el mismo rol de tiempo (o nivel de lugar) en las demás
@@ -207,6 +269,12 @@ export function MappingDialog({
     }
   }
 
+  // Cambia el significado de un valor codificado de una columna
+  const mean = (name: string, code: string, label: string) =>
+    setColumns((all) =>
+      all.map((item) => (item.name === name ? withMeaning(item, code, label) : item)),
+    )
+
   // Cambia el nombre en Vigia de una columna
   const rename = (name: string, label: string) =>
     setColumns((all) => all.map((item) => (item.name === name ? { ...item, label } : item)))
@@ -294,94 +362,100 @@ export function MappingDialog({
                 suggested !== undefined &&
                 (suggested.role !== column.role || suggested.level !== column.level)
               const name = displayName(column)
+              const codes = meaningCodes(column, suggested?.codes)
               return (
-                <div
-                  key={column.name}
-                  role="listitem"
-                  className={`map-row${on ? '' : ' is-unused'}${locked ? ' is-locked' : ''}`}
-                >
-                  {locked ? (
-                    <span className="map-lock">
-                      <LockIcon /> Protegida
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      role="switch"
-                      className="map-switch"
-                      aria-checked={on}
-                      aria-label={`Usar ${name} en el tablero`}
-                      onClick={() => toggle(column)}
-                    >
-                      <span className="map-track">
-                        <span className="map-thumb" />
+                <div key={column.name} role="listitem" className="map-item">
+                  <div className={`map-row${on ? '' : ' is-unused'}${locked ? ' is-locked' : ''}`}>
+                    {locked ? (
+                      <span className="map-lock">
+                        <LockIcon /> Protegida
                       </span>
-                      <span>{on ? 'Usar' : 'No usar'}</span>
-                    </button>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        role="switch"
+                        className="map-switch"
+                        aria-checked={on}
+                        aria-label={`Usar ${name} en el tablero`}
+                        onClick={() => toggle(column)}
+                      >
+                        <span className="map-track">
+                          <span className="map-thumb" />
+                        </span>
+                        <span>{on ? 'Usar' : 'No usar'}</span>
+                      </button>
+                    )}
 
-                  <div className="min-w-0">
-                    <label className="map-label">
-                      <input
-                        className="map-label-input"
-                        value={column.label}
-                        maxLength={60}
-                        placeholder={column.name}
-                        aria-label={`Nombre en Vigia de la columna ${column.name}`}
-                        onChange={(event) => rename(column.name, event.target.value)}
-                      />
-                      <PencilIcon />
-                    </label>
-                    <div className="map-sub" title={column.name}>
+                    <div className="min-w-0">
+                      <label className="map-label">
+                        <input
+                          className="map-label-input"
+                          value={column.label}
+                          maxLength={60}
+                          placeholder={column.name}
+                          aria-label={`Nombre en Vigia de la columna ${column.name}`}
+                          onChange={(event) => rename(column.name, event.target.value)}
+                        />
+                        <PencilIcon />
+                      </label>
+                      <div className="map-sub" title={column.name}>
+                        {locked ? (
+                          <>
+                            <LockIcon />
+                            <code>{column.name}</code> · Dato personal: no se guarda ni se envía a
+                            la IA.
+                          </>
+                        ) : changed ? (
+                          <>
+                            <code>{column.name}</code> · <em>Lo cambiaste tú.</em> Se sugería:{' '}
+                            {fullUseName(useOf(suggested))}.
+                          </>
+                        ) : (
+                          <>
+                            <code>{column.name}</code>
+                            {suggested?.reason ? ` · ${suggested.reason}` : ''}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="map-samples">
                       {locked ? (
-                        <>
-                          <LockIcon />
-                          <code>{column.name}</code> · Dato personal: no se guarda ni se envía a la
-                          IA.
-                        </>
-                      ) : changed ? (
-                        <>
-                          <code>{column.name}</code> · <em>Lo cambiaste tú.</em> Se sugería:{' '}
-                          {fullUseName(useOf(suggested))}.
-                        </>
+                        <span className="map-sample is-hidden">Ocultos por privacidad</span>
+                      ) : suggested && suggested.samples.length > 0 ? (
+                        suggested.samples.map((sample) => (
+                          <span key={sample} className="map-sample" title={sample}>
+                            {sample}
+                          </span>
+                        ))
                       ) : (
-                        <>
-                          <code>{column.name}</code>
-                          {suggested?.reason ? ` · ${suggested.reason}` : ''}
-                        </>
+                        '—'
+                      )}
+                    </div>
+
+                    <div className={`map-use${on ? '' : ' is-off'}`}>
+                      {locked ? (
+                        <span className="map-chip">
+                          <LockIcon /> No editable
+                        </span>
+                      ) : (
+                        <Select
+                          className="is-boxed"
+                          label={`Uso en el tablero de ${name}`}
+                          value={useOf(column)}
+                          options={useOptions(columns, column.name)}
+                          onChange={(use) => change(column, use)}
+                        />
                       )}
                     </div>
                   </div>
-
-                  <div className="map-samples">
-                    {locked ? (
-                      <span className="map-sample is-hidden">Ocultos por privacidad</span>
-                    ) : suggested && suggested.samples.length > 0 ? (
-                      suggested.samples.map((sample) => (
-                        <span key={sample} className="map-sample" title={sample}>
-                          {sample}
-                        </span>
-                      ))
-                    ) : (
-                      '—'
-                    )}
-                  </div>
-
-                  <div className={`map-use${on ? '' : ' is-off'}`}>
-                    {locked ? (
-                      <span className="map-chip">
-                        <LockIcon /> No editable
-                      </span>
-                    ) : (
-                      <Select
-                        className="is-boxed"
-                        label={`Uso en el tablero de ${name}`}
-                        value={useOf(column)}
-                        options={useOptions(columns, column.name)}
-                        onChange={(use) => change(column, use)}
-                      />
-                    )}
-                  </div>
+                  {on && column.role === 'category' && codes.length > 0 && (
+                    <ValueMeanings
+                      column={column}
+                      codes={codes}
+                      onChange={(code, label) => mean(column.name, code, label)}
+                    />
+                  )}
                 </div>
               )
             })}

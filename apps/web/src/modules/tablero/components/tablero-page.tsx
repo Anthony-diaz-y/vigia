@@ -9,18 +9,15 @@ import { useRecommendations } from '@/modules/shared/hooks'
 import { errorMessage } from '@/modules/shared/utils'
 
 import { useDashboard } from '../hooks/use-dashboard'
+import { fullWidthFlags, groupWidgets, isCompact } from '../utils/group-widgets'
 import { BarsWidget } from './bars-widget'
+import { DominantWidget } from './dominant-widget'
 import { HeatmapWidget } from './heatmap-widget'
 import { HistogramWidget } from './histogram-widget'
 import { InsightsCard } from './insights-card'
+import { ProportionWidget } from './proportion-widget'
 import { RecommendationBanner } from './recommendation-banner'
-
-const WIDE: ReadonlySet<WidgetDto['type']> = new Set([
-  'kpis',
-  'timeseries',
-  'interannual',
-  'heatmap',
-])
+import { TableroSection } from './tablero-section'
 
 const WEEKLY: ReadonlySet<string> = new Set(['date', 'week'])
 
@@ -43,33 +40,57 @@ export function TableroPage() {
     return <LoadingState label="Armando el tablero…" />
   }
 
+  const kpis = data.widgets.filter((widget) => widget.type === 'kpis')
+
   return (
     <>
       {upload && WEEKLY.has(upload.time) && <EpiBanner uploadId={uploadId} indicator={indicator} />}
-      {data.widgets
-        .filter((widget) => widget.type === 'kpis')
-        .map((widget) => (
-          <div key={widget.id} className="min-w-0">
-            <Widget widget={widget} dashboard={data} />
-          </div>
-        ))}
-      <InsightsCard insights={data.insights} />
-      {data.widgets
-        .filter((widget) => WIDE.has(widget.type) && widget.type !== 'kpis')
-        .map((widget) => (
-          <div key={widget.id} className="min-w-0">
-            <Widget widget={widget} dashboard={data} />
-          </div>
-        ))}
-      <div className="widget-masonry">
-        {data.widgets
-          .filter((widget) => !WIDE.has(widget.type))
-          .map((widget) => (
-            <div key={widget.id} className="widget-masonry-item">
-              <Widget widget={widget} dashboard={data} />
-            </div>
-          ))}
-      </div>
+      {kpis.map((widget) => (
+        <div key={widget.id} className="min-w-0">
+          <Widget widget={widget} dashboard={data} />
+        </div>
+      ))}
+      {data.insights.length > 0 && (
+        <TableroSection
+          id="hallazgos"
+          title="Hallazgos"
+          description="Lo que más destaca en los datos, calculado directamente de ellos."
+        >
+          <InsightsCard insights={data.insights} />
+        </TableroSection>
+      )}
+      {groupWidgets(data.widgets).map((section) => {
+        const compact = section.widgets.filter(isCompact)
+        const regular = section.widgets.filter((widget) => !isCompact(widget))
+        const full = fullWidthFlags(regular)
+        return (
+          <TableroSection
+            key={section.id}
+            id={section.id}
+            title={section.title}
+            description={section.description}
+          >
+            {compact.length > 0 && (
+              <div className="tb-compact-grid">
+                {compact.map((widget) => (
+                  <div key={widget.id} className="tb-cell">
+                    <Widget widget={widget} dashboard={data} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {regular.length > 0 && (
+              <div className="tb-grid">
+                {regular.map((widget, index) => (
+                  <div key={widget.id} className={full[index] ? 'tb-cell tb-full' : 'tb-cell'}>
+                    <Widget widget={widget} dashboard={data} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </TableroSection>
+        )
+      })}
     </>
   )
 }
@@ -101,7 +122,12 @@ function Widget({ widget, dashboard }: { widget: WidgetDto; dashboard: Dashboard
       )
     case 'timeseries':
       return (
-        <Section title={widget.title}>
+        <Section
+          title={widget.title}
+          subtitle="Valor del indicador en cada periodo."
+          level={3}
+          className="tb-card"
+        >
           <WeeklyChart
             data={widget.points.map((point) => ({ label: point.period, total: point.value }))}
             xLabel={PERIOD_NAMES[dashboard.granularity ?? 'day'] ?? 'Periodo'}
@@ -111,10 +137,12 @@ function Widget({ widget, dashboard }: { widget: WidgetDto; dashboard: Dashboard
       )
     case 'interannual':
       return (
-        <Section title={widget.title}>
-          <p className="card-sub">
-            Cada línea es un año. El más reciente va en color; los anteriores, en gris.
-          </p>
+        <Section
+          title={widget.title}
+          subtitle="Cada línea es un año. El más reciente va en color; los anteriores, en gris."
+          level={3}
+          className="tb-card"
+        >
           <InterannualChart
             data={widget.rows}
             years={widget.years}
@@ -124,8 +152,29 @@ function Widget({ widget, dashboard }: { widget: WidgetDto; dashboard: Dashboard
           />
         </Section>
       )
-    case 'ranking':
     case 'breakdown':
+      if (widget.variant === 'proportion') {
+        return (
+          <ProportionWidget
+            title={widget.title}
+            rows={widget.rows}
+            indicatorId={indicatorId}
+            unit={valueLabel}
+          />
+        )
+      }
+      if (widget.variant === 'dominant') {
+        return (
+          <DominantWidget
+            title={widget.title}
+            rows={widget.rows}
+            indicatorId={indicatorId}
+            unit={valueLabel}
+          />
+        )
+      }
+      return <BarsWidget title={widget.title} rows={widget.rows} indicatorId={indicatorId} />
+    case 'ranking':
       return <BarsWidget title={widget.title} rows={widget.rows} indicatorId={indicatorId} />
     case 'heatmap':
       return (

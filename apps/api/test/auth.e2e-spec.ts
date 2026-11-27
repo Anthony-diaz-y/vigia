@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { AppModule } from '../src/app.module'
+import { hashPassword } from '../src/common/auth/password'
 import { loadConfig } from '../src/common/config/app-config'
 import { createDataSource } from '../src/common/database/data-source'
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter'
@@ -173,4 +174,81 @@ describe.skipIf(!dbEnabled)('login and users against PostgreSQL', () => {
       .expect(422)
     expect(response.body).toEqual({ detail: 'La contraseña debe tener al menos 8 caracteres.' })
   })
+
+  it('crear el mismo correo a la vez da un 201 y el resto 409, nunca 500', async () => {
+    const adminAuth = await login(admin.email, admin.password)
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        request(server).post('/api/users').set('Authorization', adminAuth).send({
+          email: 'doble@vigia.local',
+          name: 'Doble',
+          password: 'clave-doble',
+          role: 'analyst',
+        }),
+      ),
+    )
+    const statuses = responses.map((response) => response.status).sort()
+    expect(statuses).toEqual([201, 409, 409, 409, 409, 409])
+    for (const response of responses.filter((item) => item.status === 409)) {
+      expect(response.body).toEqual({ detail: 'Ya existe un usuario con ese correo.' })
+    }
+    const rows = await dataSource.query<{ count: string }[]>(
+      'SELECT count(*) FROM "users" WHERE "email" = $1',
+      ['doble@vigia.local'],
+    )
+    expect(rows[0]?.count).toBe('1')
+  })
+
+  it('dos administradores que se eliminan a la vez dejan siempre uno', async () => {
+    const adminAuth = await login(admin.email, admin.password)
+    const me = await request(server).get('/api/auth/me').set('Authorization', adminAuth)
+    try {
+      for (let round = 0; round < 5; round += 1) {
+        const other = await request(server)
+          .post('/api/users')
+          .set('Authorization', adminAuth)
+          .send({
+            email: `par${round}@vigia.local`,
+            name: 'Par',
+            password: 'clave-par-1',
+            role: 'admin',
+          })
+          .expect(201)
+        const otherAuth = await login(`par${round}@vigia.local`, 'clave-par-1')
+        const [first, second] = await Promise.all([
+          request(server)
+            .delete(`/api/users/${other.body.id as number}`)
+            .set('Authorization', adminAuth),
+          request(server)
+            .delete(`/api/users/${me.body.id as number}`)
+            .set('Authorization', otherAuth),
+        ])
+        expect([first.status, second.status].sort()).toEqual([204, 422])
+        const admins = await dataSource.query<{ count: string }[]>(
+          `SELECT count(*) FROM "users" WHERE "role" = 'admin'`,
+        )
+        expect(admins[0]?.count).toBe('1')
+        if (second.status === 204) {
+          break
+        }
+      }
+    } finally {
+      await restoreInitialAdmin()
+    }
+  })
+
+  // Vuelve a crear al administrador inicial si una prueba lo eliminó
+  async function restoreInitialAdmin(): Promise<void> {
+    await dataSource.query('DELETE FROM "users" WHERE "email" <> $1', [admin.email])
+    const rows = await dataSource.query<{ id: number }[]>(
+      'SELECT id FROM "users" WHERE "email" = $1',
+      [admin.email],
+    )
+    if (rows.length === 0) {
+      await dataSource.query(
+        `INSERT INTO "users" ("email", "name", "password_hash", "role") VALUES ($1, $2, $3, 'admin')`,
+        [admin.email, admin.name, await hashPassword(admin.password)],
+      )
+    }
+  }
 })

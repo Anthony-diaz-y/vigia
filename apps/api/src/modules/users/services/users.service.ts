@@ -9,11 +9,22 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { CreateUserRequest, SessionUser, UserDto } from '@vigia/contracts'
-import { Repository } from 'typeorm'
+import { QueryFailedError, Repository } from 'typeorm'
 
 import { hashPassword } from '../../../common/auth/password'
 import { APP_CONFIG, type AppConfig } from '../../../common/config/app-config'
 import { UserEntity } from '../entities/user.entity'
+
+const DUPLICATE_EMAIL = 'Ya existe un usuario con ese correo.'
+const UNIQUE_VIOLATION = '23505'
+
+// Indica si PostgreSQL rechazó la escritura por una clave única repetida
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof QueryFailedError &&
+    (error.driverError as { code?: unknown } | undefined)?.code === UNIQUE_VIOLATION
+  )
+}
 
 // Convierte la entidad en el usuario que ve la API, sin el hash de la contraseña
 export function toUserDto(user: UserEntity): UserDto {
@@ -55,17 +66,23 @@ export class UsersService implements OnApplicationBootstrap {
   async create(request: CreateUserRequest): Promise<UserDto> {
     const email = request.email.trim().toLowerCase()
     if (await this.users.existsBy({ email })) {
-      throw new ConflictException('Ya existe un usuario con ese correo.')
+      throw new ConflictException(DUPLICATE_EMAIL)
     }
-    const user = await this.users.save(
-      this.users.create({
-        email,
-        name: request.name.trim(),
-        role: request.role,
-        passwordHash: await hashPassword(request.password),
-      }),
-    )
-    return toUserDto(user)
+    const entity = this.users.create({
+      email,
+      name: request.name.trim(),
+      role: request.role,
+      passwordHash: await hashPassword(request.password),
+    })
+    try {
+      return toUserDto(await this.users.save(entity))
+    } catch (error) {
+      // Otra petición simultánea creó el mismo correo entre la comprobación y el guardado
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(DUPLICATE_EMAIL)
+      }
+      throw error
+    }
   }
 
   // Elimina un usuario, salvo a uno mismo o al último administrador
@@ -73,13 +90,22 @@ export class UsersService implements OnApplicationBootstrap {
     if (id === actor.id) {
       throw new UnprocessableEntityException('No puedes eliminar tu propio usuario.')
     }
-    const user = await this.users.findOneBy({ id })
-    if (!user) {
-      throw new NotFoundException('El usuario no existe.')
-    }
-    if (user.role === 'admin' && (await this.users.countBy({ role: 'admin' })) <= 1) {
-      throw new UnprocessableEntityException('Debe quedar al menos un administrador.')
-    }
-    await this.users.delete({ id })
+    // Bloquea las filas de administradores para que dos borrados simultáneos no dejen ninguno
+    await this.users.manager.transaction(async (manager) => {
+      const repository = manager.getRepository(UserEntity)
+      const admins = await repository.find({
+        where: { role: 'admin' },
+        order: { id: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      })
+      const user = await repository.findOneBy({ id })
+      if (!user) {
+        throw new NotFoundException('El usuario no existe.')
+      }
+      if (user.role === 'admin' && admins.length <= 1) {
+        throw new UnprocessableEntityException('Debe quedar al menos un administrador.')
+      }
+      await repository.delete({ id })
+    })
   }
 }

@@ -72,7 +72,11 @@ creates the other accounts on the **Usuarios** page.
 
 Sessions are HMAC-signed tokens (`VIGIA_AUTH_SECRET`) that expire after
 `VIGIA_SESSION_HOURS` (12 by default) and stop working as soon as the user is
-deleted. Five failed sign-ins in a row lock that email for 15 minutes.
+deleted. Five failed sign-ins in a row lock that email, from that client IP, for
+15 minutes (behind a proxy without `trust proxy` every client shares the proxy
+IP, so the lock applies to the email). The counter lives in memory: it resets
+on restart and is per API instance. Deleting the last administrator is refused,
+even when two administrators delete each other at the same time.
 Passwords are stored as scrypt hashes.
 
 ## Commands

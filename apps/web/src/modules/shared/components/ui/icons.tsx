@@ -184,3 +184,79 @@ export function LogoutIcon() {
     </svg>
   )
 }
+
+// Ícono de visto para estados correctos
+export function CheckIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg {...ICON} width={size} height={size} strokeWidth={2.2}>
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  )
+}
+
+// Ícono de advertencia para avisos
+export function WarningIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg {...ICON} width={size} height={size}>
+      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  )
+}
+
+// Ícono de línea de evolución para series de tiempo
+export function TrendIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M3 3v18h18" />
+      <path d="M7 15l4-5 3 3 5-7" />
+    </svg>
+  )
+}
+
+// Ícono de marcador para gráficos por lugar
+export function PinIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  )
+}
+
+// Ícono de barras para indicadores y distribuciones
+export function BarsIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M5 21V10M12 21V4M19 21v-8" />
+    </svg>
+  )
+}
+
+// Ícono de numeral para totales y cantidades
+export function HashIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
+    </svg>
+  )
+}
+
+// Ícono de capas para desgloses por categoría
+export function LayersIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M12 3l9 5-9 5-9-5z" />
+      <path d="M3 13l9 5 9-5" />
+    </svg>
+  )
+}
+
+// Ícono de destello para el pronóstico
+export function SparkIcon() {
+  return (
+    <svg {...ICON}>
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+    </svg>
+  )
+}

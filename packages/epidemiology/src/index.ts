@@ -1,6 +1,7 @@
 export * from './contract'
 export * from './count-name'
 export * from './dashboard'
+export * from './dashboard-summary'
 export * from './explain'
 export * from './fields'
 export * from './forecast'

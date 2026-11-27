@@ -54,6 +54,17 @@ describe('loadConfig', () => {
     ).toThrow(/VIGIA_AUTH_SECRET.*VIGIA_ADMIN_PASSWORD/)
   })
 
+  it('rejects the .env.example placeholders in production', () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        VIGIA_AUTH_SECRET: 'change-me-to-a-random-value-of-at-least-32-characters',
+        VIGIA_ADMIN_PASSWORD: 'change-me',
+        VIGIA_DATABASE_URL: 'postgresql://vigia_app:change-me@localhost:55432/vigia',
+      }),
+    ).toThrow(/VIGIA_AUTH_SECRET.*VIGIA_ADMIN_PASSWORD.*VIGIA_DATABASE_URL/s)
+  })
+
   it('rejects a short signing secret in production', () => {
     expect(() =>
       loadConfig({

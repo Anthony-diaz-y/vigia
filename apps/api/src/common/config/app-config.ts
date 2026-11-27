@@ -8,6 +8,7 @@ export const DEFAULT_AUTH_SECRET = 'vigia-dev-secret-change-me-in-production'
 // Contraseña que la app traía por defecto; se rechaza en producción si alguien la vuelve a usar
 export const LEGACY_ADMIN_PASSWORD = 'vigia-admin'
 const MIN_PRODUCTION_SECRET = 32
+const PLACEHOLDER = /change-me/i
 
 export const APP_CONFIG = Symbol('APP_CONFIG')
 
@@ -34,7 +35,8 @@ const rawSchema = z
     }
     if (
       raw.VIGIA_AUTH_SECRET === DEFAULT_AUTH_SECRET ||
-      raw.VIGIA_AUTH_SECRET.length < MIN_PRODUCTION_SECRET
+      raw.VIGIA_AUTH_SECRET.length < MIN_PRODUCTION_SECRET ||
+      PLACEHOLDER.test(raw.VIGIA_AUTH_SECRET)
     ) {
       context.addIssue({
         code: 'custom',
@@ -42,11 +44,22 @@ const rawSchema = z
         message: `set a random VIGIA_AUTH_SECRET of at least ${MIN_PRODUCTION_SECRET} characters in production`,
       })
     }
-    if (raw.VIGIA_ADMIN_PASSWORD === LEGACY_ADMIN_PASSWORD) {
+    const adminPassword = raw.VIGIA_ADMIN_PASSWORD
+    if (
+      adminPassword === LEGACY_ADMIN_PASSWORD ||
+      (adminPassword && PLACEHOLDER.test(adminPassword))
+    ) {
       context.addIssue({
         code: 'custom',
         path: ['VIGIA_ADMIN_PASSWORD'],
         message: 'set a non-default VIGIA_ADMIN_PASSWORD in production',
+      })
+    }
+    if (PLACEHOLDER.test(raw.VIGIA_TS_DATABASE_URL ?? raw.VIGIA_DATABASE_URL)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['VIGIA_DATABASE_URL'],
+        message: 'replace the change-me password of VIGIA_DATABASE_URL in production',
       })
     }
   })

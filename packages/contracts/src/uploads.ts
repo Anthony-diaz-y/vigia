@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   COLUMN_ROLES,
   DESCRIPTIVE_FIELDS,
+  MAX_VALUE_LABEL,
   PLACE_LEVELS,
   UPLOAD_STATUSES,
 } from '@vigia/epidemiology'
@@ -17,6 +18,11 @@ export const ColumnKindSchema = z.enum(['date', 'number', 'text'])
 
 export const TimeKindSchema = z.enum(['date', 'week', 'month', 'year', 'none'])
 
+export const ValueLabelsSchema = z.record(
+  z.string().min(1),
+  z.string().trim().min(1).max(MAX_VALUE_LABEL),
+)
+
 export const DatasetColumnSchema = z
   .object({
     name: z.string(),
@@ -25,6 +31,7 @@ export const DatasetColumnSchema = z
     level: PlaceLevelSchema.nullable(),
     field: z.enum(DESCRIPTIVE_FIELDS).nullable(),
     kind: ColumnKindSchema,
+    values: ValueLabelsSchema.optional(),
   })
   .strict()
 
@@ -96,6 +103,7 @@ export const OptionInfoSchema = z
 
 export const PreviewColumnSchema = DatasetColumnSchema.extend({
   samples: z.array(z.string()),
+  codes: z.array(z.string()).optional(),
   reason: z.string().nullable(),
 }).strict()
 

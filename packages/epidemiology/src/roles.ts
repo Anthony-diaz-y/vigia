@@ -30,6 +30,7 @@ export interface DatasetColumn {
   level: PlaceLevel | null
   field: DescriptiveField | null
   kind: ColumnKind
+  values?: Record<string, string>
 }
 
 export const ROLE_INFO: readonly { id: ColumnRole; label: string; description: string }[] = [

@@ -1,4 +1,5 @@
 import type { DatasetColumn, PlaceLevel, TimeKind } from './roles'
+import { ubigeoHeaderLevel, type UbigeoLevel } from './ubigeo'
 
 export type Indicator =
   { kind: 'records' } | { kind: 'sum'; column: string } | { kind: 'mean'; column: string }
@@ -8,11 +9,21 @@ export type Granularity = 'day' | 'week' | 'month' | 'year'
 export type WidgetType =
   'kpis' | 'timeseries' | 'interannual' | 'ranking' | 'heatmap' | 'breakdown' | 'histogram'
 
+export type BreakdownVariant = 'bars' | 'proportion' | 'dominant'
+
 export interface WidgetPlan {
   id: string
   type: WidgetType
   title: string
   column?: string
+  variant?: BreakdownVariant
+}
+
+export interface CategoryShape {
+  values: number
+  yesNo: boolean
+  topShare: number
+  topMissing: boolean
 }
 
 export interface DatasetFacts {
@@ -22,6 +33,7 @@ export interface DatasetFacts {
   places: number
   years: number
   distinct: Readonly<Record<string, number>>
+  categories?: Readonly<Record<string, CategoryShape>>
 }
 
 export interface IndicatorOption {
@@ -43,7 +55,12 @@ const MAX_BARS = 10
 const MAX_HEATMAP_PLACES = 40
 const MIN_HISTOGRAM_VALUES = 5
 const MAX_BREAKDOWNS = 6
+const MAX_COMPACT = 6
 const MAX_HISTOGRAMS = 3
+const CODE_NAME =
+  /(^|[^a-z0-9])(cod|codigo|code|id|nro|numero|renaes|ubigeo)([^a-z0-9]|$)|c[oó]digo/i
+const DOMINANT_SHARE = 0.9
+const MAX_DOMINANT_VALUES = 5
 const OTHERS_NAMES = ['Otros', 'Resto', 'Demás valores']
 
 const PLACE_PRIORITY: readonly PlaceLevel[] = [
@@ -59,7 +76,7 @@ const LEVEL_NAMES: Readonly<Record<PlaceLevel, string>> = {
   location: 'departamento',
   province: 'provincia',
   district: 'distrito',
-  ubigeo: 'código UBIGEO',
+  ubigeo: 'ubicación',
 }
 
 const GRANULARITY_NAMES: Readonly<Record<Granularity, string>> = {
@@ -143,17 +160,78 @@ export function chooseGranularity(
   return span <= DAY_SPAN ? 'day' : span <= WEEK_SPAN ? 'week' : 'month'
 }
 
-// Columna de lugar para rankings y mapas: la de nivel más alto (la ubicación cuenta como departamento)
-export function placeColumn(
+// Columnas de lugar por nivel, de mayor a menor (una por nivel; el nombre gana al código)
+export function placeColumns(
   columns: readonly DatasetColumn[],
-): { column: string; level: PlaceLevel } | null {
+): { column: string; level: PlaceLevel }[] {
+  const found: { column: string; level: PlaceLevel }[] = []
   for (const level of PLACE_PRIORITY) {
-    const found = columns.find((column) => column.role === 'place' && column.level === level)
-    if (found) {
-      return { column: found.name, level: level === 'location' ? 'department' : level }
+    const same = columns.filter((column) => column.role === 'place' && column.level === level)
+    const chosen = same.find((column) => !isCodeLike(column)) ?? same[0]
+    if (chosen) {
+      found.push({ column: chosen.name, level: level === 'location' ? 'department' : level })
     }
   }
-  return null
+  return found
+}
+
+// Columna de lugar para rankings y mapas: el nivel más alto que varía (si todos son constantes, el más alto)
+export function placeColumn(
+  columns: readonly DatasetColumn[],
+  distinct: Readonly<Record<string, number>> = {},
+): { column: string; level: PlaceLevel } | null {
+  const found = placeColumns(columns)
+  return found.find((place) => (distinct[place.column] ?? Infinity) >= 2) ?? found[0] ?? null
+}
+
+// Nivel de lugar de una categoría que en realidad es un código de departamento, provincia o distrito
+export function categoryCodeLevel(column: DatasetColumn): UbigeoLevel | null {
+  return ubigeoHeaderLevel(column.name) ?? ubigeoHeaderLevel(column.label)
+}
+
+// Indica si una categoría es un código (de red, provincia…) y no un nombre legible
+function isCodeLike(column: DatasetColumn): boolean {
+  return CODE_NAME.test(column.name) || CODE_NAME.test(column.label)
+}
+
+// Nombre de la columna dentro de una frase; si está todo en mayúsculas (NIVEL) lo pasa a minúsculas
+function sentenceName(column: DatasetColumn): string {
+  const label = columnLabel(column).replace(/_/g, ' ').trim()
+  return label === label.toUpperCase() ? label.toLowerCase() : inSentence(label)
+}
+
+// Nombre de una columna sin etiqueta, legible como título: "Establecimiento priorizado 2024"
+function humanize(text: string): string {
+  const spaced = text.replace(/_/g, ' ').trim()
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase()
+}
+
+// Etiqueta propia de una columna; vacía si falta o solo repite el nombre del archivo
+function plainLabel(column: DatasetColumn): string {
+  const label = column.label.trim()
+  return label.toLowerCase() === column.name.toLowerCase() ? '' : label
+}
+
+// Forma de mostrar una categoría: proporción (sí/no o dos valores), dominante (casi todo en uno) o barras
+function breakdownVariant(
+  shape: CategoryShape | undefined,
+  indicator: Indicator,
+): BreakdownVariant {
+  if (!shape || indicator.kind === 'mean') {
+    return 'bars'
+  }
+  if (shape.yesNo && shape.values === 2) {
+    return 'proportion'
+  }
+  const dominant =
+    shape.values >= 1 &&
+    shape.values <= MAX_DOMINANT_VALUES &&
+    shape.topShare >= DOMINANT_SHARE &&
+    !shape.topMissing
+  if (dominant) {
+    return 'dominant'
+  }
+  return shape.values === 2 ? 'proportion' : 'bars'
 }
 
 // Decide qué gráficos tiene sentido mostrar según los roles y la variedad de los datos
@@ -163,7 +241,7 @@ export function planWidgets(
   granularity: Granularity | null,
 ): WidgetPlan[] {
   const label = indicatorLabel(indicator, facts.columns)
-  const place = placeColumn(facts.columns)
+  const place = placeColumn(facts.columns, facts.distinct)
   const placeName = place ? LEVEL_NAMES[place.level] : ''
   const timeName = granularity ? GRANULARITY_NAMES[granularity] : ''
   const plan: WidgetPlan[] = [{ id: 'kpis', type: 'kpis', title: 'Indicadores clave' }]
@@ -196,15 +274,67 @@ export function planWidgets(
     }
   }
 
-  const categories = facts.columns
-    .filter((column) => column.role === 'category' && (facts.distinct[column.name] ?? 0) >= 2)
-    .sort((left, right) => (facts.distinct[left.name] ?? 0) - (facts.distinct[right.name] ?? 0))
-    .slice(0, MAX_BREAKDOWNS)
-  for (const column of categories) {
+  // Los demás niveles de lugar que varían se desglosan (el constante no aporta)
+  const named = placeColumns(facts.columns).filter((other) => other.level !== 'ubigeo')
+  const levels = placeColumns(facts.columns)
+    .filter(
+      (other) =>
+        other.column !== place?.column &&
+        other.level !== place?.level &&
+        // Un código de ubicación que repite un nombre de provincia o distrito no tiene gráfico propio
+        !(other.level === 'ubigeo' && named.length > 0) &&
+        (facts.distinct[other.column] ?? 0) >= 2,
+    )
+    .map((other) => ({ ...other, label: LEVEL_NAMES[other.level] }))
+  // Con un lugar en el tablero, los códigos de departamento, provincia o distrito no se desglosan
+  const candidates = facts.columns
+    .filter(
+      (column) =>
+        column.role === 'category' &&
+        (facts.distinct[column.name] ?? 0) >= 2 &&
+        !(place && categoryCodeLevel(column)),
+    )
+    .sort(
+      (left, right) =>
+        Number(isCodeLike(left)) - Number(isCodeLike(right)) ||
+        (facts.distinct[left.name] ?? 0) - (facts.distinct[right.name] ?? 0),
+    )
+    .map((column) => {
+      const geography = categoryCodeLevel(column)
+      const variant = geography
+        ? 'bars'
+        : breakdownVariant(facts.categories?.[column.name], indicator)
+      return { column, geography, variant }
+    })
+  // Las tarjetas compactas son chicas: tienen su propio tope y no gastan el de barras
+  const compact = candidates.filter((item) => item.variant !== 'bars').slice(0, MAX_COMPACT)
+  const bars = candidates
+    .filter((item) => item.variant === 'bars')
+    .slice(0, Math.max(0, MAX_BREAKDOWNS - levels.length))
+  const chosen = new Set([...compact, ...bars])
+  for (const level of levels) {
+    plan.push({
+      id: `breakdown:${level.column}`,
+      type: 'breakdown',
+      title: `${label} por ${level.label}`,
+      column: level.column,
+    })
+  }
+  for (const { column, geography, variant } of candidates.filter((item) => chosen.has(item))) {
+    if (variant !== 'bars') {
+      plan.push({
+        id: `breakdown:${column.name}`,
+        type: 'breakdown',
+        title: plainLabel(column) || humanize(column.name),
+        column: column.name,
+        variant,
+      })
+      continue
+    }
     plan.push({
       id: `breakdown:${column.name}`,
       type: 'breakdown',
-      title: `${label} por ${inSentence(columnLabel(column))}`,
+      title: `${label} por ${geography ? LEVEL_NAMES[geography] : sentenceName(column)}`,
       column: column.name,
     })
   }

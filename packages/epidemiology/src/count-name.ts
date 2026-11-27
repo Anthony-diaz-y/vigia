@@ -3,6 +3,9 @@ import { parseNumber } from './fields'
 const COUNT_EXACT: ReadonlySet<string> = new Set(['n', 'num', 'nro', 'cas', 'cons', 'exam'])
 const COUNT_PREFIXES = [
   'caso',
+  'cantidad',
+  'cant',
+  'cama',
   'total',
   'atenc',
   'consult',

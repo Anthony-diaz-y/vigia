@@ -42,6 +42,12 @@ describe('looksLikeCountName', () => {
     expect(looksLikeCountName(name)).toBe(false)
   })
 
+  it('reconoce cantidades sin la palabra casos', () => {
+    expect(looksLikeCountName('cantidad')).toBe(true)
+    expect(looksLikeCountName('cant_vacunas')).toBe(true)
+    expect(looksLikeCountName('camas')).toBe(true)
+  })
+
   it('considera también la etiqueta y el símbolo de porcentaje', () => {
     expect(looksLikeCountName('c1', 'Casos de anemia por año')).toBe(true)
     expect(looksLikeCountName('c1', 'Casos (%)')).toBe(false)

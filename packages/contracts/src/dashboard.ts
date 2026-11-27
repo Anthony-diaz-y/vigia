@@ -4,6 +4,12 @@ export const GranularitySchema = z.enum(['day', 'week', 'month', 'year'])
 
 const NamedValueSchema = z.object({ name: z.string(), value: z.number() }).strict()
 
+export const BreakdownVariantSchema = z.enum(['bars', 'proportion', 'dominant'])
+
+const BreakdownRowSchema = z
+  .object({ name: z.string(), value: z.number(), label: z.string().optional() })
+  .strict()
+
 export const KpiSchema = z
   .object({ label: z.string(), value: z.string(), hint: z.string().nullable() })
   .strict()
@@ -46,7 +52,8 @@ export const WidgetSchema = z.discriminatedUnion('type', [
     type: z.literal('breakdown'),
     id: z.string(),
     title: z.string(),
-    rows: z.array(NamedValueSchema),
+    variant: BreakdownVariantSchema.optional(),
+    rows: z.array(BreakdownRowSchema),
   }),
   z.object({
     type: z.literal('histogram'),

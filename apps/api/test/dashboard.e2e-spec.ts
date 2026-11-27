@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs'
 import type { Server } from 'node:http'
+import { resolve } from 'node:path'
 
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { DashboardResponseSchema, type DashboardResponse, type UploadDto } from '@vigia/contracts'
+import {
+  DashboardResponseSchema,
+  type DashboardResponse,
+  type UploadDto,
+  type UploadPreview,
+} from '@vigia/contracts'
 import request from 'supertest'
 import { DataSource } from 'typeorm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -99,9 +106,52 @@ describe.skipIf(!dbEnabled)('dashboard API against PostgreSQL', () => {
     ])
     const anemia = body.widgets.find((widget) => widget.id === 'breakdown:anemia')
     expect(anemia?.type === 'breakdown' && anemia.rows).toEqual([
-      { name: 'NO', value: 11.567 },
-      { name: 'SI', value: 10.267 },
+      { name: 'No', value: 11.567 },
+      { name: 'Sí', value: 10.267 },
     ])
+  })
+
+  it('guarda el significado de los valores y arma tarjetas de proporción y dominante', async () => {
+    const csv = readFileSync(
+      resolve(process.cwd(), 'test', 'fixtures', 'establecimientos_san_martin.csv'),
+    )
+    const preview = await request(server)
+      .post('/api/upload/preview')
+      .set('Authorization', auth)
+      .attach('file', csv, { filename: 'establecimientos.csv', contentType: 'text/csv' })
+      .expect(200)
+    const edited: Record<string, Record<string, string>> = {
+      ESTADO: { '1': 'Activo', '2': 'Inactivo', '77': 'No existe' },
+    }
+    const columns = (preview.body as UploadPreview).columns.map(
+      ({ samples: _samples, reason: _reason, codes: _codes, ...column }) => ({
+        ...column,
+        ...(['ESTADO', 'NOTIFICA'].includes(column.name) ? { role: 'category' } : {}),
+        ...(edited[column.name] ? { values: edited[column.name] } : {}),
+      }),
+    )
+    const created = await request(server)
+      .post('/api/upload')
+      .set('Authorization', auth)
+      .field('columns', JSON.stringify(columns))
+      .attach('file', csv, { filename: 'establecimientos.csv', contentType: 'text/csv' })
+      .expect(200)
+    const upload = created.body as UploadDto
+    expect(upload.columns.find((column) => column.name === 'ESTADO')?.values).toEqual({
+      '1': 'Activo',
+      '2': 'Inactivo',
+    })
+
+    const body = await dashboard(upload.id)
+    const estado = body.widgets.find((widget) => widget.id === 'breakdown:ESTADO')
+    expect(estado).toMatchObject({ variant: 'dominant' })
+    expect(estado?.type === 'breakdown' && estado.rows).toEqual([
+      { name: '1', label: 'Activo', value: 45 },
+      { name: '2', label: 'Inactivo', value: 4 },
+      { name: 'Sin dato', value: 1 },
+    ])
+    const notifica = body.widgets.find((widget) => widget.id === 'breakdown:NOTIFICA')
+    expect(notifica).toMatchObject({ variant: 'proportion' })
   })
 
   it('arma el tablero de egresos con serie semanal y ranking por departamento', async () => {

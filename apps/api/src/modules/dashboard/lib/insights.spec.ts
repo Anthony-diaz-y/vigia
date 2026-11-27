@@ -121,6 +121,33 @@ describe('findInsights', () => {
     ])
   })
 
+  it('usa la etiqueta del valor y omite las tarjetas de proporción o dominante', () => {
+    const widgets: WidgetDto[] = [
+      {
+        type: 'breakdown',
+        id: 'breakdown:tipo',
+        title: 'Registros por tipo',
+        rows: [
+          { name: '1', label: 'Activo', value: 70 },
+          { name: '2', label: 'Inactivo', value: 30 },
+        ],
+      },
+      {
+        type: 'breakdown',
+        id: 'breakdown:estado',
+        title: 'Estado',
+        variant: 'dominant',
+        rows: [
+          { name: '1', label: 'Activo', value: 95 },
+          { name: '2', value: 5 },
+        ],
+      },
+    ]
+    expect(findInsights(widgets, RECORDS, 'Casos').map((insight) => insight.text)).toEqual([
+      'En tipo, predomina Activo con el 70 %.',
+    ])
+  })
+
   it('con un promedio no suma lugares ni categorías', () => {
     const widgets: WidgetDto[] = [
       {

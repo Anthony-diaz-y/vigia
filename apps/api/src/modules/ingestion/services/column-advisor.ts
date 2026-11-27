@@ -6,6 +6,7 @@ import {
   PLACE_LEVELS,
   ROLE_INFO,
   isDescriptiveField,
+  sanitizeValueLabels,
   type ColumnRole,
   type PlaceLevel,
 } from '@vigia/epidemiology'
@@ -23,7 +24,7 @@ const SINGLE_ROLES: ReadonlySet<ColumnRole> = new Set(['date', 'year', 'week', '
 const SYSTEM_PROMPT = [
   'Sos un asistente que ayuda a cargar datasets de salud de Perú (cualquier tema) en Vigia.',
   'Recibes el nombre del archivo, sus columnas (nombre, tipo detectado y algunos ejemplos) y los roles posibles.',
-  'responde solo un JSON: {"title":"","topic":"","columns":[{"column":"","label":"","role":"","level":null,"field":null,"reason":""}]}.',
+  'responde solo un JSON: {"title":"","topic":"","columns":[{"column":"","label":"","role":"","level":null,"field":null,"reason":"","values":{}}]}.',
   '- title: nombre corto del dataset en español (máximo 6 palabras). topic: tema en minúsculas (por ejemplo "dengue", "anemia", "egresos hospitalarios").',
   '- Una entrada por cada columna recibida, con el nombre exacto.',
   '- label: qué contiene la columna, en español claro, máximo 5 palabras, y distinto para cada columna (nunca repitas un label).',
@@ -38,8 +39,10 @@ const SYSTEM_PROMPT = [
   '- Usa role "date" una sola vez: la fecha más cercana al inicio del caso (síntomas, notificación, ingreso, toma de muestra); nunca egreso, alta, corte o actualización.',
   '- Si una columna junta departamento, provincia y distrito, usa role "place" con level "location".',
   '- Los códigos de registro o de persona van con role "identifier". Constantes o columnas sin utilidad, "ignore".',
-  '- Los códigos numéricos (de red, microrred, institución, provincia, distrito…) nunca son "measure": usa "category" si se repiten o "identifier" si son casi únicos.',
+  '- Los códigos UBIGEO de departamento (2 dígitos), provincia (4) o distrito (6), por ejemplo cod_prov o cod_dist, van con role "place" y su nivel ("department", "province" o "district"); Vigia los traduce a nombres. Si otra columna ya trae los nombres de ese nivel, el código va en "ignore".',
+  '- Los demás códigos numéricos (de red, microrred, institución…) nunca son "measure": usa "category" si se repiten o "identifier" si son casi únicos.',
   '- reason: por qué elegiste ese rol, máximo 12 palabras.',
+  '- values: opcional, solo para columnas con "valores" (códigos cortos): {"código":"significado"} con etiquetas en español de máximo 4 palabras. Solo códigos de la lista "valores", solo si estás seguro de su significado; si no lo sabes con certeza, omite "values". Nunca inventes.',
 ].join('\n')
 
 interface RawSuggestion {
@@ -49,6 +52,7 @@ interface RawSuggestion {
   level?: unknown
   field?: unknown
   reason?: unknown
+  values?: unknown
 }
 
 @Injectable()
@@ -69,6 +73,7 @@ export class ColumnAdvisor {
         nombre: column.name,
         tipo: column.kind,
         ejemplos: column.samples,
+        ...(column.codes ? { valores: column.codes } : {}),
       })),
     })
     const text = await this.llm.complete({ system: SYSTEM_PROMPT, user, json: true })
@@ -77,14 +82,18 @@ export class ColumnAdvisor {
       : parseSuggestions(
           text,
           input.columns.map((column) => column.name),
+          Object.fromEntries(
+            input.columns.flatMap((column) => (column.codes ? [[column.name, column.codes]] : [])),
+          ),
         )
   }
 }
 
-// Valida la respuesta: columnas reales, roles y niveles conocidos, y una sola fecha o parte de tiempo
+// Valida la respuesta: columnas reales, roles y niveles conocidos, una sola fecha y códigos con significado reales
 export function parseSuggestions(
   text: string,
   columns: readonly string[],
+  codes: Readonly<Record<string, readonly string[]>> = {},
 ): DatasetSuggestion | null {
   let payload: unknown
   try {
@@ -126,6 +135,8 @@ export function parseSuggestions(
       (role === 'category' || role === 'measure') && isDescriptiveField(raw.field)
         ? raw.field
         : null
+    const values =
+      role === 'category' ? sanitizeValueLabels(raw.values, codes[column] ?? []) : undefined
     suggestions.push({
       column,
       label: shortText(raw.label, MAX_LABEL_LENGTH),
@@ -137,6 +148,7 @@ export function parseSuggestions(
         : role === 'ignore'
           ? null
           : shortText(raw.reason, MAX_REASON_LENGTH),
+      ...(values ? { values } : {}),
     })
   }
   if (suggestions.length === 0) {

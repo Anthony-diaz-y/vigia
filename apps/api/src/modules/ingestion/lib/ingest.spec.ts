@@ -663,7 +663,7 @@ describe('nombres y roles sugeridos', () => {
       role: 'identifier',
       reason: 'Código de conglomerado.',
     })
-    expect(preview.columns.find((column) => column.name === 'HV025')?.role).toBe('measure')
+    expect(preview.columns.find((column) => column.name === 'HV025')?.role).toBe('category')
   })
 
   it('no repite nombres de columna', async () => {
@@ -969,5 +969,276 @@ describe('tabla completa de roles por reglas', () => {
     expect(byName.region?.reason).toBe(
       'Mismo valor en todas las filas; se conserva como lugar del archivo.',
     )
+  })
+})
+
+describe('place codes', () => {
+  const PROVINCES = ['0301', '0302', '0303', '0304', '0305', '0306', '0307']
+  const rows = Array.from({ length: 28 }, (_, index) => {
+    const province = PROVINCES[index % PROVINCES.length]!
+    const district = `${province}${index % 2 === 0 ? '01' : '02'}`
+    return `${province},${district},Distrito ${index % 4},${index + 1},${index % 5}`
+  })
+  const FILE = Buffer.from(`cod_prov,cod_dist,nom_dist,casos,hb\n${rows.join('\n')}\n`, 'utf8')
+
+  // Resume rol y nivel de cada columna de la vista previa
+  function roles(preview: Awaited<ReturnType<typeof previewUpload>>) {
+    return Object.fromEntries(
+      preview.columns.map((column) => [column.name, [column.role, column.level]]),
+    )
+  }
+
+  it('turns a province code into a place and lets the name column keep its slot', async () => {
+    const preview = await previewUpload({
+      data: FILE,
+      filename: 'anemia.csv',
+      source: 'minsa_dengue',
+    })
+    expect(roles(preview)).toMatchObject({
+      cod_prov: ['place', 'province'],
+      nom_dist: ['place', 'district'],
+      cod_dist: ['ignore', null],
+    })
+    expect(preview.columns.find((column) => column.name === 'cod_dist')?.reason).toBe(
+      'Se usa la columna «nom_dist» con los nombres; este es su código.',
+    )
+  })
+
+  it('uses the code column as the district place when the file has no names', async () => {
+    const data = Buffer.from(
+      `cod_dist,casos\n${rows.map((row) => row.split(',').slice(1, 2).concat(['1']).join(',')).join('\n')}\n`,
+      'utf8',
+    )
+    const preview = await previewUpload({
+      data,
+      filename: 'solo-codigos.csv',
+      source: 'minsa_dengue',
+    })
+    expect(roles(preview).cod_dist).toEqual(['place', 'district'])
+  })
+
+  it('never leaves a place code as a category, even if the AI says so', async () => {
+    const preview = await previewUpload(
+      { data: FILE, filename: 'anemia.csv', source: 'minsa_dengue' },
+      () =>
+        Promise.resolve({
+          title: 'Anemia',
+          topic: 'anemia',
+          columns: ['cod_prov', 'cod_dist'].map((column) => ({
+            column,
+            label: column,
+            role: 'category' as const,
+            level: null,
+            field: null,
+            reason: null,
+          })),
+        }),
+    )
+    expect(roles(preview).cod_prov).toEqual(['place', 'province'])
+    expect(roles(preview).cod_dist).toEqual(['ignore', null])
+  })
+
+  it('keeps other codes, such as the health network, as categories', async () => {
+    const data = Buffer.from(
+      `cod_red,casos\n${Array.from({ length: 20 }, (_, i) => `${(i % 3) + 1},${i}`).join('\n')}\n`,
+      'utf8',
+    )
+    const preview = await previewUpload({ data, filename: 'redes.csv', source: 'minsa_dengue' })
+    expect(roles(preview).cod_red?.[0]).toBe('category')
+  })
+})
+
+describe('establecimientos de San Martín: significado de los valores', () => {
+  const FILE = 'establecimientos_san_martin.csv'
+  const aiWith = (values: Record<string, Record<string, string>>) => () =>
+    Promise.resolve({
+      title: 'Establecimientos de salud',
+      topic: 'establecimientos',
+      columns: Object.entries(values).map(([column, map]) => ({
+        column,
+        label: column,
+        role: 'category' as const,
+        level: null,
+        field: null,
+        reason: null,
+        values: map,
+      })),
+    })
+
+  it('sin IA no inventa etiquetas, pero ofrece los códigos para que el usuario las escriba', async () => {
+    const preview = await previewUpload({
+      data: fixture(FILE),
+      filename: FILE,
+      source: 'minsa_dengue',
+    })
+    const byName = (name: string) => preview.columns.find((column) => column.name === name)
+    expect(preview.columns.some((column) => column.values !== undefined)).toBe(false)
+    expect(byName('ESTADO')?.codes).toEqual(['1', '2'])
+    expect(byName('NIVEL')?.codes).toEqual(['1', '2', '3'])
+  })
+
+  it('trata NOTIFICA y el priorizado como sí/no: sin códigos que explicar', async () => {
+    const preview = await previewUpload({
+      data: fixture(FILE),
+      filename: FILE,
+      source: 'minsa_dengue',
+    })
+    const byName = (name: string) => preview.columns.find((column) => column.name === name)
+    expect(byName('NOTIFICA')?.codes).toBeUndefined()
+    expect(byName('ESTABLECIMIENTO_PRIORIZADO_2024')?.codes).toBeUndefined()
+  })
+
+  it('envía a la IA los códigos de ESTADO sin el centinela 999999', async () => {
+    let shared: { name: string; codes?: string[] }[] = []
+    await previewUpload(
+      { data: fixture(FILE), filename: FILE, source: 'minsa_dengue' },
+      (input) => {
+        shared = input.columns
+        return Promise.resolve(null)
+      },
+    )
+    expect(shared.find((column) => column.name === 'ESTADO')?.codes).toEqual(['1', '2'])
+    expect(shared.find((column) => column.name === 'NOTIFICA')?.codes).toBeUndefined()
+  })
+
+  it('guarda las etiquetas de la IA solo para códigos reales de columnas de códigos', async () => {
+    const preview = await previewUpload(
+      { data: fixture(FILE), filename: FILE, source: 'minsa_dengue' },
+      aiWith({
+        ESTADO: { '1': 'Activo', '2': 'Inactivo', '999999': 'Sin registro', '7': 'Otro' },
+        NOTIFICA: { S: 'Sí notifica' },
+      }),
+    )
+    const byName = (name: string) => preview.columns.find((column) => column.name === name)
+    expect(byName('ESTADO')?.values).toEqual({ '1': 'Activo', '2': 'Inactivo' })
+    expect(byName('NOTIFICA')?.values).toBeUndefined()
+  })
+
+  it('al confirmar, conserva las etiquetas válidas y descarta códigos que no existen', async () => {
+    const preview = await previewUpload({
+      data: fixture(FILE),
+      filename: FILE,
+      source: 'minsa_dengue',
+    })
+    const edited: Record<string, Record<string, string>> = {
+      ESTADO: { '1': 'Activo', '2': 'Inactivo', '8': 'Fantasma', '999999': 'x' },
+      NOTIFICA: { S: 'Sí' },
+    }
+    const columns = preview.columns.map(({ samples: _s, codes: _c, reason: _r, ...column }) => ({
+      ...column,
+      ...(column.name === 'ESTADO' ? { role: 'category' as const } : {}),
+      ...(column.name === 'NOTIFICA' ? { role: 'measure' as const } : {}),
+      ...(edited[column.name] ? { values: edited[column.name] } : {}),
+    }))
+    const result = await ingestUpload({
+      data: fixture(FILE),
+      filename: FILE,
+      source: 'minsa_dengue',
+      columns,
+    })
+    expect(result.columns.find((column) => column.name === 'ESTADO')?.values).toEqual({
+      '1': 'Activo',
+      '2': 'Inactivo',
+    })
+    expect(result.columns.find((column) => column.name === 'NOTIFICA')?.values).toBeUndefined()
+  })
+
+  it('una carga antigua sin values sigue funcionando', async () => {
+    const result = await upload(FILE)
+    expect(result.rowsIn).toBe(50)
+    expect(result.columns.some((column) => column.values !== undefined)).toBe(false)
+  })
+})
+
+describe('establecimientos de San Martín: roles sin IA', () => {
+  const FILE = 'establecimientos_san_martin.csv'
+
+  // Vista previa solo con reglas, indexada por nombre de columna
+  async function rulesOnly() {
+    const preview = await previewUpload({
+      data: fixture(FILE),
+      filename: FILE,
+      source: 'minsa_dengue',
+    })
+    expect(preview.suggested_by).toBe('rules')
+    return new Map(preview.columns.map((column) => [column.name, column]))
+  }
+
+  // CSV mínimo con una columna S/N llamada NOTIFICA
+  const notificaCsv = () =>
+    Buffer.from(
+      ['NOTIFICA;caso', ...Array.from({ length: 12 }, (_, i) => `${i % 2 ? 'S' : 'N'};${i}`)].join(
+        String.fromCharCode(10),
+      ),
+    )
+
+  it('los códigos chicos y los sí/no son categorías, no medidas ni años', async () => {
+    const columns = await rulesOnly()
+    for (const name of ['ESTADO', 'NIVEL', 'TIPO', 'NOTIFICA', 'CATEGORIA']) {
+      expect(columns.get(name)?.role, name).toBe('category')
+    }
+    expect(columns.get('NOTIFICA')?.codes).toBeUndefined()
+  })
+
+  it('provincia y distrito son lugares y sus códigos se ignoran con el motivo', async () => {
+    const columns = await rulesOnly()
+    expect(columns.get('PROVINCIA')).toMatchObject({ role: 'place', level: 'province' })
+    expect(columns.get('DISTRITO')).toMatchObject({ role: 'place', level: 'district' })
+    const pairs: [string, string][] = [
+      ['COD_PROVINCIA', 'PROVINCIA'],
+      ['COD_DISTRITO', 'DISTRITO'],
+      ['COD_DEPARTAMENTO', 'DEPARTAMENTO'],
+    ]
+    for (const [code, name] of pairs) {
+      expect(columns.get(code)).toMatchObject({
+        role: 'ignore',
+        reason: `Se usa la columna «${name}» con los nombres; este es su código.`,
+      })
+    }
+  })
+
+  it('el código de red o microrred se ignora cuando existe la columna con los nombres', async () => {
+    const columns = await rulesOnly()
+    expect(columns.get('RED')?.role).toBe('ignore')
+    expect(columns.get('CODIGO_RED')?.role).toBe('ignore')
+    expect(columns.get('NOMBRE_RED')?.role).toBe('category')
+    expect(columns.get('NOMBRE_MICRORED')?.role).toBe('category')
+  })
+
+  it('los identificadores y las constantes no se grafican', async () => {
+    const columns = await rulesOnly()
+    for (const name of ['ID_REGISTRO', 'CODIGO_ESTABLECIMIENTO']) {
+      expect(columns.get(name)?.role, name).toBe('identifier')
+    }
+    for (const name of ['NOMBRE_DIRES', 'FECHA_CORTE', 'CODIGO_SUBREGION']) {
+      expect(columns.get(name)?.role, name).toBe('ignore')
+    }
+  })
+
+  it('un encabezado sin palabra de tiempo no se toma por año ni siquiera con un alias parecido', async () => {
+    const data = notificaCsv()
+    const preview = await previewUpload({ data, filename: 'n.csv', source: 'minsa_dengue' })
+    expect(preview.columns.find((column) => column.name === 'NOTIFICA')?.role).toBe('category')
+  })
+
+  it('si la IA dice que S/N es un año, vuelve a categoría con el motivo de tiempo', async () => {
+    const data = notificaCsv()
+    const preview = await previewUpload({ data, filename: 'n.csv', source: 'minsa_dengue' }, () =>
+      Promise.resolve({
+        title: null,
+        topic: null,
+        columns: [
+          {
+            column: 'NOTIFICA',
+            label: 'Año',
+            role: 'year' as const,
+            level: null,
+            field: null,
+            reason: null,
+          },
+        ],
+      }),
+    )
+    expect(preview.columns.find((column) => column.name === 'NOTIFICA')?.role).toBe('category')
   })
 })

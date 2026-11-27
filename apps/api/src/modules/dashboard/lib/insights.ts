@@ -204,10 +204,13 @@ function concentration(widgets: WidgetDto[], { share: of }: Wording): InsightDto
   return { kind: 'concentration', tone: 'neutral', text }
 }
 
-// Categorías dominantes: valores que reúnen más de la mitad en cada desglose
+// Categorías dominantes: valores que reúnen más de la mitad en cada desglose en barras (las tarjetas ya lo dicen)
 function dominant(widgets: WidgetDto[]): InsightDto[] {
   return widgets
-    .filter((widget): widget is Widget<'breakdown'> => widget.type === 'breakdown')
+    .filter(
+      (widget): widget is Widget<'breakdown'> =>
+        widget.type === 'breakdown' && (widget.variant ?? 'bars') === 'bars',
+    )
     .flatMap((widget) => {
       const total = widget.rows.reduce((sum, row) => sum + row.value, 0)
       const top = widget.rows[0]
@@ -219,7 +222,7 @@ function dominant(widgets: WidgetDto[]): InsightDto[] {
         {
           kind: 'dominant' as const,
           tone: 'neutral' as const,
-          text: `En ${dimension}, predomina ${top.name} con el ${percent(top.value / total)}.`,
+          text: `En ${dimension}, predomina ${top.label ?? top.name} con el ${percent(top.value / total)}.`,
         },
       ]
     })

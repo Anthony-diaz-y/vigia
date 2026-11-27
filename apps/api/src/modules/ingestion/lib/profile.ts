@@ -1,19 +1,24 @@
 import { normalizeHeader } from './mapping'
 import {
+  detectUbigeoLevel,
   isDescriptiveField,
   isWholeCount,
   looksLikeCountName,
+  MAX_CODED_VALUES,
   parseDate,
   MAX_EPI_WEEK,
   MAX_YEAR,
   MIN_YEAR,
   parseNumber,
+  ubigeoHeaderLevel,
+  valueRules,
   type ColumnKind,
   type ColumnRole,
   type DatasetColumn,
   type DescriptiveField,
   type MappingTarget,
   type PlaceLevel,
+  type UbigeoLevel,
 } from '@vigia/epidemiology'
 
 export interface ColumnProfile {
@@ -24,6 +29,9 @@ export interface ColumnProfile {
   min: number | null
   max: number | null
   spaced: boolean
+  // Valores distintos sin los "Sin dato" y el mayor entre ellos (solo números)
+  present?: number
+  presentMax?: number | null
 }
 
 export interface RoleSuggestion {
@@ -35,8 +43,12 @@ export interface RoleSuggestion {
 const CODE_HEADER = /(^|_)(cod|codigo|code|id|ubigeo|renaes|nro|numero)(_|$)/
 const CODE_LABEL = /c[oó]digo|\bid\b|ubigeo|renaes/i
 const MAX_CODE_CATEGORIES = 50
+const DIGITS = /^\d+(?:\.0+)?$/
 const MIN_DATE_RATIO = 0.75
 const MIN_NUMBER_RATIO = 0.9
+const MAX_SMALL_CODE = 99
+const MEASURE_HEADER =
+  /(^|_)(pct|porc\w*|prom\w*|media|edad\w*|tasa|hb|hemoglobina|peso|talla|indice|ratio|dias|altura|presion)(_|$)/
 const MIN_ROWS_FOR_IDENTIFIER = 10
 const MIN_IDENTIFIER_RATIO = 0.95
 const IDENTIFIER_HEADER =
@@ -98,9 +110,19 @@ export function profileColumn(values: readonly string[]): ColumnProfile {
         ? 'number'
         : 'text'
   const numbers = filled.map((value) => parseNumber(value)).filter((n): n is number => n !== null)
+  const missing = valueRules('', filled).missing
+  const present = [...new Set(filled)].filter((value) => !missing.has(value))
+  const presentNumbers = present
+    .map((value) => parseNumber(value))
+    .filter((n): n is number => n !== null)
   return {
     kind,
     distinct: new Set(filled).size,
+    present: present.length,
+    presentMax:
+      kind === 'number' && presentNumbers.length > 0
+        ? presentNumbers.reduce((a, b) => Math.max(a, b))
+        : null,
     filled: filled.length,
     whole: kind === 'number' && isWholeCount(filled.filter((value) => parseNumber(value) !== null)),
     min: kind === 'number' && numbers.length > 0 ? numbers.reduce((a, b) => Math.min(a, b)) : null,
@@ -131,6 +153,22 @@ function timeRole(name: string, profile: ColumnProfile): 'month' | 'week' | 'yea
   return profile.min >= low && profile.max <= high ? role : null
 }
 
+// Indica si un entero con pocos valores distintos y chicos es un código (estado 1/2, nivel 1..3) y no una medida
+function isSmallCode(name: string, profile: ColumnProfile): boolean {
+  const present = profile.present ?? profile.distinct
+  return (
+    profile.kind === 'number' &&
+    profile.whole &&
+    present >= 1 &&
+    present <= MAX_CODED_VALUES &&
+    profile.min !== null &&
+    profile.min >= 0 &&
+    (profile.presentMax ?? profile.max ?? 0) <= MAX_SMALL_CODE &&
+    !looksLikeCountName(name) &&
+    !MEASURE_HEADER.test(normalizeHeader(name))
+  )
+}
+
 // Indica si una columna de texto casi único es texto libre (con espacios) y no un código
 export function isFreeText(profile: ColumnProfile): boolean {
   return profile.kind === 'text' && profile.spaced && isNearlyUnique(profile)
@@ -149,11 +187,32 @@ export function isCodeColumn(name: string, label: string): boolean {
   return CODE_HEADER.test(normalizeHeader(name)) || CODE_LABEL.test(label)
 }
 
-// Sugiere el rol de una columna por su alias, su encabezado o su perfil
+// Nivel de lugar de una columna de códigos UBIGEO, por su encabezado o por sus valores; null si no lo es
+export function placeCodeLevel(name: string, values: readonly string[]): UbigeoLevel | null {
+  const profile = profileColumn(values)
+  const filled = values.map((value) => value.trim()).filter((value) => value !== '')
+  const digits = filled.filter((value) => DIGITS.test(value)).length
+  if (profile.kind === 'date' || filled.length === 0 || digits / filled.length < MIN_NUMBER_RATIO) {
+    return null
+  }
+  const header = ubigeoHeaderLevel(name)
+  if (header) {
+    return header
+  }
+  if (isCodeColumn(name, '')) {
+    return null
+  }
+  const detected = detectUbigeoLevel(filled)
+  const notPlace = TIME_HEADERS[normalizeHeader(name)] !== undefined || looksLikeCountName(name)
+  return detected === 'department' || notPlace ? null : detected
+}
+
+// Sugiere el rol de una columna por su alias, su encabezado, su perfil o su nivel de código
 export function ruleSuggestion(
   name: string,
   profile: ColumnProfile,
   aliasTarget: MappingTarget | null,
+  codeLevel: UbigeoLevel | null = null,
 ): RoleSuggestion {
   if (aliasTarget) {
     const role = FIELD_ROLES[aliasTarget] ?? 'category'
@@ -169,6 +228,9 @@ export function ruleSuggestion(
   const none = { level: null, field: null }
   if (IDENTIFIER_HEADER.test(normalizeHeader(name))) {
     return { role: 'identifier', ...none }
+  }
+  if (codeLevel) {
+    return { role: 'place', level: codeLevel, field: null }
   }
   const level = profile.kind === 'text' && profile.filled > 0 ? placeLevel(name) : null
   if (level) {
@@ -193,7 +255,49 @@ export function ruleSuggestion(
   if (isNearlyUnique(profile) && (profile.kind !== 'number' || profile.whole)) {
     return { role: 'identifier', ...none }
   }
+  if (isSmallCode(name, profile)) {
+    return { role: 'category', ...none }
+  }
   return { role: profile.kind === 'number' ? 'measure' : 'category', ...none }
+}
+
+// Palabras de un encabezado sin el prefijo de código (cod_red → red) o de nombre (nombre_red → red)
+function baseWords(name: string): { base: string; named: boolean; coded: boolean } {
+  const words = normalizeHeader(name)
+    .split('_')
+    .filter((word) => word !== '')
+  const first = words[0] ?? ''
+  const named = words.length > 1 && NAME_PREFIXES.has(first)
+  const coded = words.length > 1 && CODE_WORDS.has(first)
+  return { base: (named || coded ? words.slice(1) : words).join('_'), named, coded }
+}
+
+// Columnas que son el código de otra con los nombres (red y nombre_red, codigo_x y x): motivo para no graficarlas
+export function codeCategoryReasons(columns: readonly DatasetColumn[]): Map<string, string> {
+  const categories = columns.filter((column) => column.role === 'category')
+  const reasons = new Map<string, string>()
+  for (const column of columns) {
+    const mine = baseWords(column.name)
+    if (mine.named || (column.role !== 'category' && column.role !== 'measure')) {
+      continue
+    }
+    const matches = categories.filter((other) => {
+      const info = baseWords(other.name)
+      return (
+        other.name !== column.name &&
+        info.base === mine.base &&
+        (info.named || (mine.coded && !info.coded))
+      )
+    })
+    const owner = matches.find((other) => baseWords(other.name).named) ?? matches[0]
+    if (owner) {
+      reasons.set(
+        column.name,
+        `Se usa la columna «${owner.label.trim() || owner.name}» con los nombres; este es su código.`,
+      )
+    }
+  }
+  return reasons
 }
 
 // Corrige sugerencias: un código nunca es valor medido; con pocos valores es categoría, si no identificador

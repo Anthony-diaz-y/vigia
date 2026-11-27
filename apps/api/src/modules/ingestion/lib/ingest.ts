@@ -8,12 +8,16 @@ import {
   MAX_YEAR,
   MIN_EPI_WEEK,
   MIN_YEAR,
+  codedValues,
   isMappingTarget,
   parseNumber,
+  sanitizeValueLabels,
+  valueRules,
   toEpiMapping,
   type ColumnKind,
   validateColumns,
   type DatasetColumn,
+  type UbigeoLevel,
 } from '@vigia/epidemiology'
 
 import type { ColumnSample, DatasetSuggestion, SuggestColumns } from './columns'
@@ -32,8 +36,10 @@ import type { RawTable } from './readers'
 import { normalize, type CanonicalRow } from './normalize'
 import { fileSha256, readTable } from './readers'
 import {
+  codeCategoryReasons,
   demoteCodes,
   isFreeText,
+  placeCodeLevel,
   profileColumn,
   ruleSuggestion,
   type ColumnProfile,
@@ -91,7 +97,21 @@ const TIME_RULES: Partial<
   },
   month: { min: 1, max: 12, reason: 'Sus valores no están en el rango de un mes (1 a 12).' },
 }
+const CODE_LEVEL_NAMES: Readonly<Record<UbigeoLevel, string>> = {
+  department: 'departamento',
+  province: 'provincia',
+  district: 'distrito',
+}
 const SAMPLE_SIZE = 3
+const MAX_LABELED_VALUES = 50
+const NO_CODE_ROLES: ReadonlySet<DatasetColumn['role']> = new Set([
+  'date',
+  'year',
+  'week',
+  'month',
+  'place',
+  'count',
+])
 const PROFILE_ROWS = 2000
 const MAX_SHARED_DISTINCT_RATIO = 0.5
 const MIN_DATE_RATIO = 0.75
@@ -113,9 +133,7 @@ export async function ingestUpload(request: IngestRequest): Promise<IngestResult
   const columns = uniqueLabels(
     usableColumns(
       protectPersonalData(
-        request.columns
-          ? reviewedColumns(table.columns, request.columns)
-          : tableRules(table, config),
+        request.columns ? reviewedColumns(table, request.columns) : tableRules(table, config),
         pii,
       ),
     ),
@@ -164,26 +182,74 @@ export function columnsFromMapping(
   const profiles = new Map(
     table.columns.map((name) => [name, profileColumn(table.rows.map((row) => row[name] ?? ''))]),
   )
-  return ruleColumns(table.columns, profiles, aliasMapping)
+  return ruleColumns(table.columns, profiles, aliasMapping, codeLevels(table))
+}
+
+// Columnas de la tabla que guardan códigos UBIGEO, con el nivel de lugar de cada una
+function codeLevels(table: RawTable): Map<string, UbigeoLevel> {
+  const levels = new Map<string, UbigeoLevel>()
+  for (const name of table.columns) {
+    const level = placeCodeLevel(
+      name,
+      table.rows.map((row) => row[name] ?? ''),
+    )
+    if (level) {
+      levels.set(name, level)
+    }
+  }
+  return levels
+}
+
+// Motivo para no usar un código de lugar cuando otra columna del mismo nivel trae los nombres
+function nameReasons(
+  columns: readonly DatasetColumn[],
+  codes: ReadonlyMap<string, UbigeoLevel>,
+): Map<string, string> {
+  const reasons = new Map<string, string>()
+  for (const column of columns) {
+    const named = columns.find(
+      (other) => other.role === 'place' && other.level === column.level && !codes.has(other.name),
+    )
+    if (column.role === 'place' && codes.has(column.name) && named) {
+      const label = named.label.trim() || named.name
+      reasons.set(column.name, `Se usa la columna «${label}» con los nombres; este es su código.`)
+    }
+  }
+  return reasons
+}
+
+// Valores distintos y no vacíos de una columna de la tabla
+function distinctValues(table: RawTable, name: string): string[] {
+  return [...new Set(table.rows.map((row) => (row[name] ?? '').trim()))].filter((v) => v !== '')
+}
+
+// Deja el significado de los valores solo en categorías, con códigos que existen y no son "Sin dato"
+function withValueLabels(column: DatasetColumn, table: RawTable): DatasetColumn {
+  const { values: raw, ...rest } = column
+  if (column.role !== 'category' || raw === undefined) {
+    return rest
+  }
+  const distinct = distinctValues(table, column.name)
+  const missing = valueRules(column.name, distinct).missing
+  const values =
+    distinct.length > MAX_LABELED_VALUES
+      ? undefined
+      : sanitizeValueLabels(
+          raw,
+          distinct.filter((value) => !missing.has(value)),
+        )
+  return values ? { ...rest, values } : rest
 }
 
 // Toma los roles confirmados por el usuario para columnas reales; las que faltan quedan sin uso
-function reviewedColumns(
-  names: readonly string[],
-  reviewed: readonly DatasetColumn[],
-): DatasetColumn[] {
+function reviewedColumns(table: RawTable, reviewed: readonly DatasetColumn[]): DatasetColumn[] {
   const byName = new Map(reviewed.map((column) => [column.name, column]))
-  return names.map(
-    (name) =>
-      byName.get(name) ?? {
-        name,
-        label: '',
-        role: 'ignore',
-        level: null,
-        field: null,
-        kind: 'text',
-      },
-  )
+  return table.columns.map((name) => {
+    const column = byName.get(name)
+    return column
+      ? withValueLabels(column, table)
+      : { name, label: '', role: 'ignore', level: null, field: null, kind: 'text' }
+  })
 }
 
 // Aplica las reglas de unicidad y rechaza el archivo si ninguna columna sirve
@@ -206,9 +272,25 @@ export async function previewUpload(
   const rules = tableRules(table, config)
   const samples = columnSamples(table, new Map(rules.map((column) => [column.name, column.kind])))
 
+  const codeLevelsByName = codeLevels(table)
+  const codes = new Map(
+    rules
+      .filter(
+        (column) =>
+          !pii.includes(column.name) &&
+          !codeLevelsByName.has(column.name) &&
+          !NO_CODE_ROLES.has(column.role),
+      )
+      .map((column) => [column.name, codedValues(column.name, distinctValues(table, column.name))])
+      .filter((entry): entry is [string, string[]] => (entry[1] as string[]).length > 0),
+  )
   const shared = samples
     .filter((column) => !pii.includes(column.name))
-    .map((column) => ({ ...column, samples: sharedSamples(table, column) }))
+    .map((column) => ({
+      ...column,
+      samples: sharedSamples(table, column),
+      ...(codes.has(column.name) ? { codes: codes.get(column.name) } : {}),
+    }))
   const ai = suggest ? await suggest({ filename: request.filename, columns: shared }) : null
 
   const distinct = new Map(
@@ -224,7 +306,7 @@ export async function previewUpload(
     ),
   )
   const aliasNames = new Set(Object.values(resolveMapping(table.columns, config).mapping))
-  const suggested = mergeSuggestions(rules, ai, aliasNames)
+  const suggested = mergeSuggestions(rules, ai, aliasNames, codeLevels(table))
   const timeChecked = checkTimeRanges(
     suggested.map((item) => item.column),
     table,
@@ -241,10 +323,12 @@ export async function previewUpload(
     const constant = (distinct.get(candidate.name) ?? 0) <= 1
     const descriptive =
       (candidate.role === 'category' || candidate.role === 'measure') && candidate.field === null
-    const column: DatasetColumn =
+    const column: DatasetColumn = withPreviewValues(
       constant && descriptive
         ? { ...candidate, role: 'ignore', level: null, field: null }
-        : candidate
+        : candidate,
+      codes.get(candidate.name),
+    )
     const timeReason = timeChecked[index]?.reason ?? null
     const reason = constant
       ? column.role === 'ignore' || column.role === 'identifier'
@@ -281,6 +365,7 @@ export async function previewUpload(
     columns: merged.map(({ column, reason }) => ({
       ...column,
       samples: samples.find((sample) => sample.name === column.name)?.samples ?? [],
+      ...(codes.has(column.name) ? { codes: codes.get(column.name) } : {}),
       reason,
     })),
     roles: ROLE_INFO.map((role) => ({ ...role })),
@@ -289,11 +374,19 @@ export async function previewUpload(
   }
 }
 
+// Conserva el significado de los valores solo en categorías y solo para códigos reales de la columna
+function withPreviewValues(column: DatasetColumn, codes: readonly string[] | undefined) {
+  const { values: raw, ...rest } = column
+  const values = column.role === 'category' ? sanitizeValueLabels(raw, codes ?? []) : undefined
+  return values ? { ...rest, values } : rest
+}
+
 // Sugiere el rol de cada columna solo con reglas: alias conocidos, encabezados y perfil
 export function ruleColumns(
   names: readonly string[],
   profiles: ReadonlyMap<string, ColumnProfile>,
   aliasMapping: Record<string, string>,
+  codes: ReadonlyMap<string, UbigeoLevel> = new Map(),
 ): DatasetColumn[] {
   const aliasOf = new Map(Object.entries(aliasMapping).map(([target, name]) => [name, target]))
   const columns = names.map((name): DatasetColumn => {
@@ -303,12 +396,20 @@ export function ruleColumns(
       name,
       label: '',
       kind: profile.kind,
-      ...ruleSuggestion(name, profile, alias && isMappingTarget(alias) ? alias : null),
+      ...ruleSuggestion(
+        name,
+        profile,
+        alias && isMappingTarget(alias) ? alias : null,
+        codes.get(name) ?? null,
+      ),
     }
   })
   const main = mainDate(columns, aliasOf)
+  const named = nameReasons(columns, codes)
   return columns.map((column) =>
-    column.role === 'date' && column.name !== main ? { ...column, role: 'ignore' } : column,
+    (column.role === 'date' && column.name !== main) || named.has(column.name)
+      ? { ...column, role: 'ignore', level: null }
+      : column,
   )
 }
 
@@ -377,9 +478,10 @@ export function mergeSuggestions(
   rules: readonly DatasetColumn[],
   ai: DatasetSuggestion | null,
   aliasNames: ReadonlySet<string> = new Set(),
+  codes: ReadonlyMap<string, UbigeoLevel> = new Map(),
 ): { column: DatasetColumnDto; reason: string | null }[] {
   const byColumn = new Map((ai?.columns ?? []).map((item) => [item.column, item]))
-  const merged = rules.map((rule) => {
+  const reviewed = rules.map((rule) => {
     const suggestion = byColumn.get(rule.name)
     const unused = !suggestion || suggestion.role === 'ignore' || suggestion.role === 'identifier'
     const known = aliasNames.has(rule.name)
@@ -394,6 +496,7 @@ export function mergeSuggestions(
           role: suggestion.role,
           level: suggestion.level,
           field: suggestion.field,
+          ...(suggestion.values ? { values: suggestion.values } : {}),
         }
     const reason = keepRule
       ? ai && ruleUsed
@@ -403,6 +506,14 @@ export function mergeSuggestions(
         : null
       : suggestion.reason
     return { column, reason }
+  })
+  const placed = withPlaceCodes(reviewed, codes)
+  const codeOf = codeCategoryReasons(placed.map((item) => item.column))
+  const merged = placed.map((item) => {
+    const reason = codeOf.get(item.column.name)
+    return reason
+      ? { column: { ...item.column, role: 'ignore' as const, level: null, field: null }, reason }
+      : item
   })
   const valid = safeValidate(merged.map((item) => item.column))
   return merged.map((item, index) => {
@@ -424,6 +535,38 @@ export function mergeSuggestions(
   })
 }
 
+// Fuerza los códigos de lugar a lugar (nunca categoría) y deja el lugar a la columna con los nombres
+function withPlaceCodes(
+  items: readonly { column: DatasetColumnDto; reason: string | null }[],
+  codes: ReadonlyMap<string, UbigeoLevel>,
+): { column: DatasetColumnDto; reason: string | null }[] {
+  const forced = items.map((item) => {
+    const level = codes.get(item.column.name)
+    if (!level) {
+      return item
+    }
+    const same = item.column.role === 'place' && item.column.level === level
+    return same && item.reason
+      ? item
+      : {
+          column: { ...item.column, role: 'place' as const, level, field: null },
+          reason: `Código de ${CODE_LEVEL_NAMES[level]}; se muestra con el nombre del lugar.`,
+        }
+  })
+  const named = nameReasons(
+    forced.map((item) => item.column),
+    codes,
+  )
+  return forced.map((item) => {
+    const reason = named.get(item.column.name)
+    return reason
+      ? { column: { ...item.column, role: 'ignore' as const, level: null, field: null }, reason }
+      : item
+  })
+}
+
+const FALLBACK_ROLES: ReadonlySet<string> = new Set(['count', 'measure', 'category'])
+
 // Cambia por la regla los roles de tiempo cuyos valores no caben en su rango (por ejemplo, 1446 como mes)
 function checkTimeRanges(
   columns: readonly DatasetColumn[],
@@ -444,7 +587,8 @@ function checkTimeRanges(
       return { column, reason: null }
     }
     const fallback = rules.find((item) => item.name === column.name)
-    return fallback && !TIME_RULES[fallback.role] && ruleReason(fallback.role) !== null
+    const usable = fallback && !TIME_RULES[fallback.role] && FALLBACK_ROLES.has(fallback.role)
+    return fallback && usable
       ? {
           column: { ...column, role: fallback.role, level: fallback.level, field: fallback.field },
           reason: ruleReason(fallback.role) ?? rule.reason,

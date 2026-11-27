@@ -174,3 +174,27 @@ porcentajes). Only constants, extra dates, free text and record codes are left
 as **No usar**. Alerts by place (Recomendaciones, Análisis, Explicación)
 need dates or epidemiological weeks; monthly or yearly files get the dashboard,
 its findings and the indicator forecast.
+
+Place codes become names: department (2 digits), province (4) and district (6)
+INEI UBIGEO codes (`cod_prov`, `cod_dist`, `ubigeo_dep`… or any column whose values
+are valid codes) are read as **Lugar** and shown by name in the dashboard
+("Andahuaylas", not `0302`); if the file also has the names, the name column is
+used and the code column is left as **No usar**. Unknown codes are shown as is.
+The catalog (INEI codes, not RENIEC) lives in
+`packages/epidemiology/src/ubigeo/catalog.ts`, taken from
+[jmcastagnetto/ubigeo-peru-aumentado](https://github.com/jmcastagnetto/ubigeo-peru-aumentado)
+(MIT, see `packages/epidemiology/src/ubigeo/LICENSE`).
+
+Category charts explain themselves: yes/no columns (`S/N`, `SI/NO`, and `1/0`
+when the header reads as a question such as `notifica` or `priorizado`) are
+shown as **Sí / No**, and missing markers (`DESCONOCIDO`, `NA`, `S/D`, `-1`, empty,
+or a code such as `999999` that is an outlier among codes like `1` and `2`) are
+grouped as **Sin dato**, always last and muted. A yes/no or two-value category
+becomes a compact _proportion_ card ("73 de 444", one stacked bar), and one
+where a single value holds 90 % or more (up to 5 values) becomes a _dominant_
+card; anything else stays a bar list. Coded categories (up to 12 short codes
+such as `1/2/3` or `A/B/C`) can carry a **Significado de los valores** map
+(`values`, code → label, stored in the upload's `columns`): with DeepSeek on,
+the preview proposes labels only for codes it can explain (validated against the
+codes in the file); without it nothing is guessed, and you can type them in the
+review dialog.

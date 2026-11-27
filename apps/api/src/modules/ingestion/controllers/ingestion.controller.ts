@@ -112,11 +112,24 @@ function parseColumns(columns: string | undefined): DatasetColumn[] | undefined 
   } catch {
     throw new UnprocessableEntityException('invalid columns JSON')
   }
-  const result = z.array(DatasetColumnSchema).safeParse(parsed)
+  const result = z.array(DatasetColumnSchema).safeParse(withoutPreviewCodes(parsed))
   if (!result.success) {
     throw new UnprocessableEntityException('invalid columns JSON')
   }
   return result.data
+}
+
+// Quita la lista de códigos de la vista previa si el cliente la reenvía junto con las columnas
+function withoutPreviewCodes(parsed: unknown): unknown {
+  return Array.isArray(parsed)
+    ? parsed.map((item: unknown) => {
+        if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+          return item
+        }
+        const { codes: _codes, ...column } = item as Record<string, unknown>
+        return column
+      })
+    : parsed
 }
 
 // Nombre legible del archivo subido, con sus tildes y eñes

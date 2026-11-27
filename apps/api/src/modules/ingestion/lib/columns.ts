@@ -4,6 +4,7 @@ export interface ColumnSample {
   name: string
   samples: string[]
   kind: ColumnKind
+  codes?: string[]
 }
 
 export interface ColumnSuggestion {
@@ -13,6 +14,7 @@ export interface ColumnSuggestion {
   level: PlaceLevel | null
   field: DescriptiveField | null
   reason: string | null
+  values?: Record<string, string>
 }
 
 export interface DatasetSuggestion {

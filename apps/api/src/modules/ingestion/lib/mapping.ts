@@ -8,6 +8,8 @@ import { parse as parseYaml } from 'yaml'
 import { SourceConfigError } from './errors'
 
 export const FUZZY_THRESHOLD = 85
+const TIME_TARGETS: ReadonlySet<string> = new Set(['year', 'epi_week', 'event_date'])
+const TIME_WORD = /^(ano|anio|year|sem\w*|se|week|mes|month|fecha|date)$/
 
 export interface SourceConfig {
   source: string
@@ -162,6 +164,9 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
     let bestKey: string | undefined
     let bestScore = -1
     for (const [key] of candidates) {
+      if (TIME_TARGETS.has(canonical) && !hasTimeWord(key)) {
+        continue
+      }
       const score = WRatio(query, key)
       if (score > bestScore) {
         bestKey = key
@@ -178,6 +183,11 @@ export function resolveMapping(columns: readonly string[], config: SourceConfig)
   }
 
   return mappingResult(columns, mapping)
+}
+
+// Indica si un encabezado normalizado trae alguna palabra de tiempo (año, semana, mes, fecha…)
+function hasTimeWord(key: string): boolean {
+  return key.split('_').some((word) => TIME_WORD.test(word))
 }
 
 // Aplica un mapeo explícito canónico a origen descartando entradas no válidas

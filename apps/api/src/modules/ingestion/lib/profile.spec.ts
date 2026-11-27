@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { profileColumn, ruleSuggestion } from './profile'
+import { placeCodeLevel, profileColumn, ruleSuggestion } from './profile'
 
 const HEMOGLOBINA = ['11,2', '10.5', 's/d', '', '9,8', '12', '11', '10', '13', '12.1', '10.4', '11']
 
@@ -21,6 +21,8 @@ describe('profileColumn', () => {
       min: 9.8,
       max: 13,
       spaced: false,
+      present: 9,
+      presentMax: 13,
     })
   })
 
@@ -142,5 +144,71 @@ describe('ruleSuggestion', () => {
     expect(ruleSuggestion('columna', profileColumn(['14/07/2026', '03/07/2026']), null).role).toBe(
       'date',
     )
+  })
+})
+
+describe('placeCodeLevel', () => {
+  // Nivel de código de una columna con sus valores
+  const level = (name: string, values: string[]) => placeCodeLevel(name, values)
+
+  it('reconoce códigos por el encabezado', () => {
+    expect(level('cod_prov', ['0301', '0302'])).toBe('province')
+    expect(level('cod_dep', ['03', '04'])).toBe('department')
+    expect(level('codigo_distrito', ['030101', '030201'])).toBe('district')
+  })
+
+  it('reconoce códigos de provincia y distrito por sus valores', () => {
+    expect(level('columna', ['0301', '0302', '0303'])).toBe('province')
+    expect(level('columna', ['030101', '030201', '030213'])).toBe('district')
+  })
+
+  it('no toma por lugar números comunes, nombres ni otros códigos', () => {
+    expect(level('columna', ['1', '2', '3', '10', '15'])).toBeNull()
+    expect(level('semana', ['0301', '0302'])).toBeNull()
+    expect(level('cod_red', ['0301', '0302'])).toBeNull()
+    expect(level('cod_prov', ['Lima', 'Cusco'])).toBeNull()
+    expect(level('cod_prov', [])).toBeNull()
+  })
+
+  it('ruleSuggestion usa el nivel de código como lugar', () => {
+    expect(ruleSuggestion('cod_prov', profileColumn(['0301', '0302']), null, 'province')).toEqual({
+      role: 'place',
+      level: 'province',
+      field: null,
+    })
+  })
+})
+
+describe('ruleSuggestion: códigos enteros chicos', () => {
+  const suggest = (name: string, values: string[]) =>
+    ruleSuggestion(name, profileColumn(values), null).role
+  const repeat = (values: string[]) =>
+    Array.from({ length: 30 }, (_, i) => values[i % values.length]!)
+
+  it('un entero con pocos valores y sin nombre de cantidad es categoría', () => {
+    expect(suggest('NIVEL', repeat(['1', '2', '3']))).toBe('category')
+    expect(suggest('CODIGO_INSTITUCION', repeat(['7', '8', '9', '10']))).toBe('category')
+  })
+
+  it('ignora el 999999 de "Sin dato" al decidir', () => {
+    expect(suggest('ESTADO', repeat(['1', '2', '1', '1', '999999']))).toBe('category')
+  })
+
+  it('un nombre de cantidad con pocos valores sigue siendo cantidad', () => {
+    expect(suggest('casos', repeat(['0', '1', '2', '3']))).toBe('count')
+  })
+
+  it('una medida real como edad o hemoglobina sigue siendo medida', () => {
+    expect(suggest('edad', repeat(['1', '2', '3']))).toBe('measure')
+    expect(suggest('hb', repeat(['11', '12', '13']))).toBe('measure')
+  })
+
+  it('un entero con muchos valores distintos sigue siendo medida', () => {
+    expect(
+      suggest(
+        'puntaje',
+        Array.from({ length: 80 }, (_, i) => String((i % 20) + 1)),
+      ),
+    ).toBe('measure')
   })
 })

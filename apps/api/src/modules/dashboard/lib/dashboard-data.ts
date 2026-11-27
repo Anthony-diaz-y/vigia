@@ -1,19 +1,30 @@
 import type { DashboardResponse, WidgetDto } from '@vigia/contracts'
 import {
   chooseGranularity,
+  categoryCodeLevel,
+  displayValue,
+  isMissingValue,
+  MISSING_VALUE,
   cleanDepartment,
   epiWeekOf,
   indicatorId,
   indicatorLabel,
   indicatorOptions,
   placeColumn,
+  placeColumns,
   planWidgets,
+  resolveUbigeo,
   splitLocation,
   timeSupport,
   topWithOthers,
+  ubigeoPlaceName,
+  valueRules,
+  type CategoryShape,
   type DatasetColumn,
   type Granularity,
   type Indicator,
+  type PlaceLevel,
+  type ValueRules,
   type WidgetPlan,
 } from '@vigia/epidemiology'
 
@@ -33,9 +44,10 @@ export interface DashboardInput {
 const MAX_RANKING = 10
 const MAX_HISTOGRAM_BINS = 20
 const MAX_SINGLE_BIN_SHARE = 0.9
-const MISSING = 'Sin dato'
+const MISSING = MISSING_VALUE
 const TOTAL = 'Total'
 const DAY_MS = 24 * 60 * 60 * 1000
+const CODE_VALUE = /^\d+(?:\.0+)?$/
 
 class Accumulator {
   records = 0
@@ -180,12 +192,25 @@ function periodReader(
   }
 }
 
-// Lugar de una fila al nivel elegido: la ubicación combinada se reduce a su departamento
-function placeReader(columns: readonly DatasetColumn[]): ((row: DataRow) => string | null) | null {
-  const place = placeColumn(columns)
-  if (!place) {
-    return null
-  }
+// Traduce un código UBIGEO a su nombre; si el valor no es un código o no está en el catálogo, devuelve null
+function codeName(text: string): string | null {
+  return CODE_VALUE.test(text.trim()) ? ubigeoPlaceName(text) : null
+}
+
+// Lugar de una fila con el nivel principal: el más alto que varía según los datos, si se conocen
+function placeReader(
+  columns: readonly DatasetColumn[],
+  distinct?: Readonly<Record<string, number>>,
+): ((row: DataRow) => string | null) | null {
+  const place = placeColumn(columns, distinct)
+  return place ? columnPlaceReader(columns, place) : null
+}
+
+// Lugar de una fila en una columna de lugar: la ubicación combinada se reduce a su departamento
+function columnPlaceReader(
+  columns: readonly DatasetColumn[],
+  place: { column: string; level: PlaceLevel },
+): (row: DataRow) => string | null {
   const source = columns.find((column) => column.name === place.column)
   return (row) => {
     const value = row[place.column]
@@ -196,7 +221,11 @@ function placeReader(columns: readonly DatasetColumn[]): ((row: DataRow) => stri
     if (source?.level === 'location') {
       return splitLocation(text).department || null
     }
-    return place.level === 'department' ? cleanDepartment(text) : text.trim().toUpperCase()
+    if (place.level === 'department') {
+      const department = CODE_VALUE.test(text.trim()) ? resolveUbigeo(text) : null
+      return cleanDepartment(department ?? text)
+    }
+    return (codeName(text) ?? text.trim()).toUpperCase()
   }
 }
 
@@ -293,9 +322,8 @@ export function weeklyIndicatorRows(
   const location = columns.find((column) => column.role === 'place' && column.level === 'location')
   const provinceOf = (row: DataRow): string => {
     if (province) {
-      return String(row[province.name] ?? '')
-        .trim()
-        .toUpperCase()
+      const text = String(row[province.name] ?? '').trim()
+      return (codeName(text) ?? text).toUpperCase()
     }
     const text = location ? row[location.name] : null
     return typeof text === 'string' ? splitLocation(text).province : ''
@@ -380,6 +408,65 @@ export function usesEpiYear(columns: readonly DatasetColumn[], granularity: Gran
   return granularity === 'week' && columns.some((column) => column.role === 'date')
 }
 
+// Columna del dataset por nombre (la de lugar siempre existe)
+function columnOf(columns: readonly DatasetColumn[], name: string): DatasetColumn {
+  return columns.find((column) => column.name === name) as DatasetColumn
+}
+
+// Reglas para mostrar los valores de una categoría, según todos los valores de la columna
+function categoryRules(column: DatasetColumn, rows: readonly DataRow[]): ValueRules {
+  const values = new Set<string>()
+  for (const row of rows) {
+    const value = row[column.name]
+    if (value !== null && value !== undefined) {
+      values.add(String(value))
+    }
+  }
+  return valueRules(column.name, [...values])
+}
+
+// Lee el valor a mostrar de una categoría: UBIGEO con nombre, "Sí"/"No" o "Sin dato" cuando corresponde
+function categoryReader(column: DatasetColumn, rules: ValueRules): (row: DataRow) => string {
+  const geography = categoryCodeLevel(column) !== null
+  return (row) => {
+    const value = row[column.name]
+    if (value === null || value === undefined) {
+      return MISSING
+    }
+    const text = String(value)
+    return (geography ? codeName(text)?.toUpperCase() : null) ?? displayValue(text, rules)
+  }
+}
+
+// Forma de una categoría (cuántos valores, qué tanto pesa el mayor); null si el indicador es un promedio
+function categoryShape(
+  groups: Map<string, Accumulator>,
+  indicator: Indicator,
+  rules: ValueRules,
+): CategoryShape | null {
+  if (indicator.kind === 'mean') {
+    return null
+  }
+  const entries = [...groups.entries()].map(([name, group]) => ({
+    name,
+    value: group.value(indicator) ?? 0,
+  }))
+  const total = entries.reduce((sum, entry) => sum + entry.value, 0)
+  const top = entries.reduce<(typeof entries)[number] | null>(
+    (best, entry) => (best === null || entry.value > best.value ? entry : best),
+    null,
+  )
+  if (!top || total <= 0) {
+    return null
+  }
+  return {
+    values: entries.filter((entry) => !isMissingValue(entry.name)).length,
+    yesNo: rules.yesNo,
+    topShare: top.value / total,
+    topMissing: isMissingValue(top.name),
+  }
+}
+
 // Arma el tablero completo: decide los widgets y calcula los datos de cada uno
 export function buildDashboard(input: DashboardInput): DashboardResponse {
   const { columns, rows, indicator } = input
@@ -398,19 +485,44 @@ export function buildDashboard(input: DashboardInput): DashboardResponse {
   const yearOf = rowYearReader(columns, epiYear)
   const filtered = year === null ? rows : rows.filter((row) => yearOf(row) === year)
   const periodOf = periodReader(columns, granularity)
-  const placeOf = placeReader(columns)
 
   const periods = groupBy(rows, periodOf, indicator)
-  const places = placeOf ? groupBy(filtered, placeOf, indicator) : new Map<string, Accumulator>()
   const distinct: Record<string, number> = {}
+  // Valores distintos de cada nivel de lugar, ya traducidos a nombres
+  for (const place of placeColumns(columns)) {
+    const read = columnPlaceReader(columns, place)
+    // Un "DESCONOCIDO" o 999999 no es un lugar más: no cuenta para elegir el lugar principal
+    const missing = categoryRules(columnOf(columns, place.column), rows).missing
+    distinct[place.column] = new Set(
+      filtered
+        .filter((row) => !missing.has(String(row[place.column] ?? '').trim()))
+        .map(read)
+        .filter((value) => value !== null),
+    ).size
+  }
+  const rules = new Map<string, ValueRules>()
+  const shapes: Record<string, CategoryShape> = {}
   for (const column of columns) {
-    if (column.role === 'category' || column.role === 'measure') {
+    if (column.role === 'category') {
+      const rule = categoryRules(column, rows)
+      rules.set(column.name, rule)
+      const groups = groupBy(filtered, categoryReader(column, rule), indicator)
+      distinct[column.name] = groups.size
+      if (!placeColumns(columns).some((place) => place.column === column.name)) {
+        const shape = categoryShape(groups, indicator, rule)
+        if (shape) {
+          shapes[column.name] = shape
+        }
+      }
+    } else if (column.role === 'measure') {
       distinct[column.name] = new Set(
         filtered.map((row) => row[column.name]).filter((value) => value !== null),
       ).size
     }
   }
 
+  const placeOf = placeReader(columns, distinct)
+  const places = placeOf ? groupBy(filtered, placeOf, indicator) : new Map<string, Accumulator>()
   const plan = planWidgets(
     {
       columns,
@@ -419,6 +531,7 @@ export function buildDashboard(input: DashboardInput): DashboardResponse {
       places: places.size,
       years: years.length,
       distinct,
+      categories: shapes,
     },
     indicator,
     granularity,
@@ -434,6 +547,7 @@ export function buildDashboard(input: DashboardInput): DashboardResponse {
     year,
     dates,
     granularity,
+    rules,
   }
 
   const widgets = plan
@@ -463,6 +577,7 @@ interface WidgetContext {
   year: number | null
   dates: string[]
   granularity: Granularity | null
+  rules: Map<string, ValueRules>
 }
 
 // Ordena grupos de mayor a menor valor y, si empatan, por nombre
@@ -470,6 +585,33 @@ function sortedGroups(groups: Map<string, Accumulator>, indicator: Indicator) {
   return [...groups.entries()]
     .map(([name, group]) => ({ name, value: group.value(indicator) ?? 0, count: group.records }))
     .sort((left, right) => right.value - left.value || left.name.localeCompare(right.name))
+}
+
+// Columna de texto mínima para desglosar por un nombre que no está entre las columnas
+function fallbackColumn(name: string): DatasetColumn {
+  return { name, label: '', role: 'category', level: null, field: null, kind: 'text' }
+}
+
+// Agrupa los valores bajos en "Otros" pero deja el "Sin dato" siempre al final
+function missingLast(
+  groups: ReturnType<typeof sortedGroups>,
+  indicator: Indicator,
+): { name: string; value: number }[] {
+  const missing = groups.filter((group) => isMissingValue(group.name))
+  const rows = topWithOthers(
+    groups.filter((group) => !isMissingValue(group.name)),
+    indicator,
+  )
+  return [...rows, ...missing.map(({ name, value }) => ({ name, value }))]
+}
+
+// Agrega la etiqueta del código cuando el usuario o la IA le dieron un significado
+function withLabel(
+  row: { name: string; value: number },
+  labels: Readonly<Record<string, string>>,
+): { name: string; value: number; label?: string } {
+  const label = isMissingValue(row.name) ? undefined : labels[row.name]
+  return label ? { ...row, label } : row
 }
 
 // Calcula los datos de un widget planeado
@@ -499,16 +641,23 @@ function buildWidget(widget: WidgetPlan, context: WidgetContext): WidgetDto | nu
       return { ...base, type: 'heatmap', ...heatmap(context) }
     case 'breakdown': {
       const column = widget.column ?? ''
-      const groups = groupBy(
-        filtered,
-        (row) =>
-          row[column] === null || row[column] === undefined ? MISSING : String(row[column]),
+      const source = context.input.columns.find((item) => item.name === column)
+      const level = placeColumns(context.input.columns).find((item) => item.column === column)
+      const readPlace = level ? columnPlaceReader(context.input.columns, level) : null
+      const rules = context.rules.get(column)
+      const read =
+        readPlace && !rules
+          ? (row: DataRow) => readPlace(row) ?? MISSING
+          : categoryReader(source ?? fallbackColumn(column), rules ?? valueRules(column, []))
+      const rows = missingLast(
+        sortedGroups(groupBy(filtered, read, indicator), indicator),
         indicator,
       )
       return {
         ...base,
         type: 'breakdown',
-        rows: topWithOthers(sortedGroups(groups, indicator), indicator),
+        ...(widget.variant && widget.variant !== 'bars' ? { variant: widget.variant } : {}),
+        rows: source?.values ? rows.map((row) => withLabel(row, source.values ?? {})) : rows,
       }
     }
     case 'histogram': {

@@ -125,3 +125,48 @@ describe('parseSuggestions', () => {
     expect(parseSuggestions('{"columns":[]}', COLUMNS)).toBeNull()
   })
 })
+
+describe('parseSuggestions: significado de los valores', () => {
+  const codes = { ESTADO: ['1', '2'], sexo: ['1', '2'] }
+  const cols = ['ESTADO', 'sexo', 'fecing']
+  const entry = (column: string, values: unknown) => ({
+    column,
+    label: column,
+    role: 'category',
+    values,
+  })
+
+  it('guarda las etiquetas de códigos que existen en la columna', () => {
+    const text = JSON.stringify({
+      columns: [entry('ESTADO', { '1': 'Activo', '2': ' Inactivo ' })],
+    })
+    expect(parseSuggestions(text, cols, codes)?.columns[0]?.values).toEqual({
+      '1': 'Activo',
+      '2': 'Inactivo',
+    })
+  })
+
+  it('descarta códigos desconocidos y etiquetas de más de 60 caracteres', () => {
+    const text = JSON.stringify({
+      columns: [entry('ESTADO', { '1': 'Activo', '999999': 'Otro', '2': 'x'.repeat(61) })],
+    })
+    expect(parseSuggestions(text, cols, codes)?.columns[0]?.values).toEqual({ '1': 'Activo' })
+  })
+
+  it('ignora values en columnas sin códigos propuestos, sin rol categoría o mal formados', () => {
+    const text = JSON.stringify({
+      columns: [
+        entry('fecing', { '1': 'Algo' }),
+        { ...entry('sexo', { '1': 'Hombre' }), role: 'measure' },
+        entry('ESTADO', ['Activo']),
+      ],
+    })
+    const result = parseSuggestions(text, cols, codes)
+    expect(result?.columns.map((item) => item.values)).toEqual([undefined, undefined, undefined])
+  })
+
+  it('sin la lista de códigos no acepta ninguna etiqueta', () => {
+    const text = JSON.stringify({ columns: [entry('ESTADO', { '1': 'Activo' })] })
+    expect(parseSuggestions(text, cols)?.columns[0]?.values).toBeUndefined()
+  })
+})

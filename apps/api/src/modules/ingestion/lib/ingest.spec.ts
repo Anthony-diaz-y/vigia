@@ -648,15 +648,22 @@ describe('nombres y roles sugeridos', () => {
       ],
     })
 
-  it('respeta a la IA cuando la regla solo se basa en el perfil de la columna', async () => {
+  it('respeta a la IA si marca un código como identificador, pero no si ignora un número que varía', async () => {
     const preview = await previewUpload(
       { data, filename: 'rech0.csv', source: 'minsa_dengue' },
-      suggest,
+      () =>
+        suggest().then((result) => ({
+          ...result,
+          columns: result.columns.map((item) =>
+            item.column === 'HV025' ? { ...item, role: 'ignore' as const, reason: null } : item,
+          ),
+        })),
     )
     expect(preview.columns.find((column) => column.name === 'HV001')).toMatchObject({
       role: 'identifier',
       reason: 'Código de conglomerado.',
     })
+    expect(preview.columns.find((column) => column.name === 'HV025')?.role).toBe('measure')
   })
 
   it('no repite nombres de columna', async () => {
@@ -771,8 +778,196 @@ describe('columnas constantes', () => {
     expect(byName.SELECCION).toMatchObject({ role: 'ignore' })
     expect(byName.DEPARTAMENTO).toMatchObject({
       role: 'place',
-      reason: 'Todas las filas tienen el mismo valor.',
+      reason: 'Mismo valor en todas las filas; se conserva como lugar del archivo.',
     })
     expect(byName.sexo?.role).toBe('category')
+  })
+})
+
+describe('columnas de cantidad por año y por gravedad', () => {
+  const lines = ['casos,casos_2024,casos_2025,casos_2026,casos_leve,cas_mod,cas_sev,cas_sin_t']
+  lines[0] += ',nom_dist,edad_media,nota,cte'
+  for (let index = 0; index < 12; index += 1) {
+    const base = [
+      20 + index,
+      5 + index,
+      7 + index,
+      9 + index,
+      3 + index,
+      2 + index,
+      index,
+      index % 4,
+    ]
+    lines.push(
+      `${base.join(',')},${['ATE', 'ANCON', 'COMAS'][index % 3]},${(30 + index * 1.5).toFixed(1)},texto libre ${index},1`,
+    )
+  }
+  const data = Buffer.from(lines.join('\n'))
+  const COUNTS = lines[0]!.split(',').slice(0, 8)
+
+  // Construye una respuesta de la IA con un rol por columna
+  const aiWith = (roles: Record<string, 'ignore' | 'year' | 'measure' | 'count' | 'category'>) =>
+    Promise.resolve({
+      title: 'Anemia',
+      topic: 'anemia',
+      columns: Object.entries(roles).map(([column, role]) => ({
+        column,
+        label: `Etiqueta ${column}`,
+        role,
+        level: null,
+        field: null,
+        reason: role === 'ignore' ? null : 'x',
+      })),
+    })
+
+  it('con solo reglas usa todas las cantidades y el promedio, sin ignorar números', async () => {
+    const preview = await previewUpload({ data, filename: 'anemia.csv', source: 'minsa_dengue' })
+    const byName = Object.fromEntries(preview.columns.map((column) => [column.name, column]))
+    for (const name of COUNTS) {
+      expect(byName[name]?.role, name).toBe('count')
+    }
+    expect(byName.edad_media?.role).toBe('measure')
+    expect(byName.cte).toMatchObject({
+      role: 'ignore',
+      reason: 'Tiene el mismo valor en todas las filas, así que no aporta al análisis.',
+    })
+  })
+
+  it('devuelve a la regla los números que la IA marca como no usar o con un rol inválido', async () => {
+    const preview = await previewUpload(
+      { data, filename: 'anemia.csv', source: 'minsa_dengue' },
+      () =>
+        aiWith({
+          casos: 'count',
+          casos_2024: 'year',
+          casos_2025: 'ignore',
+          casos_2026: 'ignore',
+          casos_leve: 'ignore',
+          cas_mod: 'count',
+          cas_sev: 'ignore',
+          cas_sin_t: 'ignore',
+          edad_media: 'ignore',
+          nom_dist: 'ignore',
+          nota: 'ignore',
+          cte: 'ignore',
+        }),
+    )
+    const byName = Object.fromEntries(preview.columns.map((column) => [column.name, column]))
+    for (const name of COUNTS) {
+      expect(byName[name]?.role, name).toBe('count')
+    }
+    expect(byName.casos_2024?.reason).toBe('Número entero que suma casos; se usará como cantidad.')
+    expect(byName.casos_leve?.reason).toBe('Número entero que suma casos; se usará como cantidad.')
+    expect(byName.edad_media).toMatchObject({
+      role: 'measure',
+      reason: 'Número que varía entre filas; se usará como valor medido.',
+    })
+    expect(byName.cte?.role).toBe('ignore')
+  })
+
+  it('respeta a la IA cuando ignora un texto libre', async () => {
+    const preview = await previewUpload(
+      { data, filename: 'anemia.csv', source: 'minsa_dengue' },
+      () => aiWith({ casos: 'count', nota: 'ignore' }),
+    )
+    expect(preview.columns.find((column) => column.name === 'nota')?.role).toBe('ignore')
+  })
+
+  it('guarda varias cantidades como columnas genéricas y la primera como casos', async () => {
+    const result = await ingestUpload({
+      data: Buffer.from('departamento,ano,semana,casos,casos_2024\nLORETO,2024,1,2,5\n'),
+      filename: 'x.csv',
+      source: 'minsa_dengue',
+      columns: [
+        {
+          name: 'departamento',
+          label: '',
+          role: 'place',
+          level: 'department',
+          field: null,
+          kind: 'text',
+        },
+        { name: 'ano', label: '', role: 'year', level: null, field: null, kind: 'number' },
+        { name: 'semana', label: '', role: 'week', level: null, field: null, kind: 'number' },
+        { name: 'casos', label: '', role: 'count', level: null, field: null, kind: 'number' },
+        { name: 'casos_2024', label: '', role: 'count', level: null, field: null, kind: 'number' },
+      ],
+    })
+    expect(result.columns.filter((column) => column.role === 'count')).toHaveLength(2)
+    expect(result.mapping.cases).toBe('casos')
+    expect(result.genericRows).toEqual([
+      { departamento: 'LORETO', ano: 2024, semana: 1, casos: 2, casos_2024: 5 },
+    ])
+  })
+})
+
+describe('tabla completa de roles por reglas', () => {
+  const header = [
+    'casos,casos_2024,casos_2025,casos_2026,casos_leve,cas_mod,cas_sev,cas_sin_t,nom_dist',
+    'edad media,anio,mes,ubigeo,nro_registro,pct_anemia,hb_prom,edad,poblacion,obs,region,dni',
+  ].join(',')
+  const lines = [header]
+  for (let index = 0; index < 12; index += 1) {
+    const counts = [20, 5, 7, 9, 3, 2, 0, 0].map((base, at) => base + index + (at % 3) * index)
+    lines.push(
+      [
+        ...counts,
+        ['ATE', 'ANCON', 'COMAS'][index % 3],
+        (30 + index * 1.5).toFixed(1),
+        2023 + (index % 3),
+        index + 1,
+        150100 + (index % 3),
+        1000 + index,
+        (10 + index * 0.7).toFixed(1),
+        (11 + index * 0.1).toFixed(1),
+        6 + index * 2,
+        100000 + index * 137,
+        `paciente refiere dolor ${index}`,
+        'LIMA',
+        4000000 + index,
+      ].join(','),
+    )
+  }
+
+  it('usa cada columna útil y deja sin uso solo texto libre, códigos y datos personales', async () => {
+    const preview = await previewUpload({
+      data: Buffer.from(lines.join('\n')),
+      filename: 'anemia.csv',
+      source: 'minsa_dengue',
+    })
+    const byName = Object.fromEntries(preview.columns.map((column) => [column.name, column]))
+    const table = Object.fromEntries(
+      preview.columns.map((column) => [
+        column.name,
+        `${column.role}${column.level ? ':' + column.level : ''}`,
+      ]),
+    )
+    expect(table).toEqual({
+      casos: 'count',
+      casos_2024: 'count',
+      casos_2025: 'count',
+      casos_2026: 'count',
+      casos_leve: 'count',
+      cas_mod: 'count',
+      cas_sev: 'count',
+      cas_sin_t: 'count',
+      nom_dist: 'place:district',
+      'edad media': 'measure',
+      anio: 'year',
+      mes: 'month',
+      ubigeo: 'place:ubigeo',
+      nro_registro: 'identifier',
+      pct_anemia: 'measure',
+      hb_prom: 'measure',
+      edad: 'measure',
+      poblacion: 'count',
+      obs: 'ignore',
+      region: 'place:department',
+      dni: 'identifier',
+    })
+    expect(byName.obs?.reason).toBe('Texto libre; no se usa en el tablero.')
+    expect(byName.region?.reason).toBe(
+      'Mismo valor en todas las filas; se conserva como lugar del archivo.',
+    )
   })
 })

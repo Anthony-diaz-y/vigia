@@ -87,14 +87,21 @@ describe('timeSupport', () => {
 })
 
 describe('validateColumns', () => {
-  it('keeps only the first date and the first count', () => {
+  it('keeps only the first date but allows several counts', () => {
     const result = validateColumns([
       column('fecing', 'date'),
       column('fecegr', 'date'),
       column('casos', 'count'),
       column('total', 'count'),
     ])
-    expect(result.map((item) => item.role)).toEqual(['date', 'ignore', 'count', 'ignore'])
+    expect(result.map((item) => item.role)).toEqual(['date', 'ignore', 'count', 'count'])
+  })
+
+  it('uses the first count in file order as the epidemiological cases', () => {
+    const mapping = toEpiMapping(
+      validateColumns([column('casos', 'count'), column('casos_2024', 'count')]),
+    )
+    expect(mapping.cases).toBe('casos')
   })
 
   it('drops the level outside places and defaults places to department', () => {

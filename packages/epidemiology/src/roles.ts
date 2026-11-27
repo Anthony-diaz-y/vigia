@@ -46,9 +46,13 @@ export const ROLE_INFO: readonly { id: ColumnRole; label: string; description: s
   {
     id: 'measure',
     label: 'Valor medido',
-    description: 'Número que se promedia: hemoglobina, edad…',
+    description: 'Número que se promedia: hemoglobina, edad, porcentajes, tasas…',
   },
-  { id: 'count', label: 'Cantidad', description: 'Cuántos casos representa cada fila.' },
+  {
+    id: 'count',
+    label: 'Cantidad',
+    description: 'Número que se suma: casos, atenciones, personas… Puede haber varias.',
+  },
   { id: 'identifier', label: 'Identificador', description: 'Código de registro; no se guarda.' },
   { id: 'ignore', label: 'No usar', description: 'La columna no se usa ni se guarda.' },
 ]
@@ -85,7 +89,7 @@ function cleanField(column: DatasetColumn): DescriptiveField | null {
   return FIELD_ROLES.has(column.role) && isDescriptiveField(column.field) ? column.field : null
 }
 
-const SINGLE_ROLES: ReadonlySet<ColumnRole> = new Set(['date', 'year', 'week', 'month', 'count'])
+const SINGLE_ROLES: ReadonlySet<ColumnRole> = new Set(['date', 'year', 'week', 'month'])
 
 const EPI_ROLE_FIELD: Partial<Record<ColumnRole, MappingTarget>> = {
   date: 'event_date',
@@ -109,7 +113,7 @@ export function timeSupport(columns: readonly DatasetColumn[]): TimeKind {
   return roles.has('year') ? 'year' : 'none'
 }
 
-// Corrige los roles: una sola fecha, cantidad y parte de tiempo, un lugar por nivel
+// Corrige los roles: una sola fecha y parte de tiempo, un lugar por nivel y varias cantidades
 export function validateColumns(columns: readonly DatasetColumn[]): DatasetColumn[] {
   const taken = new Set<string>()
   const result = columns.map((column) => {

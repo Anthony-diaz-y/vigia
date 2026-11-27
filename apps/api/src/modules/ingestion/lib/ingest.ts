@@ -31,7 +31,13 @@ import {
 import type { RawTable } from './readers'
 import { normalize, type CanonicalRow } from './normalize'
 import { fileSha256, readTable } from './readers'
-import { demoteCodes, profileColumn, ruleSuggestion, type ColumnProfile } from './profile'
+import {
+  demoteCodes,
+  isFreeText,
+  profileColumn,
+  ruleSuggestion,
+  type ColumnProfile,
+} from './profile'
 import { inferTopic } from './topic'
 import { typedRows, type TypedValue } from './typed-rows'
 
@@ -68,6 +74,11 @@ export interface IngestResult {
 
 const UNTITLED_TOPIC = 'SIN TEMA'
 const MIN_TIME_RATIO = 0.9
+const COUNT_REASON = 'Número entero que suma casos; se usará como cantidad.'
+const MEASURE_REASON = 'Número que varía entre filas; se usará como valor medido.'
+const FREE_TEXT_REASON = 'Texto libre; no se usa en el tablero.'
+const CONSTANT_PLACE_REASON = 'Mismo valor en todas las filas; se conserva como lugar del archivo.'
+const REPEATED_REASON = 'Ya hay otra columna con este uso, así que no se usará.'
 const PERSONAL_DATA_REASON = 'Dato personal: se acepta, pero no se guarda ni se envía a la IA.'
 const TIME_RULES: Partial<
   Record<DatasetColumn['role'], { min: number; max: number; reason: string }>
@@ -207,11 +218,17 @@ export async function previewUpload(
         .size,
     ]),
   )
+  const freeText = new Set(
+    table.columns.filter((name) =>
+      isFreeText(profileColumn(table.rows.map((row) => row[name] ?? ''))),
+    ),
+  )
   const aliasNames = new Set(Object.values(resolveMapping(table.columns, config).mapping))
   const suggested = mergeSuggestions(rules, ai, aliasNames)
   const timeChecked = checkTimeRanges(
     suggested.map((item) => item.column),
     table,
+    rules,
   )
   const corrected = uniqueLabels(
     demoteCodes(
@@ -232,12 +249,16 @@ export async function previewUpload(
     const reason = constant
       ? column.role === 'ignore' || column.role === 'identifier'
         ? 'Tiene el mismo valor en todas las filas, así que no aporta al análisis.'
-        : 'Todas las filas tienen el mismo valor.'
+        : column.role === 'place'
+          ? CONSTANT_PLACE_REASON
+          : 'Todas las filas tienen el mismo valor.'
       : timeReason
         ? timeReason
-        : column.role === item.column.role
-          ? item.reason
-          : 'Es un código, no una medida.'
+        : column.role === 'ignore' && freeText.has(column.name)
+          ? FREE_TEXT_REASON
+          : column.role === item.column.role
+            ? item.reason
+            : 'Es un código, no una medida.'
     return pii.includes(column.name)
       ? {
           column: {
@@ -276,7 +297,7 @@ export function ruleColumns(
 ): DatasetColumn[] {
   const aliasOf = new Map(Object.entries(aliasMapping).map(([target, name]) => [name, target]))
   const columns = names.map((name): DatasetColumn => {
-    const profile = profiles.get(name) ?? { kind: 'text', distinct: 0, filled: 0 }
+    const profile = profiles.get(name) ?? profileColumn([])
     const alias = aliasOf.get(name)
     return {
       name,
@@ -346,7 +367,12 @@ function sharedSamples(table: RawTable, column: ColumnSample): string[] {
   return new Set(values).size / values.length <= MAX_SHARED_DISTINCT_RATIO ? column.samples : []
 }
 
-// Combina la IA con las reglas: la IA manda y las reglas recuperan columnas conocidas que dejó sin uso
+// Explica en una frase por qué la regla dejó usada una columna que la IA descartó
+function ruleReason(role: DatasetColumn['role']): string | null {
+  return role === 'count' ? COUNT_REASON : role === 'measure' ? MEASURE_REASON : null
+}
+
+// Combina la IA con las reglas: la IA manda, salvo si descarta un número útil
 export function mergeSuggestions(
   rules: readonly DatasetColumn[],
   ai: DatasetSuggestion | null,
@@ -357,8 +383,9 @@ export function mergeSuggestions(
     const suggestion = byColumn.get(rule.name)
     const unused = !suggestion || suggestion.role === 'ignore' || suggestion.role === 'identifier'
     const known = aliasNames.has(rule.name)
-    const keepRule =
-      !suggestion || (unused && known && rule.role !== 'ignore' && rule.role !== 'identifier')
+    const ruleUsed = rule.role !== 'ignore' && rule.role !== 'identifier'
+    const numericIgnored = suggestion?.role === 'ignore' && rule.kind === 'number' && ruleUsed
+    const keepRule = !suggestion || (unused && known && ruleUsed) || numericIgnored
     const column: DatasetColumn = keepRule
       ? { ...rule, label: suggestion?.label ?? rule.label }
       : {
@@ -369,23 +396,39 @@ export function mergeSuggestions(
           field: suggestion.field,
         }
     const reason = keepRule
-      ? ai && rule.role !== 'ignore' && rule.role !== 'identifier'
-        ? 'Coincide con un nombre de columna conocido.'
+      ? ai && ruleUsed
+        ? known || !numericIgnored
+          ? 'Coincide con un nombre de columna conocido.'
+          : ruleReason(rule.role)
         : null
       : suggestion.reason
     return { column, reason }
   })
   const valid = safeValidate(merged.map((item) => item.column))
   return merged.map((item, index) => {
-    const column = valid[index] ?? item.column
-    return { column, reason: column.role === item.column.role ? item.reason : null }
+    const validated = valid[index] ?? item.column
+    const rule = rules[index]
+    const demoted = validated.role !== item.column.role
+    // Un número repetido en un rol único vuelve a su rol de regla en lugar de perderse
+    const rescued =
+      demoted && validated.role === 'ignore' && rule?.kind === 'number'
+        ? ruleReason(rule.role)
+        : null
+    if (rule && rescued) {
+      return {
+        column: { ...validated, role: rule.role, level: rule.level, field: rule.field },
+        reason: rescued,
+      }
+    }
+    return { column: validated, reason: demoted ? REPEATED_REASON : item.reason }
   })
 }
 
-// Descarta roles de tiempo cuyos valores no caben en su rango (por ejemplo, códigos de mes como 1446)
+// Cambia por la regla los roles de tiempo cuyos valores no caben en su rango (por ejemplo, 1446 como mes)
 function checkTimeRanges(
   columns: readonly DatasetColumn[],
   table: RawTable,
+  rules: readonly DatasetColumn[],
 ): { column: DatasetColumn; reason: string | null }[] {
   return columns.map((column) => {
     const rule = TIME_RULES[column.role]
@@ -397,8 +440,15 @@ function checkTimeRanges(
       .map((row) => parseNumber((row[column.name] ?? '').trim()))
       .filter((value): value is number => value !== null)
     const inside = values.filter((value) => value >= rule.min && value <= rule.max).length
-    return values.length > 0 && inside / values.length >= MIN_TIME_RATIO
-      ? { column, reason: null }
+    if (values.length > 0 && inside / values.length >= MIN_TIME_RATIO) {
+      return { column, reason: null }
+    }
+    const fallback = rules.find((item) => item.name === column.name)
+    return fallback && !TIME_RULES[fallback.role] && ruleReason(fallback.role) !== null
+      ? {
+          column: { ...column, role: fallback.role, level: fallback.level, field: fallback.field },
+          reason: ruleReason(fallback.role) ?? rule.reason,
+        }
       : { column: { ...column, role: 'ignore', level: null, field: null }, reason: rule.reason }
   })
 }

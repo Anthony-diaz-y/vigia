@@ -166,6 +166,11 @@ Railway services, environment variables, backfill, dual-run, rollback and the
 - SENAMHI and ENFEN/IMARPE: climate and El Nino context.
 
 Uploads can be aggregated counts or line lists; nominal identifiers are
-dropped at ingestion. Alerts by place (Recomendaciones, Análisis, Explicación)
+dropped at ingestion. Column roles are suggested by rules and, when available,
+by the AI; every column with useful information is used. A file can have
+several **Cantidad** columns (summed: casos, casos_2024, atenciones…; the first
+one is the row weight) and **Valor medido** columns (averaged: edad,
+porcentajes). Only constants, extra dates, free text and record codes are left
+as **No usar**. Alerts by place (Recomendaciones, Análisis, Explicación)
 need dates or epidemiological weeks; monthly or yearly files get the dashboard,
 its findings and the indicator forecast.

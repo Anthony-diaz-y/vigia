@@ -77,6 +77,16 @@ describe('indicators', () => {
     expect(ids).toEqual(['records', 'sum:casos', 'mean:edad'])
   })
 
+  it('con varias cantidades usa la primera por defecto y ofrece la suma de cada una', () => {
+    const columns = [column('casos', 'count'), column('casos_2024', 'count')]
+    expect(defaultIndicator(columns)).toEqual({ kind: 'sum', column: 'casos' })
+    expect(indicatorOptions(columns).map((option) => option.id)).toEqual([
+      'records',
+      'sum:casos',
+      'sum:casos_2024',
+    ])
+  })
+
   it('lee un indicador desde su id y vuelve al de por defecto si no existe', () => {
     expect(parseIndicator('mean:hemoglobina', ANEMIA)).toEqual({
       kind: 'mean',

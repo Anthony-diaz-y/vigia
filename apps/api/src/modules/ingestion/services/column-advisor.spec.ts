@@ -94,6 +94,31 @@ describe('parseSuggestions', () => {
     ])
   })
 
+  it('keeps every count the AI proposes', () => {
+    const text = JSON.stringify({
+      columns: [
+        { column: 'a', label: 'Casos', role: 'count', reason: 'Suma casos.' },
+        { column: 'b', label: 'Casos 2024', role: 'count', reason: 'Suma casos.' },
+        { column: 'c', label: 'Casos leves', role: 'count', reason: 'Suma casos.' },
+      ],
+    })
+    const result = parseSuggestions(text, ['a', 'b', 'c'])
+    expect(result?.columns.map((item) => item.role)).toEqual(['count', 'count', 'count'])
+  })
+
+  it('explains why a repeated date was left unused', () => {
+    const text = JSON.stringify({
+      columns: [
+        { column: 'fecing', label: 'Fecha de ingreso', role: 'date' },
+        { column: 'fecegr', label: 'Fecha de egreso', role: 'date' },
+      ],
+    })
+    expect(parseSuggestions(text, COLUMNS)?.columns[1]).toMatchObject({
+      role: 'ignore',
+      reason: 'Ya hay otra columna con este uso, así que no se usará.',
+    })
+  })
+
   it('returns null for answers that are not the expected JSON', () => {
     expect(parseSuggestions('no es json', COLUMNS)).toBeNull()
     expect(parseSuggestions('{"otra":1}', COLUMNS)).toBeNull()

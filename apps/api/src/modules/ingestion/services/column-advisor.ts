@@ -17,7 +17,8 @@ const MAX_LABEL_LENGTH = 60
 const MAX_REASON_LENGTH = 140
 const MAX_TITLE_LENGTH = 80
 const MAX_TOPIC_LENGTH = 40
-const SINGLE_ROLES: ReadonlySet<ColumnRole> = new Set(['date', 'year', 'week', 'month', 'count'])
+const REPEATED_REASON = 'Ya hay otra columna con este uso, así que no se usará.'
+const SINGLE_ROLES: ReadonlySet<ColumnRole> = new Set(['date', 'year', 'week', 'month'])
 
 const SYSTEM_PROMPT = [
   'Sos un asistente que ayuda a cargar datasets de salud de Perú (cualquier tema) en Vigia.',
@@ -28,7 +29,10 @@ const SYSTEM_PROMPT = [
   '- label: qué contiene la columna, en español claro, máximo 5 palabras, y distinto para cada columna (nunca repitas un label).',
   '- Si los encabezados son códigos de una encuesta conocida (por ejemplo ENDES/DHS: HV001, HV025…) usa su significado oficial; si no, dedúcelo de los ejemplos y del resto de columnas.',
   '- "year", "week" y "month" solo si los valores son años, semanas (1-53) o meses (1-12); códigos de fecha como el mes continuo de ENDES (HV008) van en "ignore".',
-  '- Usa "ignore" solo para constantes, fechas de corte o texto libre; toda columna con información útil debe tener un rol.',
+  '- Usa "ignore" solo para constantes, fechas de corte, texto libre o códigos de registro; toda columna con información útil debe tener un rol y casi todas se usan.',
+  '- "count" es un número entero que se suma (casos, atenciones, consultas, personas, niños, exámenes); puede haber VARIAS columnas "count" en el mismo archivo.',
+  '- "measure" es un valor que se promedia (promedios, porcentajes, tasas, edad, hemoglobina); un número que no se suma es "measure", nunca "ignore".',
+  '- Columnas como "casos_2024" (casos por año) o "casos_leve", "cas_mod", "cas_sev" (casos por gravedad) son "count": no son "year" ni "ignore".',
   '- role: uno de los ids de roles. level: solo si role es "place", uno de los niveles de lugar.',
   '- field: opcional, solo para role "category" o "measure", el id de campo epidemiológico que corresponda (sexo, edad, diagnóstico…) o null.',
   '- Usa role "date" una sola vez: la fecha más cercana al inicio del caso (síntomas, notificación, ingreso, toma de muestra); nunca egreso, alta, corte o actualización.',
@@ -77,7 +81,7 @@ export class ColumnAdvisor {
   }
 }
 
-// Valida la respuesta: columnas reales, roles y niveles conocidos, y una sola fecha y cantidad
+// Valida la respuesta: columnas reales, roles y niveles conocidos, y una sola fecha o parte de tiempo
 export function parseSuggestions(
   text: string,
   columns: readonly string[],
@@ -106,9 +110,11 @@ export function parseSuggestions(
     let role: ColumnRole = (COLUMN_ROLES as readonly unknown[]).includes(raw.role)
       ? (raw.role as ColumnRole)
       : 'ignore'
+    let repeated = false
     if (SINGLE_ROLES.has(role)) {
-      role = taken.has(role) ? 'ignore' : role
+      repeated = taken.has(role)
       taken.add(role)
+      role = repeated ? 'ignore' : role
     }
     const level: PlaceLevel | null =
       role !== 'place'
@@ -126,7 +132,11 @@ export function parseSuggestions(
       role,
       level,
       field,
-      reason: role === 'ignore' ? null : shortText(raw.reason, MAX_REASON_LENGTH),
+      reason: repeated
+        ? REPEATED_REASON
+        : role === 'ignore'
+          ? null
+          : shortText(raw.reason, MAX_REASON_LENGTH),
     })
   }
   if (suggestions.length === 0) {
